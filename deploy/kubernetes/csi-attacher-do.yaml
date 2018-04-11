@@ -1,0 +1,62 @@
+# needed for StatefulSet
+kind: Service
+apiVersion: v1
+metadata:
+  name: csi-attacher-doplugin
+  labels:
+    app: csi-attacher-doplugin
+spec:
+  selector:
+    app: csi-attacher-doplugin
+  ports:
+    - name: dummy
+      port: 12345
+---
+kind: StatefulSet
+apiVersion: apps/v1beta1
+metadata:
+  name: csi-attacher-doplugin
+spec:
+  serviceName: "csi-attacher-doplugin"
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: csi-attacher-doplugin
+    spec:
+      serviceAccount: csi-attacher
+      containers:
+        - name: csi-attacher
+          image: quay.io/k8scsi/csi-attacher:v0.2.0
+          args:
+            - "--v=5"
+            - "--csi-address=$(ADDRESS)"
+          env:
+            - name: ADDRESS
+              value: /var/lib/csi/sockets/pluginproxy/csi.sock
+          imagePullPolicy: "IfNotPresent"
+          volumeMounts:
+            - name: socket-dir
+              mountPath: /var/lib/csi/sockets/pluginproxy/
+        - name: digitalocean-csi-plugin
+          image: digitalocean/do-csi-plugin:v0.0.1
+          args :
+            - "--endpoint=$(CSI_ENDPOINT)"
+            - "--token=$(DIGITALOCEAN_ACCESS_TOKEN)"
+          env:
+            - name: CSI_ENDPOINT
+              value: unix:///var/lib/csi/sockets/pluginproxy/csi.sock
+            - name: DIGITALOCEAN_ACCESS_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: dotoken
+                  key: token
+          # remove 'always' once we have a working image
+          # imagePullPolicy: "IfNotPresent"
+          imagePullPolicy: "Always"
+          volumeMounts:
+            - name: socket-dir
+              mountPath: /var/lib/csi/sockets/pluginproxy/
+      volumes:
+        - name: socket-dir
+          emptyDir: {}
