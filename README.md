@@ -1,7 +1,14 @@
 # csi-digitalocean [![Build Status](https://img.shields.io/travis/digitalocean/csi-digitalocean.svg?style=flat-square)](https://travis-ci.org/digitalocean/csi-digitalocean)
 
 **WORK IN PROGRESS: This project is under development, not ready for
-production yet. Use with caution until it's announced!!!**
+production yet. Use with caution until it's announced as stable!!!**
+
+# Requirements
+
+* Kubernetes v1.10 minimum
+* `--allow-privileged` flag must be set to true for both the API server and the kubelet
+* (if you use Docker) the Docker daemon of the cluster nodes must allow shared mounts
+
 
 ## Deploying to Kubernetes
 
@@ -49,7 +56,7 @@ kubectl create -f csi-nodeplugin-do.yaml
 This is based on the recommended mechanism of deploying CSI drivers on Kubernetes: https://github.com/kubernetes/community/blob/master/contributors/design-proposals/storage/container-storage-interface.md#recommended-mechanism-for-deploying-csi-drivers-on-kubernetes
 
 Note that the proposal is still work in progress and not all of the written
-features are implemented. When in doubt, as #sig-storage in Kubernetes Slack
+features are implemented. When in doubt, ask #sig-storage in [Kubernetes Slack](http://slack.k8s.io)
 
 3. Test and verify:
 
