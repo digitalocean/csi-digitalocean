@@ -53,6 +53,11 @@ kubectl create -f csi-nodeplugin-rbac.yaml
 kubectl create -f csi-nodeplugin-do.yaml
 ```
 
+A new storage class will be created with the name `do-block-storage` which is
+responsible for dynamic provisioning. This is set to "default" for dynamic
+provisioning. If you're using multiple storage classes you might want to remove
+the annotation from the `csi-storageclass.yaml` and re-deploy it.
+
 This is based on the recommended mechanism of deploying CSI drivers on Kubernetes: https://github.com/kubernetes/community/blob/master/contributors/design-proposals/storage/container-storage-interface.md#recommended-mechanism-for-deploying-csi-drivers-on-kubernetes
 
 Note that the proposal is still work in progress and not all of the written
