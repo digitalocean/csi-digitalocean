@@ -95,7 +95,16 @@ func (d *Driver) Run() error {
 		return fmt.Errorf("failed to listen: %v", err)
 	}
 
-	d.srv = grpc.NewServer()
+	// log response errors for better observability
+	errHandler := func(ctx context.Context, req interface{}, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (interface{}, error) {
+		resp, err := handler(ctx, req)
+		if err != nil {
+			d.log.WithError(err).WithField("method", info.FullMethod).Error("method failed")
+		}
+		return resp, err
+	}
+
+	d.srv = grpc.NewServer(grpc.UnaryInterceptor(errHandler))
 	csi.RegisterIdentityServer(d.srv, d)
 	csi.RegisterControllerServer(d.srv, d)
 	csi.RegisterNodeServer(d.srv, d)
