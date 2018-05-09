@@ -198,3 +198,10 @@ func (f *fakeMounter) Mount(source string, target string, fsType string, options
 func (f *fakeMounter) Unmount(target string) error {
 	return nil
 }
+
+func (f *fakeMounter) IsFormatted(source string) (bool, error) {
+	return true, nil
+}
+func (f *fakeMounter) IsMounted(source, target string) (bool, error) {
+	return true, nil
+}

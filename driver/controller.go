@@ -145,8 +145,12 @@ func (d *Driver) DeleteVolume(ctx context.Context, req *csi.DeleteVolumeRequest)
 	})
 	ll.Info("delete volume called")
 
-	_, err := d.doClient.Storage.DeleteVolume(ctx, req.VolumeId)
+	resp, err := d.doClient.Storage.DeleteVolume(ctx, req.VolumeId)
 	if err != nil {
+		if resp.StatusCode == http.StatusNotFound {
+			// we assume it's deleted already for idempotency
+			return &csi.DeleteVolumeResponse{}, nil
+		}
 		return nil, err
 	}
 
