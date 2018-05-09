@@ -82,19 +82,34 @@ func (d *Driver) NodeStageVolume(ctx context.Context, req *csi.NodeStageVolumeRe
 		"mount_options":       options,
 	})
 
-	ll.Info("formatting the volume for staging")
-	if err := d.mounter.Format(source, fsType); err != nil {
-		return nil, status.Error(codes.Internal, err.Error())
+	formatted, err := d.mounter.IsFormatted(source)
+	if err != nil {
+		return nil, err
+	}
+
+	if !formatted {
+		ll.Info("formatting the volume for staging")
+		if err := d.mounter.Format(source, fsType); err != nil {
+			return nil, status.Error(codes.Internal, err.Error())
+		}
+	} else {
+		ll.Info("source device is already formatted")
 	}
 
 	ll.Info("mounting the volume for staging")
-	if err := d.mounter.Mount(source, target, fsType, options...); err != nil {
-		return nil, status.Error(codes.Internal, err.Error())
+
+	mounted, err := d.mounter.IsMounted(source, target)
+	if err != nil {
+		return nil, err
 	}
 
-	// TODO(arslan): is this needed?
-	// Change fstab so the volume will be mounted after a reboot
-	// echo /dev/disk/by-id/scsi-0DO_Volume_volume-nyc3-01 /mnt/volume-nyc3-01 ext4 defaults,nofail,discard 0 0 | sudo tee -a /etc/fstab
+	if !mounted {
+		if err := d.mounter.Mount(source, target, fsType, options...); err != nil {
+			return nil, status.Error(codes.Internal, err.Error())
+		}
+	} else {
+		ll.Info("source device is already mounted to the target path")
+	}
 
 	ll.Info("formatting and mounting stage volume is finished")
 	return &csi.NodeStageVolumeResponse{}, nil
@@ -116,9 +131,19 @@ func (d *Driver) NodeUnstageVolume(ctx context.Context, req *csi.NodeUnstageVolu
 	})
 	ll.Info("node unstage volume called")
 
-	err := d.mounter.Unmount(req.StagingTargetPath)
+	mounted, err := d.mounter.IsMounted("", req.StagingTargetPath)
 	if err != nil {
 		return nil, err
+	}
+
+	if mounted {
+		ll.Info("unmounting the staging target path")
+		err := d.mounter.Unmount(req.StagingTargetPath)
+		if err != nil {
+			return nil, err
+		}
+	} else {
+		ll.Info("staging target path is already unmounted")
 	}
 
 	ll.Info("unmounting stage volume is finished")
@@ -171,15 +196,21 @@ func (d *Driver) NodePublishVolume(ctx context.Context, req *csi.NodePublishVolu
 		"mount_options": options,
 	})
 
-	// TODO(arslan)
-	// * check if mount already exist, make this function idempotent
-	// * remove target path if mounting fails
-	ll.Info("mounting the volume")
-	if err := d.mounter.Mount(source, target, fsType, options...); err != nil {
-		return nil, status.Error(codes.Internal, err.Error())
+	mounted, err := d.mounter.IsMounted(source, target)
+	if err != nil {
+		return nil, err
 	}
 
-	ll.Info("formatting and mounting the volume is finished")
+	if !mounted {
+		ll.Info("mounting the volume")
+		if err := d.mounter.Mount(source, target, fsType, options...); err != nil {
+			return nil, status.Error(codes.Internal, err.Error())
+		}
+	} else {
+		ll.Info("volume is already mounedt")
+	}
+
+	ll.Info("bind mounting the volume is finished")
 	return &csi.NodePublishVolumeResponse{}, nil
 }
 
@@ -199,9 +230,19 @@ func (d *Driver) NodeUnpublishVolume(ctx context.Context, req *csi.NodeUnpublish
 	})
 	ll.Info("node unpublish volume called")
 
-	err := d.mounter.Unmount(req.TargetPath)
+	mounted, err := d.mounter.IsMounted("", req.TargetPath)
 	if err != nil {
 		return nil, err
+	}
+
+	if mounted {
+		ll.Info("unmounting the target path")
+		err := d.mounter.Unmount(req.TargetPath)
+		if err != nil {
+			return nil, err
+		}
+	} else {
+		ll.Info("target path is already unmounted")
 	}
 
 	ll.Info("unmounting volume is finished")

@@ -34,6 +34,16 @@ type Mounter interface {
 
 	// Unmount unmounts the given target
 	Unmount(target string) error
+
+	// IsFormatted checks whether the source device is formatted or not. It
+	// returns true if the source device is already formatted.
+	IsFormatted(source string) (bool, error)
+
+	// IsMounted checks whether the source device is mounted to the target
+	// path. Source can be empty. In that case it only checks whether the
+	// device is mounted or not.
+	// It returns true if it's mounted.
+	IsMounted(source, target string) (bool, error)
 }
 
 // TODO(arslan): this is Linux only for now. Refactor this into a package with
@@ -129,4 +139,59 @@ func (m *mounter) Unmount(target string) error {
 	}
 
 	return nil
+}
+
+func (m *mounter) IsFormatted(source string) (bool, error) {
+	if source == "" {
+		return false, errors.New("source is not specified")
+	}
+
+	blkidCmd := "blkid"
+	_, err := exec.LookPath(blkidCmd)
+	if err != nil {
+		if err == exec.ErrNotFound {
+			return false, fmt.Errorf("%q executable not found in $PATH", blkidCmd)
+		}
+		return false, err
+	}
+
+	out, err := exec.Command(blkidCmd, source).CombinedOutput()
+	if err != nil {
+		return false, fmt.Errorf("checking formatting failed: %v cmd: %q output: %q",
+			err, blkidCmd, string(out))
+	}
+
+	if strings.TrimSpace(string(out)) == "" {
+		return false, nil
+	}
+
+	return true, nil
+}
+
+func (m *mounter) IsMounted(source, target string) (bool, error) {
+	findmntCmd := "findmnt"
+	_, err := exec.LookPath(findmntCmd)
+	if err != nil {
+		if err == exec.ErrNotFound {
+			return false, fmt.Errorf("%q executable not found in $PATH", findmntCmd)
+		}
+		return false, err
+	}
+
+	findmntArgs := []string{"--mountpoint", target}
+	if source != "" {
+		findmntArgs = append(findmntArgs, "--source", source)
+	}
+
+	out, err := exec.Command(findmntCmd, findmntArgs...).CombinedOutput()
+	if err != nil {
+		return false, fmt.Errorf("checking mounted failed: %v cmd: %q output: %q",
+			err, findmntCmd, string(out))
+	}
+
+	if strings.TrimSpace(string(out)) == "" {
+		return false, nil
+	}
+
+	return true, nil
 }
