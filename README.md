@@ -46,25 +46,10 @@ secret "dotoken" created
 
 Before you continue, be sure to checkout to a [tagged
 release](https://github.com/digitalocean/csi-digitalocean/releases). For
-example, to use the version `v0.0.1` you can execute the following command inside the repo:
+example, to use the version `v0.0.1` you can execute the following command:
 
 ```
-$ git checkout tags/v0.0.1
-```
-
-After checking out to a preferred release, switch to the kubernetes folder and
-start deploying the plugin to your cluster:
-
-```
-$ cd deploy/kubernetes
-
-$ kubectl create -f csi-storageclass.yaml
-$ kubectl create -f csi-attacher-rbac.yaml
-$ kubectl create -f csi-attacher-do.yaml
-$ kubectl create -f csi-provisioner-rbac.yaml
-$ kubectl create -f csi-provisioner-do.yaml
-$ kubectl create -f csi-nodeplugin-rbac.yaml
-$ kubectl create -f csi-nodeplugin-do.yaml
+$ kubectl apply -f https://raw.githubusercontent.com/digitalocean/csi-digitalocean/master/deploy/kubernetes/releases/csi-digitalocean-v0.0.1.yaml
 ```
 
 A new storage class will be created with the name `do-block-storage` which is
@@ -73,12 +58,12 @@ provisioning. If you're using multiple storage classes you might want to remove
 the annotation from the `csi-storageclass.yaml` and re-deploy it. This is
 based on the [recommended mechanism](https://github.com/kubernetes/community/blob/master/contributors/design-proposals/storage/container-storage-interface.md#recommended-mechanism-for-deploying-csi-drivers-on-kubernetes) of deploying CSI drivers on Kubernetes
 
-*Note that the deployment proposal to Kubernetes is still work in progress and not all of the written
+*Note that the deployment proposal to Kubernetes is still a work in progress and not all of the written
 features are implemented. When in doubt, open an issue or ask #sig-storage in [Kubernetes Slack](http://slack.k8s.io)*
 
 #### 3. Test and verify:
 
-Create a PersistentVolumeClaim. This makes sure a volume is created and provisioned on behalf of you:
+Create a PersistentVolumeClaim. This makes sure a volume is created and provisioned on your behalf:
 
 ```
 apiVersion: v1
