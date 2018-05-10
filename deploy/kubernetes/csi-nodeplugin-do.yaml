@@ -51,8 +51,7 @@ spec:
                 secretKeyRef:
                   name: dotoken
                   key: token
-          # imagePullPoliycy: "IfNotPresent"
-          imagePullPolicy: "Always"
+          imagePullPolicy: "IfNotPresent"
           volumeMounts:
             - name: plugin-dir
               mountPath: /csi

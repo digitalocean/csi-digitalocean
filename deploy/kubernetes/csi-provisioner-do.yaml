@@ -52,9 +52,7 @@ spec:
                 secretKeyRef:
                   name: dotoken
                   key: token
-          # remove 'always' once we have a working image
-          # imagePullPolicy: "IfNotPresent"
-          imagePullPolicy: "Always"
+          imagePullPolicy: "IfNotPresent"
           volumeMounts:
             - name: socket-dir
               mountPath: /var/lib/csi/sockets/pluginproxy/
