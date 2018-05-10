@@ -154,7 +154,7 @@ func (d *Driver) DeleteVolume(ctx context.Context, req *csi.DeleteVolumeRequest)
 		return nil, err
 	}
 
-	ll.Info("volume is deleted")
+	ll.WithField("response", resp).Info("volume is deleted")
 	return &csi.DeleteVolumeResponse{}, nil
 }
 
@@ -190,7 +190,6 @@ func (d *Driver) ControllerPublishVolume(ctx context.Context, req *csi.Controlle
 		if resp.StatusCode == http.StatusUnprocessableEntity || strings.Contains(err.Error(), "This volume is already attached") {
 			return &csi.ControllerPublishVolumeResponse{}, nil
 		}
-
 		return nil, err
 	}
 

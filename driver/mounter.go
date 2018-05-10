@@ -185,6 +185,11 @@ func (m *mounter) IsMounted(source, target string) (bool, error) {
 
 	out, err := exec.Command(findmntCmd, findmntArgs...).CombinedOutput()
 	if err != nil {
+		// findmnt exits with non zero exit status if it couldn't find anything
+		if strings.TrimSpace(string(out)) == "" {
+			return false, nil
+		}
+
 		return false, fmt.Errorf("checking mounted failed: %v cmd: %q output: %q",
 			err, findmntCmd, string(out))
 	}

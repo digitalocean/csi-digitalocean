@@ -1,18 +1,19 @@
-# csi-digitalocean [![Build Status](https://img.shields.io/travis/digitalocean/csi-digitalocean.svg?style=flat-square)](https://travis-ci.org/digitalocean/csi-digitalocean)
+# csi-digitalocean [![Build Status](https://travis-ci.org/digitalocean/csi-digitalocean.svg?branch=master)](https://travis-ci.org/digitalocean/csi-digitalocean)
+A Container Storage Interface ([CSI](https://github.com/container-storage-interface/spec)) Driver for DigitalOcean Block Storage. The CSI plugin allows you to use DigitalOcean Block Storage with your preferred Container Orchestrator.
 
-**WORK IN PROGRESS: This project is under development, not ready for
-production yet. Use with caution until it's announced as stable!!!**
+The DigitalOcean CSI plugin is mostly tested on Kubernetes. Theoretically it
+should also work on other Container Orchestrator's, such as Mesos or
+Cloud Foundry. Feel free to test it on other CO's and give us a feedback.
 
-# Requirements
+## Installing to Kubernetes
 
-* Kubernetes v1.10 minimum
+**Requirements:**
+
+* Kubernetes v1.10 minimum 
 * `--allow-privileged` flag must be set to true for both the API server and the kubelet
 * (if you use Docker) the Docker daemon of the cluster nodes must allow shared mounts
 
-
-## Deploying to Kubernetes
-
-1. Create a secret with your DigitalOcean API Access Token:
+#### 1. Create a secret with your DigitalOcean API Access Token:
 
 First encode your token in base64 (in this example, the string starting with
 `a05...` is the API token):
@@ -41,31 +42,43 @@ $ kubectl create -f ./secret.yml
 secret "dotoken" created
 ```
 
-2. Deploy the CSI plugin and sidecars:
+#### 2. Deploy the CSI plugin and sidecars:
+
+Before you continue, be sure to checkout to a [tagged
+release](https://github.com/digitalocean/csi-digitalocean/releases). For
+example, to use the version `v0.0.1` you can execute the following command inside the repo:
 
 ```
-kubectl create -f csi-storageclass.yaml
-kubectl create -f csi-attacher-rbac.yaml
-kubectl create -f csi-attacher-do.yaml
-kubectl create -f csi-provisioner-rbac.yaml
-kubectl create -f csi-provisioner-do.yaml
-kubectl create -f csi-nodeplugin-rbac.yaml
-kubectl create -f csi-nodeplugin-do.yaml
+$ git checkout tags/v0.0.1
+```
+
+After checking out to a preferred release, switch to the kubernetes folder and
+start deploying the plugin to your cluster:
+
+```
+$ cd deploy/kubernetes
+
+$ kubectl create -f csi-storageclass.yaml
+$ kubectl create -f csi-attacher-rbac.yaml
+$ kubectl create -f csi-attacher-do.yaml
+$ kubectl create -f csi-provisioner-rbac.yaml
+$ kubectl create -f csi-provisioner-do.yaml
+$ kubectl create -f csi-nodeplugin-rbac.yaml
+$ kubectl create -f csi-nodeplugin-do.yaml
 ```
 
 A new storage class will be created with the name `do-block-storage` which is
-responsible for dynamic provisioning. This is set to "default" for dynamic
+responsible for dynamic provisioning. This is set to **"default"** for dynamic
 provisioning. If you're using multiple storage classes you might want to remove
-the annotation from the `csi-storageclass.yaml` and re-deploy it.
+the annotation from the `csi-storageclass.yaml` and re-deploy it. This is
+based on the [recommended mechanism](https://github.com/kubernetes/community/blob/master/contributors/design-proposals/storage/container-storage-interface.md#recommended-mechanism-for-deploying-csi-drivers-on-kubernetes) of deploying CSI drivers on Kubernetes
 
-This is based on the recommended mechanism of deploying CSI drivers on Kubernetes: https://github.com/kubernetes/community/blob/master/contributors/design-proposals/storage/container-storage-interface.md#recommended-mechanism-for-deploying-csi-drivers-on-kubernetes
+*Note that the deployment proposal to Kubernetes is still work in progress and not all of the written
+features are implemented. When in doubt, open an issue or ask #sig-storage in [Kubernetes Slack](http://slack.k8s.io)*
 
-Note that the proposal is still work in progress and not all of the written
-features are implemented. When in doubt, ask #sig-storage in [Kubernetes Slack](http://slack.k8s.io)
+#### 3. Test and verify:
 
-3. Test and verify:
-
-Create a PersistenVolumeClaim. This makes sure a volume is created and provisioned on behalf of you:
+Create a PersistentVolumeClaim. This makes sure a volume is created and provisioned on behalf of you:
 
 ```
 apiVersion: v1
@@ -120,3 +133,7 @@ $ kubectl exec -ti my-csi-app /bin/sh
 / # ls /data
 hello-world
 ```
+
+## Contributing
+At DigitalOcean we value and love our community! If you have any issues or
+would like to contribute, feel free to open an issue/PR
