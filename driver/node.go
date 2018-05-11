@@ -80,6 +80,7 @@ func (d *Driver) NodeStageVolume(ctx context.Context, req *csi.NodeStageVolumeRe
 		"source":              source,
 		"fsType":              fsType,
 		"mount_options":       options,
+		"method":              "node_stage_volume",
 	})
 
 	formatted, err := d.mounter.IsFormatted(source)
@@ -128,6 +129,7 @@ func (d *Driver) NodeUnstageVolume(ctx context.Context, req *csi.NodeUnstageVolu
 	ll := d.log.WithFields(logrus.Fields{
 		"volume_id":           req.VolumeId,
 		"staging_target_path": req.StagingTargetPath,
+		"method":              "node_unstage_volume",
 	})
 	ll.Info("node unstage volume called")
 
@@ -194,6 +196,7 @@ func (d *Driver) NodePublishVolume(ctx context.Context, req *csi.NodePublishVolu
 		"target":        target,
 		"fsType":        fsType,
 		"mount_options": options,
+		"method":        "node_publish_volume",
 	})
 
 	mounted, err := d.mounter.IsMounted(source, target)
@@ -227,6 +230,7 @@ func (d *Driver) NodeUnpublishVolume(ctx context.Context, req *csi.NodeUnpublish
 	ll := d.log.WithFields(logrus.Fields{
 		"volume_id":   req.VolumeId,
 		"target_path": req.TargetPath,
+		"method":      "node_unpublish_volume",
 	})
 	ll.Info("node unpublish volume called")
 
@@ -254,7 +258,7 @@ func (d *Driver) NodeUnpublishVolume(ctx context.Context, req *csi.NodeUnpublish
 // workload. The result of this function will be used by the CO in
 // ControllerPublishVolume.
 func (d *Driver) NodeGetId(ctx context.Context, req *csi.NodeGetIdRequest) (*csi.NodeGetIdResponse, error) {
-	d.log.Info("node get id called")
+	d.log.WithField("method", "node_get_id").Info("node get id called")
 	return &csi.NodeGetIdResponse{
 		NodeId: d.nodeId,
 	}, nil
@@ -271,7 +275,10 @@ func (d *Driver) NodeGetCapabilities(ctx context.Context, req *csi.NodeGetCapabi
 		},
 	}
 
-	d.log.WithField("node_capabilities", nscap).Info("node get capabilities called")
+	d.log.WithFields(logrus.Fields{
+		"node_capabilities": nscap,
+		"method":            "node_get_capabilities",
+	}).Info("node get capabilities called")
 	return &csi.NodeGetCapabilitiesResponse{
 		Capabilities: []*csi.NodeServiceCapability{
 			nscap,

@@ -67,6 +67,7 @@ func (d *Driver) CreateVolume(ctx context.Context, req *csi.CreateVolumeRequest)
 	ll := d.log.WithFields(logrus.Fields{
 		"volume_name":             volumeName,
 		"storage_size_giga_bytes": size / GB,
+		"method":                  "create_volume",
 	})
 	ll.Info("create volume called")
 
@@ -142,6 +143,7 @@ func (d *Driver) DeleteVolume(ctx context.Context, req *csi.DeleteVolumeRequest)
 
 	ll := d.log.WithFields(logrus.Fields{
 		"volume_id": req.VolumeId,
+		"method":    "delete_volume",
 	})
 	ll.Info("delete volume called")
 
@@ -181,6 +183,7 @@ func (d *Driver) ControllerPublishVolume(ctx context.Context, req *csi.Controlle
 		"volume_id":  req.VolumeId,
 		"node_id":    req.NodeId,
 		"droplet_id": dropletID,
+		"method":     "controller_publish_volume",
 	})
 	ll.Info("controller publish volume called")
 
@@ -219,6 +222,7 @@ func (d *Driver) ControllerUnpublishVolume(ctx context.Context, req *csi.Control
 		"volume_id":  req.VolumeId,
 		"node_id":    req.NodeId,
 		"droplet_id": dropletID,
+		"method":     "controller_unpublish_volume",
 	})
 	ll.Info("controller unpublish volume called")
 
@@ -265,6 +269,7 @@ func (d *Driver) ValidateVolumeCapabilities(ctx context.Context, req *csi.Valida
 		"volume_id":              req.VolumeId,
 		"volume_capabilities":    req.VolumeCapabilities,
 		"supported_capabilities": vcaps,
+		"method":                 "validate_volume_capabilities",
 	})
 	ll.Info("validate volume capabilities called")
 
@@ -318,6 +323,7 @@ func (d *Driver) ListVolumes(ctx context.Context, req *csi.ListVolumesRequest) (
 	ll := d.log.WithFields(logrus.Fields{
 		"list_opts":          listOpts,
 		"req_starting_token": req.StartingToken,
+		"method":             "list_volumes",
 	})
 	ll.Info("list volumes called")
 
@@ -374,7 +380,10 @@ func (d *Driver) ListVolumes(ctx context.Context, req *csi.ListVolumesRequest) (
 // GetCapacity returns the capacity of the storage pool
 func (d *Driver) GetCapacity(ctx context.Context, req *csi.GetCapacityRequest) (*csi.GetCapacityResponse, error) {
 	// TODO(arslan): check if we can provide this information somehow
-	d.log.WithField("params", req.Parameters).Warn("get capacity is not implemented")
+	d.log.WithFields(logrus.Fields{
+		"params": req.Parameters,
+		"method": "get_capacity",
+	}).Warn("get capacity is not implemented")
 	return nil, status.Error(codes.Unimplemented, "")
 }
 
@@ -404,7 +413,10 @@ func (d *Driver) ControllerGetCapabilities(ctx context.Context, req *csi.Control
 		Capabilities: caps,
 	}
 
-	d.log.WithField("response", resp).Info("controller get capabilities called")
+	d.log.WithFields(logrus.Fields{
+		"response": resp,
+		"method":   "controller_get_capabilities",
+	}).Info("controller get capabilities called")
 	return resp, nil
 }
 
