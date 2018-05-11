@@ -20,6 +20,7 @@ import (
 	"context"
 
 	csi "github.com/container-storage-interface/spec/lib/go/csi/v0"
+	"github.com/sirupsen/logrus"
 )
 
 const (
@@ -34,7 +35,10 @@ func (d *Driver) GetPluginInfo(ctx context.Context, req *csi.GetPluginInfoReques
 		VendorVersion: vendorVersion,
 	}
 
-	d.log.WithField("response", resp).Info("get plugin info called")
+	d.log.WithFields(logrus.Fields{
+		"response": resp,
+		"method":   "get_plugin_info",
+	}).Info("get plugin info called")
 	return resp, nil
 }
 
@@ -52,12 +56,15 @@ func (d *Driver) GetPluginCapabilities(ctx context.Context, req *csi.GetPluginCa
 		},
 	}
 
-	d.log.WithField("response", resp).Info("get plugin capabitilies called")
+	d.log.WithFields(logrus.Fields{
+		"response": resp,
+		"method":   "get_plugin_capabilities",
+	}).Info("get plugin capabitilies called")
 	return resp, nil
 }
 
 // Probe returns the health and readiness of the plugin
 func (d *Driver) Probe(ctx context.Context, req *csi.ProbeRequest) (*csi.ProbeResponse, error) {
-	d.log.Info("probe called")
+	d.log.WithField("method", "prove").Info("probe called")
 	return &csi.ProbeResponse{}, nil
 }
