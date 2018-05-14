@@ -15,31 +15,33 @@ Cloud Foundry. Feel free to test it on other CO's and give us a feedback.
 
 #### 1. Create a secret with your DigitalOcean API Access Token:
 
-First encode your token in base64 (in this example, the string starting with
-`a05...` is the API token):
-
-```
-$  echo -n "a05dd2f26b9b9ac2asdasdsd3fabf713560a129323890123cb5d1ec17513e06da" | base64
-YTA1ZGQyZjI2YjliOWFjMmFzZGFzZHNkM2ZhYmY3MTM1NjBhMTI5MzIzODkwMTIzY2I1ZDFlYzE3NTEzZTA2ZGE=
-```
-
-Write a secret resource file with the base64 output above:
+Replace the placeholder string starting with `a05...` with your own secret and
+save it as `secret.yml`: 
 
 ```
 apiVersion: v1
 kind: Secret
 metadata:
-  name: dotoken
-type: Opaque
-data:
-  token: YTA1ZGQyZjI2YjliOWFjMmFzZGFzZHNkM2ZhYmY3MTM1NjBhMTI5MzIzODkwMTIzY2I1ZDFlYzE3NTEzZTA2ZGE=
+  name: digitalocean
+  namespace: kube-system
+stringData:
+  access-token: "a05dd2f26b9b9ac2asdas__REPLACE_ME____123cb5d1ec17513e06da"
 ```
 
 and create the secret using kubectl:
 
 ```
 $ kubectl create -f ./secret.yml
-secret "dotoken" created
+secret "digitalocean" created
+```
+
+You should now see the digitalocean secret in the `kube-system` namespace along with other secrets
+
+```
+$ kubectl -n kube-system get secrets
+NAME                  TYPE                                  DATA      AGE
+default-token-jskxx   kubernetes.io/service-account-token   3         18h
+digitalocean          Opaque                                1         18h
 ```
 
 #### 2. Deploy the CSI plugin and sidecars:
