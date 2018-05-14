@@ -23,6 +23,7 @@ apiVersion: v1
 kind: Secret
 metadata:
   name: digitalocean
+  namespace: kube-system
 stringData:
   access-token: "a05dd2f26b9b9ac2asdas__REPLACE_ME____123cb5d1ec17513e06da"
 ```
@@ -32,6 +33,15 @@ and create the secret using kubectl:
 ```
 $ kubectl create -f ./secret.yml
 secret "digitalocean" created
+```
+
+You should now see the digitalocean secret in the `kube-system` namespace along with other secrets
+
+```
+$ kubectl -n kube-system get secrets
+NAME                  TYPE                                  DATA      AGE
+default-token-jskxx   kubernetes.io/service-account-token   3         18h
+digitalocean          Opaque                                1         18h
 ```
 
 #### 2. Deploy the CSI plugin and sidecars:

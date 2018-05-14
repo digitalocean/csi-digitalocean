@@ -23,6 +23,7 @@ kind: StorageClass
 apiVersion: storage.k8s.io/v1
 metadata:
   name: do-block-storage
+  namespace: kube-system
   annotations:
     storageclass.kubernetes.io/is-default-class: "true"
 provisioner: com.digitalocean.csi.dobs
@@ -31,11 +32,13 @@ apiVersion: v1
 kind: ServiceAccount
 metadata:
   name: csi-attacher
+  namespace: kube-system
 ---
 kind: ClusterRole
 apiVersion: rbac.authorization.k8s.io/v1
 metadata:
   name: external-attacher-runner
+  namespace: kube-system
 rules:
   - apiGroups: [""]
     resources: ["secrets"]
@@ -58,6 +61,7 @@ kind: ClusterRoleBinding
 apiVersion: rbac.authorization.k8s.io/v1
 metadata:
   name: csi-attacher-role
+  namespace: kube-system
 subjects:
   - kind: ServiceAccount
     name: csi-attacher
@@ -72,6 +76,7 @@ kind: Service
 apiVersion: v1
 metadata:
   name: csi-attacher-doplugin
+  namespace: kube-system
   labels:
     app: csi-attacher-doplugin
 spec:
@@ -85,6 +90,7 @@ kind: StatefulSet
 apiVersion: apps/v1beta1
 metadata:
   name: csi-attacher-doplugin
+  namespace: kube-system
 spec:
   serviceName: "csi-attacher-doplugin"
   replicas: 1
@@ -132,12 +138,13 @@ apiVersion: v1
 kind: ServiceAccount
 metadata:
   name: csi-provisioner
-
+  namespace: kube-system
 ---
 kind: ClusterRole
 apiVersion: rbac.authorization.k8s.io/v1
 metadata:
   name: external-provisioner-runner
+  namespace: kube-system
 rules:
   - apiGroups: [""]
     resources: ["secrets"]
@@ -160,6 +167,7 @@ kind: ClusterRoleBinding
 apiVersion: rbac.authorization.k8s.io/v1
 metadata:
   name: csi-provisioner-role
+  namespace: kube-system
 subjects:
   - kind: ServiceAccount
     name: csi-provisioner
@@ -174,6 +182,7 @@ kind: Service
 apiVersion: v1
 metadata:
   name: csi-provisioner-doplugin
+  namespace: kube-system
   labels:
     app: csi-provisioner-doplugin
 spec:
@@ -187,6 +196,7 @@ kind: StatefulSet
 apiVersion: apps/v1beta1
 metadata:
   name: csi-provisioner-doplugin
+  namespace: kube-system
 spec:
   serviceName: "csi-provisioner-doplugin"
   replicas: 1
@@ -235,12 +245,13 @@ apiVersion: v1
 kind: ServiceAccount
 metadata:
   name: csi-doplugin
-
+  namespace: kube-system
 ---
 kind: ClusterRole
 apiVersion: rbac.authorization.k8s.io/v1
 metadata:
   name: csi-doplugin
+  namespace: kube-system
 rules:
   - apiGroups: [""]
     resources: ["secrets"]
@@ -262,6 +273,7 @@ kind: ClusterRoleBinding
 apiVersion: rbac.authorization.k8s.io/v1
 metadata:
   name: csi-doplugin
+  namespace: kube-system
 subjects:
   - kind: ServiceAccount
     name: csi-doplugin
@@ -276,6 +288,7 @@ kind: DaemonSet
 apiVersion: apps/v1beta2
 metadata:
   name: csi-doplugin
+  namespace: kube-system
 spec:
   selector:
     matchLabels:
@@ -303,7 +316,7 @@ spec:
           volumeMounts:
             - name: plugin-dir
               mountPath: /csi/
-              # TODO(arslan): the registar is not implemented yet
+              # TODO(arslan): the registrar is not implemented yet
               # - name: registrar-socket-dir
               #   mountPath: /var/lib/csi/sockets/
         - name: csi-doplugin 
