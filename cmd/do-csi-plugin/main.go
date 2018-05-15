@@ -27,11 +27,11 @@ func main() {
 	var (
 		endpoint = flag.String("endpoint", "unix:///var/lib/kubelet/plugins/com.digitalocean.csi.dobs/csi.sock", "CSI endpoint")
 		token    = flag.String("token", "", "DigitalOcean access token")
+		url      = flag.String("url", "https://api.digitalocean.com/", "DigitalOcean API URL")
 	)
-
 	flag.Parse()
 
-	drv, err := driver.NewDriver(*endpoint, *token)
+	drv, err := driver.NewDriver(*endpoint, *token, *url)
 	if err != nil {
 		log.Fatalln(err)
 	}

@@ -54,7 +54,7 @@ type Driver struct {
 // NewDriver returns a CSI plugin that contains the necessary gRPC
 // interfaces to interact with Kubernetes over unix domain sockets for
 // managaing DigitalOcean Block Storage
-func NewDriver(ep, token string) (*Driver, error) {
+func NewDriver(ep, token, url string) (*Driver, error) {
 	tokenSource := oauth2.StaticTokenSource(&oauth2.Token{
 		AccessToken: token,
 	})
@@ -68,11 +68,19 @@ func NewDriver(ep, token string) (*Driver, error) {
 	region := all.Region
 	nodeId := strconv.Itoa(all.DropletID)
 
+	opts := []godo.ClientOpt{}
+	opts = append(opts, godo.SetBaseURL(url))
+
+	doClient, err := godo.New(oauthClient, opts...)
+	if err != nil {
+		return nil, fmt.Errorf("couldn't initialize DigitalOcean client: %s", err)
+	}
+
 	return &Driver{
 		endpoint: ep,
 		nodeId:   nodeId,
 		region:   region,
-		doClient: godo.NewClient(oauthClient),
+		doClient: doClient,
 		mounter:  &mounter{},
 		log: logrus.New().WithFields(logrus.Fields{
 			"region":  region,
