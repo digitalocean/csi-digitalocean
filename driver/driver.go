@@ -34,6 +34,11 @@ import (
 	"google.golang.org/grpc"
 )
 
+const (
+	driverName    = "com.digitalocean.csi.dobs"
+	vendorVersion = "0.1.0"
+)
+
 // Driver implements the following CSI interfaces:
 //
 //   csi.IdentityServer
