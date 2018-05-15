@@ -48,10 +48,10 @@ digitalocean          Opaque                                1         18h
 
 Before you continue, be sure to checkout to a [tagged
 release](https://github.com/digitalocean/csi-digitalocean/releases). For
-example, to use the version `v0.0.1` you can execute the following command:
+example, to use the version `v0.1.0` you can execute the following command:
 
 ```
-$ kubectl apply -f https://raw.githubusercontent.com/digitalocean/csi-digitalocean/master/deploy/kubernetes/releases/csi-digitalocean-v0.0.1.yaml
+$ kubectl apply -f https://raw.githubusercontent.com/digitalocean/csi-digitalocean/master/deploy/kubernetes/releases/csi-digitalocean-v0.1.0.yaml
 ```
 
 A new storage class will be created with the name `do-block-storage` which is

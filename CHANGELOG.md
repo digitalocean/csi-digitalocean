@@ -1,4 +1,4 @@
-## v0.1.0 (alpha) (UNRELEASED)
+## v0.1.0 (alpha) - May 15th 2018
 
 * Add method names to each log entry 
   [[GH-22]](https://github.com/digitalocean/csi-digitalocean/pull/22)
@@ -12,6 +12,6 @@
 * Make DigitalOcean API configurable via the new `--url` flag
   [[GH-27]](https://github.com/digitalocean/csi-digitalocean/pull/27)
 
-## v0.0.1 (alpha)
+## v0.0.1 (alpha) - May 10th 2018
 
 * First release with all important methods of the CSI spec implemented
