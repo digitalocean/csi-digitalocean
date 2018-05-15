@@ -9,6 +9,8 @@
   update your keys (delete old secret and create new secret with name
   `digitalocean`). Checkout the README for instructions if needed.
   [[GH-21]](https://github.com/digitalocean/csi-digitalocean/pull/21)
+* Make DigitalOcean API configurable via the new `--url` flag
+  [[GH-27]](https://github.com/digitalocean/csi-digitalocean/pull/27)
 
 ## v0.0.1 (alpha)
 
