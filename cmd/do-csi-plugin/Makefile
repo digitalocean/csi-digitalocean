@@ -1,4 +1,4 @@
-VERSION ?= v0.1.0
+VERSION ?= v0.1.1
 NAME=do-csi-plugin
 
 all: publish
