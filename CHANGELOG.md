@@ -1,3 +1,8 @@
+## unplanned
+
+* Fix panicking on errors for nil response objects
+  [[GH-34]](https://github.com/digitalocean/csi-digitalocean/pull/34)
+
 ## v0.1.0 (alpha) - May 15th 2018
 
 * Add method names to each log entry 
