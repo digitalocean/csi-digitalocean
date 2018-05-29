@@ -1,4 +1,4 @@
-## unplanned
+## v0.1.1 (alpha) - May 29th 2018
 
 * Fix panicking on errors for nil response objects
   [[GH-34]](https://github.com/digitalocean/csi-digitalocean/pull/34)
