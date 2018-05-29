@@ -149,7 +149,7 @@ func (d *Driver) DeleteVolume(ctx context.Context, req *csi.DeleteVolumeRequest)
 
 	resp, err := d.doClient.Storage.DeleteVolume(ctx, req.VolumeId)
 	if err != nil {
-		if resp.StatusCode == http.StatusNotFound {
+		if resp != nil && resp.StatusCode == http.StatusNotFound {
 			// we assume it's deleted already for idempotency
 			return &csi.DeleteVolumeResponse{}, nil
 		}
@@ -190,7 +190,7 @@ func (d *Driver) ControllerPublishVolume(ctx context.Context, req *csi.Controlle
 	action, resp, err := d.doClient.StorageActions.Attach(ctx, req.VolumeId, dropletID)
 	if err != nil {
 		// don't do anything if attached
-		if resp.StatusCode == http.StatusUnprocessableEntity || strings.Contains(err.Error(), "This volume is already attached") {
+		if (resp != nil && resp.StatusCode == http.StatusUnprocessableEntity) || strings.Contains(err.Error(), "This volume is already attached") {
 			return &csi.ControllerPublishVolumeResponse{}, nil
 		}
 		return nil, err
@@ -228,7 +228,7 @@ func (d *Driver) ControllerUnpublishVolume(ctx context.Context, req *csi.Control
 
 	action, resp, err := d.doClient.StorageActions.DetachByDropletID(ctx, req.VolumeId, dropletID)
 	if err != nil {
-		if resp.StatusCode == http.StatusUnprocessableEntity || strings.Contains(err.Error(), "Attachment not found") {
+		if (resp != nil && resp.StatusCode == http.StatusUnprocessableEntity) || strings.Contains(err.Error(), "Attachment not found") {
 			return &csi.ControllerUnpublishVolumeResponse{}, nil
 		}
 		return nil, err
