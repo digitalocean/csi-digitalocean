@@ -89,16 +89,15 @@ apiVersion: v1
 metadata:
   name: my-csi-app
 spec:
-  nodeName: "nodes-2"
   containers:
     - name: my-frontend
       image: busybox
       volumeMounts:
       - mountPath: "/data"
-        name: my-csi-volume
+        name: my-do-volume
       command: [ "sleep", "1000000" ]
   volumes:
-    - name: my-csi-volume
+    - name: my-do-volume
       persistentVolumeClaim:
         claimName: csi-pvc 
 ```
