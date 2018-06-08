@@ -191,6 +191,10 @@ func (d *Driver) ControllerPublishVolume(ctx context.Context, req *csi.Controlle
 	if err != nil {
 		// don't do anything if attached
 		if (resp != nil && resp.StatusCode == http.StatusUnprocessableEntity) || strings.Contains(err.Error(), "This volume is already attached") {
+			ll.WithFields(logrus.Fields{
+				"error": err,
+				"resp":  resp,
+			}).Warn("assuming volume is attached already")
 			return &csi.ControllerPublishVolumeResponse{}, nil
 		}
 		return nil, err
@@ -229,6 +233,10 @@ func (d *Driver) ControllerUnpublishVolume(ctx context.Context, req *csi.Control
 	action, resp, err := d.doClient.StorageActions.DetachByDropletID(ctx, req.VolumeId, dropletID)
 	if err != nil {
 		if (resp != nil && resp.StatusCode == http.StatusUnprocessableEntity) || strings.Contains(err.Error(), "Attachment not found") {
+			ll.WithFields(logrus.Fields{
+				"error": err,
+				"resp":  resp,
+			}).Warn("assuming volume is detached already")
 			return &csi.ControllerUnpublishVolumeResponse{}, nil
 		}
 		return nil, err
