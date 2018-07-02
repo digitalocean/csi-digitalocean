@@ -17,7 +17,11 @@ limitations under the License.
 package sanity
 
 import (
+	"fmt"
 	"regexp"
+
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 
 	csi "github.com/container-storage-interface/spec/lib/go/csi/v0"
 	context "golang.org/x/net/context"
@@ -26,9 +30,63 @@ import (
 	. "github.com/onsi/gomega"
 )
 
-// TODO: Tests for GetPluginCapabilities
+var _ = Describe("GetPluginCapabilities [Identity Service]", func() {
+	var (
+		c csi.IdentityClient
+	)
 
-// TODO: Tests for Probe
+	BeforeEach(func() {
+		c = csi.NewIdentityClient(conn)
+	})
+
+	It("should return appropriate capabilities", func() {
+		req := &csi.GetPluginCapabilitiesRequest{}
+		res, err := c.GetPluginCapabilities(context.Background(), req)
+		Expect(err).NotTo(HaveOccurred())
+		Expect(res).NotTo(BeNil())
+
+		By("checking successful response")
+		Expect(res.GetCapabilities()).NotTo(BeNil())
+		for _, cap := range res.GetCapabilities() {
+			switch cap.GetService().GetType() {
+			case csi.PluginCapability_Service_CONTROLLER_SERVICE:
+			case csi.PluginCapability_Service_ACCESSIBILITY_CONSTRAINTS:
+			default:
+				Fail(fmt.Sprintf("Unknown capability: %v\n", cap.GetService().GetType()))
+			}
+		}
+
+	})
+
+})
+
+var _ = Describe("Probe [Identity Service]", func() {
+	var (
+		c csi.IdentityClient
+	)
+
+	BeforeEach(func() {
+		c = csi.NewIdentityClient(conn)
+	})
+
+	It("should return appropriate information", func() {
+		req := &csi.ProbeRequest{}
+		res, err := c.Probe(context.Background(), req)
+		Expect(err).NotTo(HaveOccurred())
+		Expect(res).NotTo(BeNil())
+
+		By("verifying return status")
+		serverError, ok := status.FromError(err)
+		Expect(ok).To(BeTrue())
+		Expect(serverError.Code() == codes.FailedPrecondition ||
+			serverError.Code() == codes.OK).To(BeTrue())
+
+		if res.GetReady() != nil {
+			Expect(res.GetReady().GetValue() == true ||
+				res.GetReady().GetValue() == false).To(BeTrue())
+		}
+	})
+})
 
 var _ = Describe("GetPluginInfo [Identity Server]", func() {
 	var (
