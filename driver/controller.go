@@ -472,6 +472,37 @@ func (d *Driver) ControllerGetCapabilities(ctx context.Context, req *csi.Control
 	return resp, nil
 }
 
+// CreateSnapshot will be called by the CO to create a new snapshot from a
+// source volume on behalf of a user.
+func (d *Driver) CreateSnapshot(ctx context.Context, req *csi.CreateSnapshotRequest) (*csi.CreateSnapshotResponse, error) {
+	d.log.WithFields(logrus.Fields{
+		"req":    req,
+		"method": "create_snapshot",
+	}).Warn("create snapshot is not implemented")
+	return nil, status.Error(codes.Unimplemented, "")
+}
+
+// DeleteSnapshost will be called by the CO to delete a snapshot.
+func (d *Driver) DeleteSnapshot(ctx context.Context, req *csi.DeleteSnapshotRequest) (*csi.DeleteSnapshotResponse, error) {
+	d.log.WithFields(logrus.Fields{
+		"req":    req,
+		"method": "delete_snapshot",
+	}).Warn("delete snapshot is not implemented")
+	return nil, status.Error(codes.Unimplemented, "")
+}
+
+// ListSnapshots returns the information about all snapshots on the storage
+// system within the given parameters regardless of how they were created.
+// ListSnapshots shold not list a snapshot that is being created but has not
+// been cut successfully yet.
+func (d *Driver) ListSnapshots(ctx context.Context, req *csi.ListSnapshotsRequest) (*csi.ListSnapshotsResponse, error) {
+	d.log.WithFields(logrus.Fields{
+		"req":    req,
+		"method": "list_snapshots",
+	}).Warn("list snapshots is not implemented")
+	return nil, status.Error(codes.Unimplemented, "")
+}
+
 // extractStorage extracts the storage size in GB from the given capacity
 // range. If the capacity range is not satisfied it returns the default volume
 // size.

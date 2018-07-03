@@ -289,6 +289,14 @@ func (d *Driver) NodeGetCapabilities(ctx context.Context, req *csi.NodeGetCapabi
 	}, nil
 }
 
+// NodeGetInfo returns the supported capabilities of the node server
+func (d *Driver) NodeGetInfo(ctx context.Context, req *csi.NodeGetInfoRequest) (*csi.NodeGetInfoResponse, error) {
+	d.log.WithFields(logrus.Fields{
+		"method": "node_get_info",
+	}).Warn("node get info is not implemented")
+	return nil, status.Error(codes.Unimplemented, "")
+}
+
 // getDiskSource returns the absolute path of the attached volume for the given
 // DO volume name
 func getDiskSource(volumeName string) string {
