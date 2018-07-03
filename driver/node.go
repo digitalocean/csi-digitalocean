@@ -38,6 +38,9 @@ import (
 const (
 	diskIDPath   = "/dev/disk/by-id"
 	diskDOPrefix = "scsi-0DO_Volume_"
+
+	// See: https://www.digitalocean.com/docs/volumes/overview/#limits
+	maxVolumesPerNode = 7
 )
 
 // NodeStageVolume mounts the volume to a staging path on the node. This is
@@ -291,10 +294,11 @@ func (d *Driver) NodeGetCapabilities(ctx context.Context, req *csi.NodeGetCapabi
 
 // NodeGetInfo returns the supported capabilities of the node server
 func (d *Driver) NodeGetInfo(ctx context.Context, req *csi.NodeGetInfoRequest) (*csi.NodeGetInfoResponse, error) {
-	d.log.WithFields(logrus.Fields{
-		"method": "node_get_info",
-	}).Warn("node get info is not implemented")
-	return nil, status.Error(codes.Unimplemented, "")
+	d.log.WithField("method", "node_get_info").Info("node get info called")
+	return &csi.NodeGetInfoResponse{
+		NodeId:            d.nodeId,
+		MaxVolumesPerNode: maxVolumesPerNode,
+	}, nil
 }
 
 // getDiskSource returns the absolute path of the attached volume for the given

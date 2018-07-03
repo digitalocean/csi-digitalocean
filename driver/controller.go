@@ -457,6 +457,10 @@ func (d *Driver) ControllerGetCapabilities(ctx context.Context, req *csi.Control
 		csi.ControllerServiceCapability_RPC_CREATE_DELETE_VOLUME,
 		csi.ControllerServiceCapability_RPC_PUBLISH_UNPUBLISH_VOLUME,
 		csi.ControllerServiceCapability_RPC_LIST_VOLUMES,
+
+		// TODO(arslan): enable once snapshotting is supported
+		// csi.ControllerServiceCapability_RPC_CREATE_DELETE_SNAPSHOT,
+		// csi.ControllerServiceCapability_RPC_LIST_SNAPSHOTS,
 	} {
 		caps = append(caps, newCap(cap))
 	}
