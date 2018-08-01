@@ -13,6 +13,27 @@ Cloud Foundry. Feel free to test it on other CO's and give us a feedback.
 * `--allow-privileged` flag must be set to true for both the API server and the kubelet
 * (if you use Docker) the Docker daemon of the cluster nodes must allow shared mounts
 
+
+### [Rancher](https://rancher.com/) users:
+
+`Mount Propagation` is [disabled by
+default](https://github.com/rancher/rke/issues/765) on latest `v2.0.6` version
+of Rancher, which prevents the `csi-digitalocean` to function correctly. To fix
+the issue temporary, make sure to add the following settings to your cluster
+configuration YAML file:
+
+```
+services:
+  kube-api:
+    extra_args:
+      feature-gates: MountPropagation=true
+
+  kubelet:
+    extra_args:
+      feature-gates: MountPropagation=true
+```
+
+
 #### 1. Create a secret with your DigitalOcean API Access Token:
 
 Replace the placeholder string starting with `a05...` with your own secret and
@@ -81,7 +102,22 @@ spec:
   storageClassName: do-block-storage
 ```
 
-After that create a Pod that refers to this volume. When the Pod is created, the volume will be attached, formatted and mounted to the specified Container
+Check that a new `PersistentVolume` is created based on your claim:
+
+```
+$ kubectl get pv
+NAME                                       CAPACITY   ACCESS MODES   RECLAIM POLICY   STATUS    CLAIM             STORAGECLASS       REASON    AGE
+pvc-0879b207-9558-11e8-b6b4-5218f75c62b9   5Gi        RWO            Delete           Bound     default/csi-pvc   do-block-storage             3m
+```
+
+The above output means that the CSI plugin sucessfully created (provisioned) a
+new Volume on behalf of you. You should be able to see this newly created
+volume under the [Volumes tab in the DigitalOcean UI](https://cloud.digitalocean.com/droplets/volumes)
+
+The volume is not attached to any node yet. It'll only attached to a node if a
+workload (i.e: pod) is scheduled to a specific node. Now let us create a Pod
+that refers to the above volume. When the Pod is created, the volume will be
+attached, formatted and mounted to the specified Container:
 
 ```
 kind: Pod
