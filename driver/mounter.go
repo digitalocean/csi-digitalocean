@@ -17,12 +17,24 @@ limitations under the License.
 package driver
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
 	"os"
 	"os/exec"
 	"strings"
 )
+
+type findmntResponse struct {
+	FileSystems []fileSystem `json:"filesystems"`
+}
+
+type fileSystem struct {
+	Target      string `json:"target"`
+	Propagation string `json:"propagation"`
+	FsType      string `json:"fstype"`
+	Options     string `json:"options"`
+}
 
 // Mounter is responsible for formatting and mounting volumes
 type Mounter interface {
@@ -39,10 +51,10 @@ type Mounter interface {
 	// returns true if the source device is already formatted.
 	IsFormatted(source string) (bool, error)
 
-	// IsMounted checks whether the source device is mounted to the target
-	// path. Source can be empty. In that case it only checks whether the
-	// device is mounted or not.
-	// It returns true if it's mounted.
+	// IsMounted checks whether the source device is mounted to the target path
+	// in a correct way (i.e: propagated). It returns true if it's mounted. An
+	// error is returned in case of system errors or if it's mounted
+	// incorrectly.
 	IsMounted(source, target string) (bool, error)
 }
 
@@ -178,11 +190,7 @@ func (m *mounter) IsMounted(source, target string) (bool, error) {
 		return false, err
 	}
 
-	findmntArgs := []string{"--mountpoint", target}
-	if source != "" {
-		findmntArgs = append(findmntArgs, "--source", source)
-	}
-
+	findmntArgs := []string{"-o", "TARGET,PROPAGATION,FSTYPE,OPTIONS", source}
 	out, err := exec.Command(findmntCmd, findmntArgs...).CombinedOutput()
 	if err != nil {
 		// findmnt exits with non zero exit status if it couldn't find anything
@@ -194,9 +202,28 @@ func (m *mounter) IsMounted(source, target string) (bool, error) {
 			err, findmntCmd, string(out))
 	}
 
-	if strings.TrimSpace(string(out)) == "" {
-		return false, nil
+	var resp *findmntResponse
+	err = json.Unmarshal(out, &resp)
+	if err != nil {
+		panic(err)
 	}
 
-	return true, nil
+	targetFound := false
+	for _, fs := range resp.FileSystems {
+		// check if the mount is propagated correctly. It should be set to shared.
+		if fs.Propagation != "shared" {
+			return true, fmt.Errorf("mount propagation for target %q is not enabled", target)
+		}
+
+		// the mountpoint should match as well
+		if fs.Target == target {
+			targetFound = true
+		}
+	}
+
+	if targetFound {
+		return true, nil
+	}
+
+	return false, nil
 }
