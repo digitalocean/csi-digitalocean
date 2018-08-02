@@ -1,3 +1,13 @@
+## unreleased
+
+* Check if mounts are propagated (`MountPropagation` is enabled on the host) in
+  Node plugin to prevent silent failing. 
+  [[GH-46]](https://github.com/digitalocean/csi-digitalocean/pull/46)
+* Fix `IsMounted()` for bind mounts where it was returning false positives.
+  [[GH-46]](https://github.com/digitalocean/csi-digitalocean/pull/46)
+* Log 422 errors for visibility in Controller publish/unpublish methods.
+  [[GH-38]](https://github.com/digitalocean/csi-digitalocean/pull/38)
+
 ## v0.1.1 (alpha) - May 29th 2018
 
 * Fix panicking on errors for nil response objects
