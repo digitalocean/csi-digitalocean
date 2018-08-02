@@ -133,7 +133,13 @@ func (d *Driver) NodeUnstageVolume(ctx context.Context, req *csi.NodeUnstageVolu
 	})
 	ll.Info("node unstage volume called")
 
-	mounted, err := d.mounter.IsMounted("", req.StagingTargetPath)
+	vol, _, err := d.doClient.Storage.GetVolume(ctx, req.VolumeId)
+	if err != nil {
+		return nil, err
+	}
+
+	source := getDiskSource(vol.Name)
+	mounted, err := d.mounter.IsMounted(source, req.StagingTargetPath)
 	if err != nil {
 		return nil, err
 	}
@@ -171,7 +177,13 @@ func (d *Driver) NodePublishVolume(ctx context.Context, req *csi.NodePublishVolu
 		return nil, status.Error(codes.InvalidArgument, "NodePublishVolume Volume Capability must be provided")
 	}
 
-	// TODO(arslan): early return if already mounted
+	vol, _, err := d.doClient.Storage.GetVolume(ctx, req.VolumeId)
+	if err != nil {
+		return nil, err
+	}
+
+	diskSource := getDiskSource(vol.Name)
+
 	source := req.StagingTargetPath
 	target := req.TargetPath
 
@@ -199,7 +211,9 @@ func (d *Driver) NodePublishVolume(ctx context.Context, req *csi.NodePublishVolu
 		"method":        "node_publish_volume",
 	})
 
-	mounted, err := d.mounter.IsMounted(source, target)
+	// we can only check if target is mounted with the diskSource directly.
+	// The staging target path (which is a directory itself) won't work in this case
+	mounted, err := d.mounter.IsMounted(diskSource, target)
 	if err != nil {
 		return nil, err
 	}
@@ -210,7 +224,7 @@ func (d *Driver) NodePublishVolume(ctx context.Context, req *csi.NodePublishVolu
 			return nil, status.Error(codes.Internal, err.Error())
 		}
 	} else {
-		ll.Info("volume is already mounedt")
+		ll.Info("volume is already mounted")
 	}
 
 	ll.Info("bind mounting the volume is finished")
