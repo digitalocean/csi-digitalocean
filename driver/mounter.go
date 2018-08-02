@@ -190,7 +190,7 @@ func (m *mounter) IsMounted(source, target string) (bool, error) {
 		return false, err
 	}
 
-	findmntArgs := []string{"-o", "TARGET,PROPAGATION,FSTYPE,OPTIONS", source}
+	findmntArgs := []string{"-o", "TARGET,PROPAGATION,FSTYPE,OPTIONS", source, "-J"}
 	out, err := exec.Command(findmntCmd, findmntArgs...).CombinedOutput()
 	if err != nil {
 		// findmnt exits with non zero exit status if it couldn't find anything
@@ -205,14 +205,14 @@ func (m *mounter) IsMounted(source, target string) (bool, error) {
 	var resp *findmntResponse
 	err = json.Unmarshal(out, &resp)
 	if err != nil {
-		panic(err)
+		return false, fmt.Errorf("couldn't unmarshal data: %q: %s", string(out), err)
 	}
 
 	targetFound := false
 	for _, fs := range resp.FileSystems {
 		// check if the mount is propagated correctly. It should be set to shared.
 		if fs.Propagation != "shared" {
-			return true, fmt.Errorf("mount propagation for target %q is not enabled", target)
+			return true, fmt.Errorf("mount propagation for target %q is not enabled or the block device %q does not exist anymore", target, source)
 		}
 
 		// the mountpoint should match as well
@@ -221,9 +221,5 @@ func (m *mounter) IsMounted(source, target string) (bool, error) {
 		}
 	}
 
-	if targetFound {
-		return true, nil
-	}
-
-	return false, nil
+	return targetFound, nil
 }

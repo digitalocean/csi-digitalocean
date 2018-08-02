@@ -177,8 +177,6 @@ func (d *Driver) NodePublishVolume(ctx context.Context, req *csi.NodePublishVolu
 		return nil, status.Error(codes.InvalidArgument, "NodePublishVolume Volume Capability must be provided")
 	}
 
-	// TODO(arslan): early return if already mounted
-
 	vol, _, err := d.doClient.Storage.GetVolume(ctx, req.VolumeId)
 	if err != nil {
 		return nil, err
