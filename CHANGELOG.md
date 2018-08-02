@@ -1,4 +1,4 @@
-## unreleased
+## v0.1.2 - August 2nd 2018
 
 * Check if mounts are propagated (`MountPropagation` is enabled on the host) in
   Node plugin to prevent silent failing. 
