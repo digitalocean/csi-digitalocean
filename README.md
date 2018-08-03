@@ -112,7 +112,7 @@ NAME                                       CAPACITY   ACCESS MODES   RECLAIM POL
 pvc-0879b207-9558-11e8-b6b4-5218f75c62b9   5Gi        RWO            Delete           Bound     default/csi-pvc   do-block-storage             3m
 ```
 
-The above output means that the CSI plugin sucessfully created (provisioned) a
+The above output means that the CSI plugin successfully created (provisioned) a
 new Volume on behalf of you. You should be able to see this newly created
 volume under the [Volumes tab in the DigitalOcean UI](https://cloud.digitalocean.com/droplets/volumes)
 
