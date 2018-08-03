@@ -1,3 +1,11 @@
+## unplanned
+
+* Fix passing an empty source to `IsMounted()` function during `NodeUnpublish`.
+  This would prevent a pod to be deleted successfully in case of a dettached
+  volume, because `NodeUnpublish` would never return success as `IsMounted()`
+  was failing.
+  [[GH-50]](https://github.com/digitalocean/csi-digitalocean/pull/50)
+
 ## v0.1.2 - August 2nd 2018
 
 * Check if mounts are propagated (`MountPropagation` is enabled on the host) in
