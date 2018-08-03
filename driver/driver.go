@@ -36,7 +36,7 @@ import (
 
 const (
 	driverName    = "com.digitalocean.csi.dobs"
-	vendorVersion = "0.1.2"
+	vendorVersion = "dev"
 )
 
 // Driver implements the following CSI interfaces:
