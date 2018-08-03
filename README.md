@@ -68,12 +68,14 @@ digitalocean          Opaque                                1         18h
 #### 2. Deploy the CSI plugin and sidecars:
 
 Before you continue, be sure to checkout to a [tagged
-release](https://github.com/digitalocean/csi-digitalocean/releases). For
-example, to use the version `v0.1.0` you can execute the following command:
+release](https://github.com/digitalocean/csi-digitalocean/releases). Always use the [latest stable version](https://github.com/digitalocean/csi-digitalocean/releases/latest) 
+For example, to use the latest stable version you can execute the following command:
 
 ```
-$ kubectl apply -f https://raw.githubusercontent.com/digitalocean/csi-digitalocean/master/deploy/kubernetes/releases/csi-digitalocean-v0.1.0.yaml
+$ kubectl apply -f https://raw.githubusercontent.com/digitalocean/csi-digitalocean/master/deploy/kubernetes/releases/csi-digitalocean-latest-stable.yaml
 ```
+
+This file will be always updated to point to the latest stable release.
 
 A new storage class will be created with the name `do-block-storage` which is
 responsible for dynamic provisioning. This is set to **"default"** for dynamic
