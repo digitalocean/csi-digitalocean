@@ -181,6 +181,14 @@ func (m *mounter) IsFormatted(source string) (bool, error) {
 }
 
 func (m *mounter) IsMounted(source, target string) (bool, error) {
+	if source == "" {
+		return false, errors.New("source is not specified for checking the mount")
+	}
+
+	if target == "" {
+		return false, errors.New("target is not specified for checking the mount")
+	}
+
 	findmntCmd := "findmnt"
 	_, err := exec.LookPath(findmntCmd)
 	if err != nil {
