@@ -248,7 +248,13 @@ func (d *Driver) NodeUnpublishVolume(ctx context.Context, req *csi.NodeUnpublish
 	})
 	ll.Info("node unpublish volume called")
 
-	mounted, err := d.mounter.IsMounted("", req.TargetPath)
+	vol, _, err := d.doClient.Storage.GetVolume(ctx, req.VolumeId)
+	if err != nil {
+		return nil, err
+	}
+
+	source := getDiskSource(vol.Name)
+	mounted, err := d.mounter.IsMounted(source, req.TargetPath)
 	if err != nil {
 		return nil, err
 	}
