@@ -1,4 +1,4 @@
-## unplanned
+## v0.1.3 - August 3rd 2018
 
 * Fix passing an empty source to `IsMounted()` function during `NodeUnpublish`.
   This would prevent a pod to be deleted successfully in case of a dettached
