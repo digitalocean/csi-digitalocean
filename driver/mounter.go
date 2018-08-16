@@ -23,6 +23,8 @@ import (
 	"os"
 	"os/exec"
 	"strings"
+
+	"github.com/sirupsen/logrus"
 )
 
 type findmntResponse struct {
@@ -61,7 +63,16 @@ type Mounter interface {
 // TODO(arslan): this is Linux only for now. Refactor this into a package with
 // architecture specific code in the future, such as mounter_darwin.go,
 // mounter_linux.go, etc..
-type mounter struct{}
+type mounter struct {
+	log *logrus.Entry
+}
+
+// newMounter returns a new mounter instance
+func newMounter(log *logrus.Entry) *mounter {
+	return &mounter{
+		log: log,
+	}
+}
 
 func (m *mounter) Format(source, fsType string) error {
 	mkfsCmd := fmt.Sprintf("mkfs.%s", fsType)
@@ -88,6 +99,11 @@ func (m *mounter) Format(source, fsType string) error {
 	if fsType == "ext4" || fsType == "ext3" {
 		mkfsArgs = []string{"-F", source}
 	}
+
+	m.log.WithFields(logrus.Fields{
+		"cmd":  mkfsCmd,
+		"args": mkfsArgs,
+	}).Info("executing format command")
 
 	out, err := exec.Command(mkfsCmd, mkfsArgs...).CombinedOutput()
 	if err != nil {
@@ -129,6 +145,11 @@ func (m *mounter) Mount(source, target, fsType string, opts ...string) error {
 		return err
 	}
 
+	m.log.WithFields(logrus.Fields{
+		"cmd":  mountCmd,
+		"args": mountArgs,
+	}).Info("executing mount command")
+
 	out, err := exec.Command(mountCmd, mountArgs...).CombinedOutput()
 	if err != nil {
 		return fmt.Errorf("mounting failed: %v cmd: '%s %s' output: %q",
@@ -144,7 +165,14 @@ func (m *mounter) Unmount(target string) error {
 		return errors.New("target is not specified for unmounting the volume")
 	}
 
-	out, err := exec.Command("umount", target).CombinedOutput()
+	umountArgs := []string{target}
+
+	m.log.WithFields(logrus.Fields{
+		"cmd":  umountCmd,
+		"args": umountArgs,
+	}).Info("executing umount command")
+
+	out, err := exec.Command(umountCmd, umountArgs...).CombinedOutput()
 	if err != nil {
 		return fmt.Errorf("unmounting failed: %v cmd: '%s %s' output: %q",
 			err, umountCmd, target, string(out))
@@ -167,7 +195,14 @@ func (m *mounter) IsFormatted(source string) (bool, error) {
 		return false, err
 	}
 
-	out, err := exec.Command(blkidCmd, source).CombinedOutput()
+	blkidArgs := []string{source}
+
+	m.log.WithFields(logrus.Fields{
+		"cmd":  blkidCmd,
+		"args": blkidArgs,
+	}).Info("checking if source is formatted")
+
+	out, err := exec.Command(blkidCmd, blkidArgs...).CombinedOutput()
 	if err != nil {
 		return false, fmt.Errorf("checking formatting failed: %v cmd: %q output: %q",
 			err, blkidCmd, string(out))
@@ -199,6 +234,12 @@ func (m *mounter) IsMounted(source, target string) (bool, error) {
 	}
 
 	findmntArgs := []string{"-o", "TARGET,PROPAGATION,FSTYPE,OPTIONS", source, "-J"}
+
+	m.log.WithFields(logrus.Fields{
+		"cmd":  findmntCmd,
+		"args": findmntArgs,
+	}).Info("checking if source is mounted")
+
 	out, err := exec.Command(findmntCmd, findmntArgs...).CombinedOutput()
 	if err != nil {
 		// findmnt exits with non zero exit status if it couldn't find anything

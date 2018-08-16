@@ -81,16 +81,18 @@ func NewDriver(ep, token, url string) (*Driver, error) {
 		return nil, fmt.Errorf("couldn't initialize DigitalOcean client: %s", err)
 	}
 
+	log := logrus.New().WithFields(logrus.Fields{
+		"region":  region,
+		"node_id": nodeId,
+	})
+
 	return &Driver{
 		endpoint: ep,
 		nodeId:   nodeId,
 		region:   region,
 		doClient: doClient,
-		mounter:  &mounter{},
-		log: logrus.New().WithFields(logrus.Fields{
-			"region":  region,
-			"node_id": nodeId,
-		}),
+		mounter:  newMounter(log),
+		log:      log,
 	}, nil
 }
 
