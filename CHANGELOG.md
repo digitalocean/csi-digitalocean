@@ -1,3 +1,8 @@
+## unreleased
+
+* Add logs to mount operations
+  [[GH-55]](https://github.com/digitalocean/csi-digitalocean/pull/55)
+
 ## v0.1.3 - August 3rd 2018
 
 * Fix passing an empty source to `IsMounted()` function during `NodeUnpublish`.
