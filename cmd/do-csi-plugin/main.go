@@ -18,7 +18,9 @@ package main
 
 import (
 	"flag"
+	"fmt"
 	"log"
+	"os"
 
 	"github.com/digitalocean/csi-digitalocean/driver"
 )
@@ -28,8 +30,14 @@ func main() {
 		endpoint = flag.String("endpoint", "unix:///var/lib/kubelet/plugins/com.digitalocean.csi.dobs/csi.sock", "CSI endpoint")
 		token    = flag.String("token", "", "DigitalOcean access token")
 		url      = flag.String("url", "https://api.digitalocean.com/", "DigitalOcean API URL")
+		version  = flag.Bool("version", false, "Print the version and exit.")
 	)
 	flag.Parse()
+
+	if *version {
+		fmt.Printf("%s - %s (%s)\n", driver.GetVersion(), driver.GetCommit(), driver.GetTreeState())
+		os.Exit(0)
+	}
 
 	drv, err := driver.NewDriver(*endpoint, *token, *url)
 	if err != nil {

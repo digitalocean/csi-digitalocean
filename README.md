@@ -5,6 +5,18 @@ The DigitalOcean CSI plugin is mostly tested on Kubernetes. Theoretically it
 should also work on other Container Orchestrator's, such as Mesos or
 Cloud Foundry. Feel free to test it on other CO's and give us a feedback.
 
+## Releases
+
+The DigitalOcean CSI plugin follows semantic versioning. The current stable
+release is: **`v0.1.3`**. It will be updated according to the following logic:
+
+* Bug fixes will be released as a `PATCH` update.
+* New features (such as CSI spec bumps) will be released as a `MINOR` update
+* Significant breaking changes makes a `MAJOR` update
+
+The plugin will be bumped to `v1.0.0` once the DigitalOcean Kubernetes product
+is released and will continue following the rules above.
+
 ## Installing to Kubernetes
 
 **Requirements:**
@@ -69,10 +81,10 @@ digitalocean          Opaque                                1         18h
 
 Before you continue, be sure to checkout to a [tagged
 release](https://github.com/digitalocean/csi-digitalocean/releases). Always use the [latest stable version](https://github.com/digitalocean/csi-digitalocean/releases/latest) 
-For example, to use the latest stable version you can execute the following command:
+For example, to use the latest stable version (`v0.1.3`) you can execute the following command:
 
 ```
-$ kubectl apply -f https://raw.githubusercontent.com/digitalocean/csi-digitalocean/master/deploy/kubernetes/releases/csi-digitalocean-latest-stable.yaml
+$ kubectl apply -f https://raw.githubusercontent.com/digitalocean/csi-digitalocean/master/deploy/kubernetes/releases/csi-digitalocean-v0.1.3.yaml
 ```
 
 This file will be always updated to point to the latest stable release.
@@ -158,6 +170,44 @@ $ kubectl exec -ti my-csi-app /bin/sh
 hello-world
 ```
 
+## Development
+
+To test changes and build a new binary & docker image run make:
+
+```
+$ make
+```
+
+This will create a binary with version `dev` and docker image pushed to
+`digitalocean/do-csi-plugin:dev`
+
+To release a new version bump first the version:
+
+```
+$ make bump-version
+```
+
+Make sure everything looks good. Create a new branch with all changes:
+
+```
+$ git checkout -b new-release
+$ git add .
+$ git push origin
+```
+
+After it's merged to master, [create a new Github
+release](https://github.com/digitalocean/csi-digitalocean/releases/new) from
+master with the version `v0.1.3` and then publish a new docker build:
+
+```
+$ git checkout master
+$ make publish
+```
+
+This will create a binary with version `v0.1.3` and docker image pushed to
+`digitalocean/do-csi-plugin:v0.1.3`
+
 ## Contributing
+
 At DigitalOcean we value and love our community! If you have any issues or
 would like to contribute, feel free to open an issue/PR
