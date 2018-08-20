@@ -87,12 +87,6 @@ func (d *Driver) CreateVolume(ctx context.Context, req *csi.CreateVolumeRequest)
 		}
 		vol := volumes[0]
 
-		// check if it was created by the CSI driver
-		if vol.Description != createdByDO {
-			return nil, fmt.Errorf("fatal issue: volume %q (%s) was not created by CSI",
-				vol.Name, vol.Description)
-		}
-
 		if vol.SizeGigaBytes*GB != size {
 			return nil, status.Error(codes.AlreadyExists, fmt.Sprintf("invalid option requested size: %d", size))
 		}
