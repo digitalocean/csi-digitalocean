@@ -2,6 +2,9 @@
 
 * Add logs to mount operations
   [[GH-55]](https://github.com/digitalocean/csi-digitalocean/pull/55)
+* Remove description to allow users to reuse volumes that were created by the
+  UI/API
+  [[GH-59]](https://github.com/digitalocean/csi-digitalocean/pull/59)
 
 ## v0.1.3 - August 3rd 2018
 
