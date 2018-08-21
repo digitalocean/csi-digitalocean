@@ -187,6 +187,7 @@ func (d *Driver) ControllerPublishVolume(ctx context.Context, req *csi.Controlle
 		if resp != nil && resp.StatusCode == http.StatusNotFound {
 			return nil, status.Errorf(codes.NotFound, "volume %q not found", req.VolumeId)
 		}
+		return nil, err
 	}
 
 	// check if droplet exist before trying to attach the volume to the droplet
@@ -195,6 +196,7 @@ func (d *Driver) ControllerPublishVolume(ctx context.Context, req *csi.Controlle
 		if resp != nil && resp.StatusCode == http.StatusNotFound {
 			return nil, status.Errorf(codes.NotFound, "droplet %q not found", dropletID)
 		}
+		return nil, err
 	}
 
 	action, resp, err := d.doClient.StorageActions.Attach(ctx, req.VolumeId, dropletID)
@@ -247,6 +249,7 @@ func (d *Driver) ControllerUnpublishVolume(ctx context.Context, req *csi.Control
 			// assume it's detached
 			return &csi.ControllerUnpublishVolumeResponse{}, nil
 		}
+		return nil, err
 	}
 
 	// check if droplet exist before trying to detach the volume from the droplet
@@ -255,6 +258,7 @@ func (d *Driver) ControllerUnpublishVolume(ctx context.Context, req *csi.Control
 		if resp != nil && resp.StatusCode == http.StatusNotFound {
 			return nil, status.Errorf(codes.NotFound, "droplet %q not found", dropletID)
 		}
+		return nil, err
 	}
 
 	action, resp, err := d.doClient.StorageActions.DetachByDropletID(ctx, req.VolumeId, dropletID)
@@ -314,6 +318,7 @@ func (d *Driver) ValidateVolumeCapabilities(ctx context.Context, req *csi.Valida
 		if volResp != nil && volResp.StatusCode == http.StatusNotFound {
 			return nil, status.Errorf(codes.NotFound, "volume %q not found", req.VolumeId)
 		}
+		return nil, err
 	}
 
 	hasSupport := func(mode csi.VolumeCapability_AccessMode_Mode) bool {
