@@ -7,15 +7,17 @@ Cloud Foundry. Feel free to test it on other CO's and give us a feedback.
 
 ## Releases
 
-The DigitalOcean CSI plugin follows semantic versioning. The current stable
-release is: **`v0.1.3`**. It will be updated according to the following logic:
+The DigitalOcean CSI plugin follows [semantic versioning](https://semver.org/).
+The current version is: **`v0.1.3`**. This means that the project is still
+under active development and may not be production ready. The plugin will be
+bumped to **`v1.0.0`** once the [DigitalOcean Kubernetes
+product](https://www.digitalocean.com/products/kubernetes/) is released and
+will continue following the rules below:
 
 * Bug fixes will be released as a `PATCH` update.
-* New features (such as CSI spec bumps) will be released as a `MINOR` update
-* Significant breaking changes makes a `MAJOR` update
+* New features (such as CSI spec bumps) will be released as a `MINOR` update.
+* Significant breaking changes makes a `MAJOR` update.
 
-The plugin will be bumped to `v1.0.0` once the DigitalOcean Kubernetes product
-is released and will continue following the rules above.
 
 ## Installing to Kubernetes
 
@@ -172,14 +174,27 @@ hello-world
 
 ## Development
 
-To test changes and build a new binary & docker image run make:
+Requirements:
+
+* Go: min `v1.10.x`
+
+After making your changes, run the tests: 
 
 ```
-$ make
+$ make test
+```
+
+If you want to test your changes, create a new image with the version set to `dev`:
+
+```
+$ make publish-dev
 ```
 
 This will create a binary with version `dev` and docker image pushed to
 `digitalocean/do-csi-plugin:dev`
+
+
+### Release a new version
 
 To release a new version bump first the version:
 

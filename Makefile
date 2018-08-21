@@ -13,7 +13,7 @@ PKG ?= github.com/digitalocean/csi-digitalocean/cmd/do-csi-plugin
 BUMP := patch
 VERSION ?= $(shell cat VERSION)
 
-all: compile-dev
+all: test
 
 publish: compile build push clean
 publish-dev: compile-dev build-dev push-dev clean
@@ -34,6 +34,11 @@ bump-version:
 compile:
 	@echo "==> Building the project"
 	@env CGO_ENABLED=0 GOOS=${OS} GOARCH=amd64 go build -o cmd/do-csi-plugin/${NAME} -ldflags "$(LDFLAGS)" ${PKG} 
+
+test:
+	@echo "==> Testing all packages"
+	@go test ./...
+
 
 build:
 	@echo "==> Building the docker image"
