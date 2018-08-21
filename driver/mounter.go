@@ -53,11 +53,10 @@ type Mounter interface {
 	// returns true if the source device is already formatted.
 	IsFormatted(source string) (bool, error)
 
-	// IsMounted checks whether the source device is mounted to the target path
-	// in a correct way (i.e: propagated). It returns true if it's mounted. An
-	// error is returned in case of system errors or if it's mounted
-	// incorrectly.
-	IsMounted(source, target string) (bool, error)
+	// IsMounted checks whether the target path is a correct mount (i.e:
+	// propagated). It returns true if it's mounted. An error is returned in
+	// case of system errors or if it's mounted incorrectly.
+	IsMounted(target string) (bool, error)
 }
 
 // TODO(arslan): this is Linux only for now. Refactor this into a package with
@@ -215,11 +214,7 @@ func (m *mounter) IsFormatted(source string) (bool, error) {
 	return true, nil
 }
 
-func (m *mounter) IsMounted(source, target string) (bool, error) {
-	if source == "" {
-		return false, errors.New("source is not specified for checking the mount")
-	}
-
+func (m *mounter) IsMounted(target string) (bool, error) {
 	if target == "" {
 		return false, errors.New("target is not specified for checking the mount")
 	}
@@ -233,12 +228,12 @@ func (m *mounter) IsMounted(source, target string) (bool, error) {
 		return false, err
 	}
 
-	findmntArgs := []string{"-o", "TARGET,PROPAGATION,FSTYPE,OPTIONS", source, "-J"}
+	findmntArgs := []string{"-o", "TARGET,PROPAGATION,FSTYPE,OPTIONS", "-M", target, "-J"}
 
 	m.log.WithFields(logrus.Fields{
 		"cmd":  findmntCmd,
 		"args": findmntArgs,
-	}).Info("checking if source is mounted")
+	}).Info("checking if target is mounted")
 
 	out, err := exec.Command(findmntCmd, findmntArgs...).CombinedOutput()
 	if err != nil {
@@ -251,6 +246,11 @@ func (m *mounter) IsMounted(source, target string) (bool, error) {
 			err, findmntCmd, string(out))
 	}
 
+	// no response means there is no mount
+	if string(out) == "" {
+		return false, nil
+	}
+
 	var resp *findmntResponse
 	err = json.Unmarshal(out, &resp)
 	if err != nil {
@@ -261,7 +261,7 @@ func (m *mounter) IsMounted(source, target string) (bool, error) {
 	for _, fs := range resp.FileSystems {
 		// check if the mount is propagated correctly. It should be set to shared.
 		if fs.Propagation != "shared" {
-			return true, fmt.Errorf("mount propagation for target %q is not enabled or the block device %q does not exist anymore", target, source)
+			return true, fmt.Errorf("mount propagation for target %q is not enabled", target)
 		}
 
 		// the mountpoint should match as well
