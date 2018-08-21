@@ -181,6 +181,22 @@ func (d *Driver) ControllerPublishVolume(ctx context.Context, req *csi.Controlle
 	})
 	ll.Info("controller publish volume called")
 
+	// check if volume exist before trying to attach it
+	_, resp, err := d.doClient.Storage.GetVolume(ctx, req.VolumeId)
+	if err != nil {
+		if resp != nil && resp.StatusCode == http.StatusNotFound {
+			return nil, status.Errorf(codes.NotFound, "volume %q not found", req.VolumeId)
+		}
+	}
+
+	// check if droplet exist before trying to attach the volume to the droplet
+	_, resp, err = d.doClient.Droplets.Get(ctx, dropletID)
+	if err != nil {
+		if resp != nil && resp.StatusCode == http.StatusNotFound {
+			return nil, status.Errorf(codes.NotFound, "droplet %q not found", dropletID)
+		}
+	}
+
 	action, resp, err := d.doClient.StorageActions.Attach(ctx, req.VolumeId, dropletID)
 	if err != nil {
 		// don't do anything if attached
@@ -223,6 +239,23 @@ func (d *Driver) ControllerUnpublishVolume(ctx context.Context, req *csi.Control
 		"method":     "controller_unpublish_volume",
 	})
 	ll.Info("controller unpublish volume called")
+
+	// check if volume exist before trying to detach it
+	_, resp, err := d.doClient.Storage.GetVolume(ctx, req.VolumeId)
+	if err != nil {
+		if resp != nil && resp.StatusCode == http.StatusNotFound {
+			// assume it's detached
+			return &csi.ControllerUnpublishVolumeResponse{}, nil
+		}
+	}
+
+	// check if droplet exist before trying to detach the volume from the droplet
+	_, resp, err = d.doClient.Droplets.Get(ctx, dropletID)
+	if err != nil {
+		if resp != nil && resp.StatusCode == http.StatusNotFound {
+			return nil, status.Errorf(codes.NotFound, "droplet %q not found", dropletID)
+		}
+	}
 
 	action, resp, err := d.doClient.StorageActions.DetachByDropletID(ctx, req.VolumeId, dropletID)
 	if err != nil {
@@ -274,6 +307,14 @@ func (d *Driver) ValidateVolumeCapabilities(ctx context.Context, req *csi.Valida
 		"method":                 "validate_volume_capabilities",
 	})
 	ll.Info("validate volume capabilities called")
+
+	// check if volume exist before trying to validate it it
+	_, volResp, err := d.doClient.Storage.GetVolume(ctx, req.VolumeId)
+	if err != nil {
+		if volResp != nil && volResp.StatusCode == http.StatusNotFound {
+			return nil, status.Errorf(codes.NotFound, "volume %q not found", req.VolumeId)
+		}
+	}
 
 	hasSupport := func(mode csi.VolumeCapability_AccessMode_Mode) bool {
 		for _, m := range vcaps {

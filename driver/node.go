@@ -26,7 +26,9 @@ package driver
 
 import (
 	"context"
+	"net/http"
 	"path/filepath"
+	"strings"
 
 	csi "github.com/container-storage-interface/spec/lib/go/csi/v0"
 	"github.com/sirupsen/logrus"
@@ -57,9 +59,11 @@ func (d *Driver) NodeStageVolume(ctx context.Context, req *csi.NodeStageVolumeRe
 		return nil, status.Error(codes.InvalidArgument, "NodeStageVolume Volume Capability must be provided")
 	}
 
-	vol, _, err := d.doClient.Storage.GetVolume(ctx, req.VolumeId)
+	vol, resp, err := d.doClient.Storage.GetVolume(ctx, req.VolumeId)
 	if err != nil {
-		return nil, err
+		if resp != nil && resp.StatusCode == http.StatusNotFound {
+			return nil, status.Errorf(codes.NotFound, "volume %q not found", req.VolumeId)
+		}
 	}
 
 	source := getDiskSource(vol.Name)
@@ -133,8 +137,12 @@ func (d *Driver) NodeUnstageVolume(ctx context.Context, req *csi.NodeUnstageVolu
 	})
 	ll.Info("node unstage volume called")
 
-	vol, _, err := d.doClient.Storage.GetVolume(ctx, req.VolumeId)
+	vol, resp, err := d.doClient.Storage.GetVolume(ctx, req.VolumeId)
 	if err != nil {
+		if resp != nil && resp.StatusCode == http.StatusNotFound {
+			// we assume it's deleted already for idempotency
+			return &csi.NodeUnstageVolumeResponse{}, nil
+		}
 		return nil, err
 	}
 
@@ -177,9 +185,11 @@ func (d *Driver) NodePublishVolume(ctx context.Context, req *csi.NodePublishVolu
 		return nil, status.Error(codes.InvalidArgument, "NodePublishVolume Volume Capability must be provided")
 	}
 
-	vol, _, err := d.doClient.Storage.GetVolume(ctx, req.VolumeId)
+	vol, resp, err := d.doClient.Storage.GetVolume(ctx, req.VolumeId)
 	if err != nil {
-		return nil, err
+		if resp != nil && resp.StatusCode == http.StatusNotFound {
+			return nil, status.Errorf(codes.NotFound, "volume %q not found", req.VolumeId)
+		}
 	}
 
 	diskSource := getDiskSource(vol.Name)
@@ -248,25 +258,13 @@ func (d *Driver) NodeUnpublishVolume(ctx context.Context, req *csi.NodeUnpublish
 	})
 	ll.Info("node unpublish volume called")
 
-	vol, _, err := d.doClient.Storage.GetVolume(ctx, req.VolumeId)
-	if err != nil {
+	ll.Info("unmounting the target path")
+	err := d.mounter.Unmount(req.TargetPath)
+	// Invalid argument is returned by the `mount` command in this container
+	// image when a path is already umounted. We only return an error for
+	// anything else
+	if err != nil && !strings.Contains(err.Error(), "Invalid argument") {
 		return nil, err
-	}
-
-	source := getDiskSource(vol.Name)
-	mounted, err := d.mounter.IsMounted(source, req.TargetPath)
-	if err != nil {
-		return nil, err
-	}
-
-	if mounted {
-		ll.Info("unmounting the target path")
-		err := d.mounter.Unmount(req.TargetPath)
-		if err != nil {
-			return nil, err
-		}
-	} else {
-		ll.Info("target path is already unmounted")
 	}
 
 	ll.Info("unmounting volume is finished")
