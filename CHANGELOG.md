@@ -9,6 +9,8 @@
   gracefully. We're not very strict anymore in cases we don't need to be, but
   we're also returning a better error in cases we need to be.
   [[GH-60]](https://github.com/digitalocean/csi-digitalocean/pull/60)
+* Fix attaching multiple volumes to a single pod
+  [[GH-61]](https://github.com/digitalocean/csi-digitalocean/pull/61)
 
 ## v0.1.3 - August 3rd 2018
 
