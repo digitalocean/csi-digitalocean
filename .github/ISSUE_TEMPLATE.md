@@ -17,6 +17,3 @@ very long, otherwise it's ok to paste it here.
 
 * Cloud provider/framework version (if applicable, such as Rancher):
 
-* `vimrc` you used to reproduce (use a *minimal* vimrc with other plugins disabled; do not link to a 2,000 line vimrc):
-
-
