@@ -202,6 +202,6 @@ func (f *fakeMounter) Unmount(target string) error {
 func (f *fakeMounter) IsFormatted(source string) (bool, error) {
 	return true, nil
 }
-func (f *fakeMounter) IsMounted(source, target string) (bool, error) {
+func (f *fakeMounter) IsMounted(target string) (bool, error) {
 	return true, nil
 }

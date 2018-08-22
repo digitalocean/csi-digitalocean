@@ -26,6 +26,7 @@ package driver
 
 import (
 	"context"
+	"net/http"
 	"path/filepath"
 
 	csi "github.com/container-storage-interface/spec/lib/go/csi/v0"
@@ -57,8 +58,11 @@ func (d *Driver) NodeStageVolume(ctx context.Context, req *csi.NodeStageVolumeRe
 		return nil, status.Error(codes.InvalidArgument, "NodeStageVolume Volume Capability must be provided")
 	}
 
-	vol, _, err := d.doClient.Storage.GetVolume(ctx, req.VolumeId)
+	vol, resp, err := d.doClient.Storage.GetVolume(ctx, req.VolumeId)
 	if err != nil {
+		if resp != nil && resp.StatusCode == http.StatusNotFound {
+			return nil, status.Errorf(codes.NotFound, "volume %q not found", req.VolumeId)
+		}
 		return nil, err
 	}
 
@@ -99,7 +103,7 @@ func (d *Driver) NodeStageVolume(ctx context.Context, req *csi.NodeStageVolumeRe
 
 	ll.Info("mounting the volume for staging")
 
-	mounted, err := d.mounter.IsMounted(source, target)
+	mounted, err := d.mounter.IsMounted(target)
 	if err != nil {
 		return nil, err
 	}
@@ -133,13 +137,7 @@ func (d *Driver) NodeUnstageVolume(ctx context.Context, req *csi.NodeUnstageVolu
 	})
 	ll.Info("node unstage volume called")
 
-	vol, _, err := d.doClient.Storage.GetVolume(ctx, req.VolumeId)
-	if err != nil {
-		return nil, err
-	}
-
-	source := getDiskSource(vol.Name)
-	mounted, err := d.mounter.IsMounted(source, req.StagingTargetPath)
+	mounted, err := d.mounter.IsMounted(req.StagingTargetPath)
 	if err != nil {
 		return nil, err
 	}
@@ -177,13 +175,6 @@ func (d *Driver) NodePublishVolume(ctx context.Context, req *csi.NodePublishVolu
 		return nil, status.Error(codes.InvalidArgument, "NodePublishVolume Volume Capability must be provided")
 	}
 
-	vol, _, err := d.doClient.Storage.GetVolume(ctx, req.VolumeId)
-	if err != nil {
-		return nil, err
-	}
-
-	diskSource := getDiskSource(vol.Name)
-
 	source := req.StagingTargetPath
 	target := req.TargetPath
 
@@ -211,9 +202,7 @@ func (d *Driver) NodePublishVolume(ctx context.Context, req *csi.NodePublishVolu
 		"method":        "node_publish_volume",
 	})
 
-	// we can only check if target is mounted with the diskSource directly.
-	// The staging target path (which is a directory itself) won't work in this case
-	mounted, err := d.mounter.IsMounted(diskSource, target)
+	mounted, err := d.mounter.IsMounted(target)
 	if err != nil {
 		return nil, err
 	}
@@ -248,13 +237,7 @@ func (d *Driver) NodeUnpublishVolume(ctx context.Context, req *csi.NodeUnpublish
 	})
 	ll.Info("node unpublish volume called")
 
-	vol, _, err := d.doClient.Storage.GetVolume(ctx, req.VolumeId)
-	if err != nil {
-		return nil, err
-	}
-
-	source := getDiskSource(vol.Name)
-	mounted, err := d.mounter.IsMounted(source, req.TargetPath)
+	mounted, err := d.mounter.IsMounted(req.TargetPath)
 	if err != nil {
 		return nil, err
 	}

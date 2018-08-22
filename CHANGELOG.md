@@ -5,6 +5,10 @@
 * Remove description to allow users to reuse volumes that were created by the
   UI/API
   [[GH-59]](https://github.com/digitalocean/csi-digitalocean/pull/59)
+* Handle edge cases from external action, such as Volume deletion via UI more
+  gracefully. We're not very strict anymore in cases we don't need to be, but
+  we're also returning a better error in cases we need to be.
+  [[GH-60]](https://github.com/digitalocean/csi-digitalocean/pull/60)
 
 ## v0.1.3 - August 3rd 2018
 
