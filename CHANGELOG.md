@@ -2,6 +2,8 @@
 
 * Makefile improvements. Please check the GH link for more information.
   [[GH-66]](https://github.com/digitalocean/csi-digitalocean/pull/66)
+* Validate volume capabilities during volume creation.
+  [[GH-68]](https://github.com/digitalocean/csi-digitalocean/pull/68)
 
 ## v0.1.4 - 2018.08.23
 

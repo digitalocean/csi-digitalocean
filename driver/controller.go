@@ -46,6 +46,15 @@ const (
 	createdByDO = "Created by DigitalOcean CSI driver"
 )
 
+var (
+	// DO currently only support a single node to be attached to a single node
+	// in read/write mode. This corresponds to `accessModes.ReadWriteOnce` in a
+	// PVC resource on Kubernets
+	supportedAccessMode = &csi.VolumeCapability_AccessMode{
+		Mode: csi.VolumeCapability_AccessMode_SINGLE_NODE_WRITER,
+	}
+)
+
 // CreateVolume creates a new volume from the given request. The function is
 // idempotent.
 func (d *Driver) CreateVolume(ctx context.Context, req *csi.CreateVolumeRequest) (*csi.CreateVolumeResponse, error) {
@@ -68,6 +77,7 @@ func (d *Driver) CreateVolume(ctx context.Context, req *csi.CreateVolumeRequest)
 		"volume_name":             volumeName,
 		"storage_size_giga_bytes": size / GB,
 		"method":                  "create_volume",
+		"volume_capabilities":     req.VolumeCapabilities,
 	})
 	ll.Info("create volume called")
 
@@ -107,12 +117,11 @@ func (d *Driver) CreateVolume(ctx context.Context, req *csi.CreateVolumeRequest)
 		SizeGigaBytes: size / GB,
 	}
 
-	ll.WithField("volume_req", volumeReq).Info("creating volume")
+	if !validateCapabilities(req.VolumeCapabilities) {
+		return nil, status.Error(codes.AlreadyExists, "invalid volume capabilities requested. Only SINGLE_NODE_WRITER is supported ('accessModes.ReadWriteOnce' on Kubernetes)")
+	}
 
-	// TODO(arslan): Currently DO only supports SINGLE_NODE_WRITER mode. In the
-	// future, if we support more modes, we need to make sure to create a
-	// volume that aligns with the incoming capability. We need to make sure to
-	// test req.VolumeCapabilities
+	ll.WithField("volume_req", volumeReq).Info("creating volume")
 	vol, _, err := d.doClient.Storage.CreateVolume(ctx, volumeReq)
 	if err != nil {
 		return nil, status.Error(codes.Internal, err.Error())
@@ -319,19 +328,10 @@ func (d *Driver) ValidateVolumeCapabilities(ctx context.Context, req *csi.Valida
 		return nil, status.Error(codes.InvalidArgument, "ValidateVolumeCapabilities Volume Capabilities must be provided")
 	}
 
-	var vcaps []*csi.VolumeCapability_AccessMode
-	for _, mode := range []csi.VolumeCapability_AccessMode_Mode{
-		// DO currently only support a single node to be attached to a single
-		// node in read/write mode
-		csi.VolumeCapability_AccessMode_SINGLE_NODE_WRITER,
-	} {
-		vcaps = append(vcaps, &csi.VolumeCapability_AccessMode{Mode: mode})
-	}
-
 	ll := d.log.WithFields(logrus.Fields{
 		"volume_id":              req.VolumeId,
 		"volume_capabilities":    req.VolumeCapabilities,
-		"supported_capabilities": vcaps,
+		"supported_capabilities": supportedAccessMode,
 		"method":                 "validate_volume_capabilities",
 	})
 	ll.Info("validate volume capabilities called")
@@ -345,28 +345,8 @@ func (d *Driver) ValidateVolumeCapabilities(ctx context.Context, req *csi.Valida
 		return nil, err
 	}
 
-	hasSupport := func(mode csi.VolumeCapability_AccessMode_Mode) bool {
-		for _, m := range vcaps {
-			if mode == m.Mode {
-				return true
-			}
-		}
-		return false
-	}
-
 	resp := &csi.ValidateVolumeCapabilitiesResponse{
-		Supported: false,
-	}
-
-	for _, cap := range req.VolumeCapabilities {
-		// cap.AccessMode.Mode
-		if hasSupport(cap.AccessMode.Mode) {
-			resp.Supported = true
-		} else {
-			// we need to make sure all capabilities are supported. Revert back
-			// in case we have a cap that is supported, but is invalidated now
-			resp.Supported = false
-		}
+		Supported: validateCapabilities(req.VolumeCapabilities),
 	}
 
 	ll.WithField("response", resp).Info("supported capabilities")
@@ -554,4 +534,33 @@ func (d *Driver) waitAction(ctx context.Context, volumeId string, actionId int) 
 			return fmt.Errorf("timeout occured waiting for storage action of volume: %q", volumeId)
 		}
 	}
+}
+
+// validateCapabilities validates the requested capabilities. It returns false
+// if it doesn't satisfy the currently supported modes of DigitalOcean Block
+// Storage
+func validateCapabilities(caps []*csi.VolumeCapability) bool {
+	vcaps := []*csi.VolumeCapability_AccessMode{supportedAccessMode}
+
+	hasSupport := func(mode csi.VolumeCapability_AccessMode_Mode) bool {
+		for _, m := range vcaps {
+			if mode == m.Mode {
+				return true
+			}
+		}
+		return false
+	}
+
+	supported := false
+	for _, cap := range caps {
+		if hasSupport(cap.AccessMode.Mode) {
+			supported = true
+		} else {
+			// we need to make sure all capabilities are supported. Revert back
+			// in case we have a cap that is supported, but is invalidated now
+			supported = false
+		}
+	}
+
+	return supported
 }
