@@ -1,5 +1,7 @@
 ## unreleased
 
+## v0.1.4 - 2018.08.23
+
 * Add logs to mount operations
   [[GH-55]](https://github.com/digitalocean/csi-digitalocean/pull/55)
 * Remove description to allow users to reuse volumes that were created by the

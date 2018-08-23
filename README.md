@@ -8,7 +8,7 @@ Cloud Foundry. Feel free to test it on other CO's and give us a feedback.
 ## Releases
 
 The DigitalOcean CSI plugin follows [semantic versioning](https://semver.org/).
-The current version is: **`v0.1.3`**. This means that the project is still
+The current version is: **`v0.1.4`**. This means that the project is still
 under active development and may not be production ready. The plugin will be
 bumped to **`v1.0.0`** once the [DigitalOcean Kubernetes
 product](https://www.digitalocean.com/products/kubernetes/) is released and
@@ -83,10 +83,10 @@ digitalocean          Opaque                                1         18h
 
 Before you continue, be sure to checkout to a [tagged
 release](https://github.com/digitalocean/csi-digitalocean/releases). Always use the [latest stable version](https://github.com/digitalocean/csi-digitalocean/releases/latest) 
-For example, to use the latest stable version (`v0.1.3`) you can execute the following command:
+For example, to use the latest stable version (`v0.1.4`) you can execute the following command:
 
 ```
-$ kubectl apply -f https://raw.githubusercontent.com/digitalocean/csi-digitalocean/master/deploy/kubernetes/releases/csi-digitalocean-v0.1.3.yaml
+$ kubectl apply -f https://raw.githubusercontent.com/digitalocean/csi-digitalocean/master/deploy/kubernetes/releases/csi-digitalocean-v0.1.4.yaml
 ```
 
 This file will be always updated to point to the latest stable release.
@@ -212,15 +212,15 @@ $ git push origin
 
 After it's merged to master, [create a new Github
 release](https://github.com/digitalocean/csi-digitalocean/releases/new) from
-master with the version `v0.1.3` and then publish a new docker build:
+master with the version `v0.1.4` and then publish a new docker build:
 
 ```
 $ git checkout master
 $ make publish
 ```
 
-This will create a binary with version `v0.1.3` and docker image pushed to
-`digitalocean/do-csi-plugin:v0.1.3`
+This will create a binary with version `v0.1.4` and docker image pushed to
+`digitalocean/do-csi-plugin:v0.1.4`
 
 ## Contributing
 
