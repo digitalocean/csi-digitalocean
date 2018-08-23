@@ -89,6 +89,7 @@ func NewDriver(ep, token, url string) (*Driver, error) {
 	log := logrus.New().WithFields(logrus.Fields{
 		"region":  region,
 		"node_id": nodeId,
+		"version": version,
 	})
 
 	return &Driver{
