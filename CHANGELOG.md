@@ -1,5 +1,8 @@
 ## unreleased
 
+* Makefile improvements. Please check the GH link for more information.
+  [[GH-66]](https://github.com/digitalocean/csi-digitalocean/pull/66)
+
 ## v0.1.4 - 2018.08.23
 
 * Add logs to mount operations
