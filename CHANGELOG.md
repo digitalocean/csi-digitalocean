@@ -12,7 +12,7 @@
 * Fix attaching multiple volumes to a single pod
   [[GH-61]](https://github.com/digitalocean/csi-digitalocean/pull/61)
 
-## v0.1.3 - August 3rd 2018
+## v0.1.3 - 2018.08.03
 
 * Fix passing an empty source to `IsMounted()` function during `NodeUnpublish`.
   This would prevent a pod to be deleted successfully in case of a dettached
@@ -20,7 +20,7 @@
   was failing.
   [[GH-50]](https://github.com/digitalocean/csi-digitalocean/pull/50)
 
-## v0.1.2 - August 2nd 2018
+## v0.1.2 - 2018.08.02
 
 * Check if mounts are propagated (`MountPropagation` is enabled on the host) in
   Node plugin to prevent silent failing. 
@@ -30,12 +30,12 @@
 * Log 422 errors for visibility in Controller publish/unpublish methods.
   [[GH-38]](https://github.com/digitalocean/csi-digitalocean/pull/38)
 
-## v0.1.1 (alpha) - May 29th 2018
+## v0.1.1 (alpha) - 2018.05.29
 
 * Fix panicking on errors for nil response objects
   [[GH-34]](https://github.com/digitalocean/csi-digitalocean/pull/34)
 
-## v0.1.0 (alpha) - May 15th 2018
+## v0.1.0 (alpha) - 2018.05.15
 
 * Add method names to each log entry 
   [[GH-22]](https://github.com/digitalocean/csi-digitalocean/pull/22)
@@ -49,6 +49,6 @@
 * Make DigitalOcean API configurable via the new `--url` flag
   [[GH-27]](https://github.com/digitalocean/csi-digitalocean/pull/27)
 
-## v0.0.1 (alpha) - May 10th 2018
+## v0.0.1 (alpha) - 2018.05.10
 
 * First release with all important methods of the CSI spec implemented

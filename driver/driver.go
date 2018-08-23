@@ -35,8 +35,13 @@ import (
 )
 
 const (
-	driverName    = "com.digitalocean.csi.dobs"
-	vendorVersion = "dev"
+	driverName = "com.digitalocean.csi.dobs"
+)
+
+var (
+	gitTreeState = "not a git tree"
+	commit       string
+	version      string
 )
 
 // Driver implements the following CSI interfaces:
@@ -148,4 +153,23 @@ func (d *Driver) Run() error {
 func (d *Driver) Stop() {
 	d.log.Info("server stopped")
 	d.srv.Stop()
+}
+
+// When building any packages that import version, pass the build/install cmd
+// ldflags like so:
+//   go build -ldflags "-X github.com/digitalocean/csi-digitalocean/driver.version=0.0.1"
+// GetVersion returns the current release version, as inserted at build time.
+func GetVersion() string {
+	return version
+}
+
+// GetCommit returns the current commit hash value, as inserted at build time.
+func GetCommit() string {
+	return commit
+}
+
+// GetTreeState returns the current state of git tree, either "clean" or
+// "dirty".
+func GetTreeState() string {
+	return gitTreeState
 }
