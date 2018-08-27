@@ -18,7 +18,7 @@ kubectl logs -l app=csi-doplugin -c csi-doplugin -n kube-system > csi-nodeplugin
 
 * manifests, such as pvc, deployments, etc.. you used to reproduce:
 
-Please provide the **total** set of manifests that is needed to reproduce the
+Please provide the **total** set of manifests that are needed to reproduce the
 issue. Just providing the `pvc` is not helpful. If you cannot provide it due
 privacy concerns, please try creating a reproducible case.
 
