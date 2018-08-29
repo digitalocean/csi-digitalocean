@@ -25,6 +25,7 @@ import (
 	"net/url"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 	"time"
 
@@ -37,6 +38,21 @@ func init() {
 	rand.Seed(time.Now().UnixNano())
 }
 
+type storageVolumeRoot struct {
+	Volume *godo.Volume `json:"volume"`
+	Links  *godo.Links  `json:"links,omitempty"`
+}
+
+type storageVolumesRoot struct {
+	Volumes []godo.Volume `json:"volumes"`
+	Links   *godo.Links   `json:"links"`
+}
+
+type dropletRoot struct {
+	Droplet *godo.Droplet `json:"droplet"`
+	Links   *godo.Links   `json:"links,omitempty"`
+}
+
 func TestDriverSuite(t *testing.T) {
 	socket := "/tmp/csi.sock"
 	endpoint := "unix://" + socket
@@ -45,10 +61,15 @@ func TestDriverSuite(t *testing.T) {
 	}
 
 	// fake DO Server, not working yet ...
+	nodeId := "987654"
 	fake := &fakeAPI{
 		t:       t,
 		volumes: map[string]*godo.Volume{},
+		droplets: map[string]*godo.Droplet{
+			nodeId: &godo.Droplet{},
+		},
 	}
+
 	ts := httptest.NewServer(fake)
 	defer ts.Close()
 
@@ -58,7 +79,7 @@ func TestDriverSuite(t *testing.T) {
 
 	driver := &Driver{
 		endpoint: endpoint,
-		nodeId:   "987654",
+		nodeId:   nodeId,
 		region:   "nyc3",
 		doClient: doClient,
 		mounter:  &fakeMounter{},
@@ -91,41 +112,66 @@ func TestDriverSuite(t *testing.T) {
 
 // fakeAPI implements a fake, cached DO API
 type fakeAPI struct {
-	t       *testing.T
-	volumes map[string]*godo.Volume
+	t        *testing.T
+	volumes  map[string]*godo.Volume
+	droplets map[string]*godo.Droplet
 }
 
 func (f *fakeAPI) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	// don't deal with droplets for now
+	if strings.HasPrefix(r.URL.Path, "/v2/droplets/") {
+		// for now we only do a GET, so we assume it's a GET and don't check
+		// for the method
+		resp := new(dropletRoot)
+		id := filepath.Base(r.URL.Path)
+		droplet, ok := f.droplets[id]
+		if !ok {
+			w.WriteHeader(http.StatusNotFound)
+		} else {
+			resp.Droplet = droplet
+		}
+
+		_ = json.NewEncoder(w).Encode(&resp)
+		return
+	}
+
 	switch r.Method {
 	case "GET":
-		name := r.URL.Query().Get("name")
-		if name != "" {
-			// a list of volumes for the given name
-			for _, vol := range f.volumes {
-				if vol.Name == name {
-					var resp = struct {
-						Volumes []*godo.Volume
-						Links   *godo.Links
-					}{
-						Volumes: []*godo.Volume{vol},
+		// A list call
+		if strings.HasPrefix(r.URL.String(), "/v2/volumes?") {
+			volumes := []godo.Volume{}
+			if name := r.URL.Query().Get("name"); name != "" {
+				for _, vol := range f.volumes {
+					if vol.Name == name {
+						volumes = append(volumes, *vol)
 					}
-					err := json.NewEncoder(w).Encode(&resp)
-					if err != nil {
-						f.t.Fatal(err)
-					}
-					return
+				}
+			} else {
+				for _, vol := range f.volumes {
+					volumes = append(volumes, *vol)
 				}
 			}
+
+			resp := new(storageVolumesRoot)
+			resp.Volumes = volumes
+
+			err := json.NewEncoder(w).Encode(&resp)
+			if err != nil {
+				f.t.Fatal(err)
+			}
+			return
+
 		} else {
+			resp := new(storageVolumeRoot)
 			// single volume get
 			id := filepath.Base(r.URL.Path)
-			vol := f.volumes[id]
-			var resp = struct {
-				Volume *godo.Volume
-				Links  *godo.Links
-			}{
-				Volume: vol,
+			vol, ok := f.volumes[id]
+			if !ok {
+				w.WriteHeader(http.StatusNotFound)
+			} else {
+				resp.Volume = vol
 			}
+
 			_ = json.NewEncoder(w).Encode(&resp)
 			return
 		}
@@ -135,6 +181,7 @@ func (f *fakeAPI) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			Volume []*godo.Volume
 			Links  *godo.Links
 		}{}
+
 		err := json.NewEncoder(w).Encode(&resp)
 		if err != nil {
 			f.t.Fatal(err)

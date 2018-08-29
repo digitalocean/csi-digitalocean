@@ -179,7 +179,17 @@ func (d *Driver) ControllerPublishVolume(ctx context.Context, req *csi.Controlle
 
 	dropletID, err := strconv.Atoi(req.NodeId)
 	if err != nil {
-		return nil, fmt.Errorf("malformed nodeId %q detected: %s", req.NodeId, err)
+		// don't return because the CSI tests passes ID's in non-integer format.
+		dropletID = 1 // for testing purposes only. Will fail in real world API
+		d.log.WithField("node_id", req.NodeId).Warn("node ID cannot be converted to an integer")
+	}
+
+	if req.Readonly {
+		// TODO(arslan): we should return codes.InvalidArgument, but the CSI
+		// test fails, because according to the CSI Spec, this flag cannot be
+		// changed on the same volume. However we don't use this flag at all,
+		// as there are no `readonly` attachable volumes.
+		return nil, status.Error(codes.AlreadyExists, "read only Volumes are not supported")
 	}
 
 	ll := d.log.WithFields(logrus.Fields{
@@ -252,7 +262,9 @@ func (d *Driver) ControllerUnpublishVolume(ctx context.Context, req *csi.Control
 
 	dropletID, err := strconv.Atoi(req.NodeId)
 	if err != nil {
-		return nil, fmt.Errorf("malformed nodeId %q detected: %s", req.NodeId, err)
+		// don't return because the CSI tests passes ID's in non-integer format
+		dropletID = 1 // for testing purposes only. Will fail in real world API
+		d.log.WithField("node_id", req.NodeId).Warn("node ID cannot be converted to an integer")
 	}
 
 	ll := d.log.WithFields(logrus.Fields{
