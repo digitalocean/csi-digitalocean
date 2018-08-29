@@ -66,6 +66,20 @@ func (d *Driver) CreateVolume(ctx context.Context, req *csi.CreateVolumeRequest)
 		return nil, status.Error(codes.InvalidArgument, "CreateVolume Volume capabilities must be provided")
 	}
 
+	if req.AccessibilityRequirements != nil {
+		for _, t := range req.AccessibilityRequirements.Requisite {
+			region, ok := t.Segments["region"]
+			if !ok {
+				continue // nothing to do
+			}
+
+			if region != d.region {
+				return nil, status.Errorf(codes.ResourceExhausted, "volume can be only crated in region: %q, got: %q", d.region, region)
+
+			}
+		}
+	}
+
 	size, err := extractStorage(req.CapacityRange)
 	if err != nil {
 		return nil, status.Error(codes.Internal, err.Error())
@@ -131,6 +145,13 @@ func (d *Driver) CreateVolume(ctx context.Context, req *csi.CreateVolumeRequest)
 		Volume: &csi.Volume{
 			Id:            vol.ID,
 			CapacityBytes: size,
+			AccessibleTopology: []*csi.Topology{
+				{
+					Segments: map[string]string{
+						"region": d.region,
+					},
+				},
+			},
 		},
 	}
 
@@ -343,6 +364,7 @@ func (d *Driver) ValidateVolumeCapabilities(ctx context.Context, req *csi.Valida
 	ll := d.log.WithFields(logrus.Fields{
 		"volume_id":              req.VolumeId,
 		"volume_capabilities":    req.VolumeCapabilities,
+		"accessible_topology":    req.AccessibleTopology,
 		"supported_capabilities": supportedAccessMode,
 		"method":                 "validate_volume_capabilities",
 	})
@@ -357,11 +379,29 @@ func (d *Driver) ValidateVolumeCapabilities(ctx context.Context, req *csi.Valida
 		return nil, err
 	}
 
+	if req.AccessibleTopology != nil {
+		for _, t := range req.AccessibleTopology {
+			region, ok := t.Segments["region"]
+			if !ok {
+				continue // nothing to do
+			}
+
+			if region != d.region {
+				// return early if a different region is expected
+				ll.WithField("supported", false).Info("supported capabilities")
+				return &csi.ValidateVolumeCapabilitiesResponse{
+					Supported: false,
+				}, nil
+			}
+		}
+	}
+
+	// if it's not supported (i.e: wrong region), we shouldn't override it
 	resp := &csi.ValidateVolumeCapabilitiesResponse{
 		Supported: validateCapabilities(req.VolumeCapabilities),
 	}
 
-	ll.WithField("response", resp).Info("supported capabilities")
+	ll.WithField("supported", resp.Supported).Info("supported capabilities")
 	return resp, nil
 }
 

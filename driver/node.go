@@ -298,6 +298,13 @@ func (d *Driver) NodeGetInfo(ctx context.Context, req *csi.NodeGetInfoRequest) (
 	return &csi.NodeGetInfoResponse{
 		NodeId:            d.nodeId,
 		MaxVolumesPerNode: maxVolumesPerNode,
+
+		// make sure that the driver works on this particular region only
+		AccessibleTopology: &csi.Topology{
+			Segments: map[string]string{
+				"region": d.region,
+			},
+		},
 	}, nil
 }
 
