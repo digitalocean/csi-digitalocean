@@ -68,7 +68,7 @@ func (d *Driver) GetPluginCapabilities(ctx context.Context, req *csi.GetPluginCa
 
 // Probe returns the health and readiness of the plugin
 func (d *Driver) Probe(ctx context.Context, req *csi.ProbeRequest) (*csi.ProbeResponse, error) {
-	d.log.WithField("method", "prove").Info("probe called")
+	d.log.WithField("method", "probe").Info("probe called")
 	d.readyMu.Lock()
 	defer d.readyMu.Unlock()
 
