@@ -49,6 +49,26 @@ func isNodeCapabilitySupported(c csi.NodeClient,
 	return false
 }
 
+func isPluginCapabilitySupported(c csi.IdentityClient,
+	capType csi.PluginCapability_Service_Type,
+) bool {
+
+	caps, err := c.GetPluginCapabilities(
+		context.Background(),
+		&csi.GetPluginCapabilitiesRequest{})
+	Expect(err).NotTo(HaveOccurred())
+	Expect(caps).NotTo(BeNil())
+	Expect(caps.GetCapabilities()).NotTo(BeNil())
+
+	for _, cap := range caps.GetCapabilities() {
+		Expect(cap.GetService()).NotTo(BeNil())
+		if cap.GetService().GetType() == capType {
+			return true
+		}
+	}
+	return false
+}
+
 var _ = Describe("NodeGetCapabilities [Node Server]", func() {
 	var (
 		c csi.NodeClient
@@ -101,6 +121,35 @@ var _ = Describe("NodeGetId [Node Server]", func() {
 	})
 })
 
+var _ = Describe("NodeGetInfo [Node Server]", func() {
+	var (
+		c                                csi.NodeClient
+		i                                csi.IdentityClient
+		accessibilityConstraintSupported bool
+	)
+
+	BeforeEach(func() {
+		c = csi.NewNodeClient(conn)
+		i = csi.NewIdentityClient(conn)
+		accessibilityConstraintSupported = isPluginCapabilitySupported(i, csi.PluginCapability_Service_ACCESSIBILITY_CONSTRAINTS)
+	})
+
+	It("should return approproate values", func() {
+		ninfo, err := c.NodeGetInfo(
+			context.Background(),
+			&csi.NodeGetInfoRequest{})
+
+		Expect(err).NotTo(HaveOccurred())
+		Expect(ninfo).NotTo(BeNil())
+		Expect(ninfo.GetNodeId()).NotTo(BeEmpty())
+		Expect(ninfo.GetMaxVolumesPerNode()).NotTo(BeNumerically("<", 0))
+
+		if accessibilityConstraintSupported {
+			Expect(ninfo.GetAccessibleTopology()).NotTo(BeNil())
+		}
+	})
+})
+
 var _ = Describe("NodePublishVolume [Node Server]", func() {
 	var (
 		s                          csi.ControllerClient
@@ -124,9 +173,13 @@ var _ = Describe("NodePublishVolume [Node Server]", func() {
 
 	It("should fail when no volume id is provided", func() {
 
-		_, err := c.NodePublishVolume(
-			context.Background(),
-			&csi.NodePublishVolumeRequest{})
+		req := &csi.NodePublishVolumeRequest{}
+
+		if secrets != nil {
+			req.NodePublishSecrets = secrets.NodePublishVolumeSecret
+		}
+
+		_, err := c.NodePublishVolume(context.Background(), req)
 		Expect(err).To(HaveOccurred())
 
 		serverError, ok := status.FromError(err)
@@ -136,11 +189,15 @@ var _ = Describe("NodePublishVolume [Node Server]", func() {
 
 	It("should fail when no target path is provided", func() {
 
-		_, err := c.NodePublishVolume(
-			context.Background(),
-			&csi.NodePublishVolumeRequest{
-				VolumeId: "id",
-			})
+		req := &csi.NodePublishVolumeRequest{
+			VolumeId: "id",
+		}
+
+		if secrets != nil {
+			req.NodePublishSecrets = secrets.NodePublishVolumeSecret
+		}
+
+		_, err := c.NodePublishVolume(context.Background(), req)
 		Expect(err).To(HaveOccurred())
 
 		serverError, ok := status.FromError(err)
@@ -150,12 +207,16 @@ var _ = Describe("NodePublishVolume [Node Server]", func() {
 
 	It("should fail when no volume capability is provided", func() {
 
-		_, err := c.NodePublishVolume(
-			context.Background(),
-			&csi.NodePublishVolumeRequest{
-				VolumeId:   "id",
-				TargetPath: config.TargetPath,
-			})
+		req := &csi.NodePublishVolumeRequest{
+			VolumeId:   "id",
+			TargetPath: config.TargetPath,
+		}
+
+		if secrets != nil {
+			req.NodePublishSecrets = secrets.NodePublishVolumeSecret
+		}
+
+		_, err := c.NodePublishVolume(context.Background(), req)
 		Expect(err).To(HaveOccurred())
 
 		serverError, ok := status.FromError(err)
@@ -225,21 +286,25 @@ func testFullWorkflowSuccess(s csi.ControllerClient, c csi.NodeClient, controlle
 	// Create Volume First
 	By("creating a single node writer volume")
 	name := "sanity"
-	vol, err := s.CreateVolume(
-		context.Background(),
-		&csi.CreateVolumeRequest{
-			Name: name,
-			VolumeCapabilities: []*csi.VolumeCapability{
-				{
-					AccessType: &csi.VolumeCapability_Mount{
-						Mount: &csi.VolumeCapability_MountVolume{},
-					},
-					AccessMode: &csi.VolumeCapability_AccessMode{
-						Mode: csi.VolumeCapability_AccessMode_SINGLE_NODE_WRITER,
-					},
+	req := &csi.CreateVolumeRequest{
+		Name: name,
+		VolumeCapabilities: []*csi.VolumeCapability{
+			{
+				AccessType: &csi.VolumeCapability_Mount{
+					Mount: &csi.VolumeCapability_MountVolume{},
+				},
+				AccessMode: &csi.VolumeCapability_AccessMode{
+					Mode: csi.VolumeCapability_AccessMode_SINGLE_NODE_WRITER,
 				},
 			},
-		})
+		},
+	}
+
+	if secrets != nil {
+		req.ControllerCreateSecrets = secrets.CreateVolumeSecret
+	}
+
+	vol, err := s.CreateVolume(context.Background(), req)
 	Expect(err).NotTo(HaveOccurred())
 	Expect(vol).NotTo(BeNil())
 	Expect(vol.GetVolume()).NotTo(BeNil())
@@ -255,21 +320,26 @@ func testFullWorkflowSuccess(s csi.ControllerClient, c csi.NodeClient, controlle
 	var conpubvol *csi.ControllerPublishVolumeResponse
 	if controllerPublishSupported {
 		By("controller publishing volume")
-		conpubvol, err = s.ControllerPublishVolume(
-			context.Background(),
-			&csi.ControllerPublishVolumeRequest{
-				VolumeId: vol.GetVolume().GetId(),
-				NodeId:   nid.GetNodeId(),
-				VolumeCapability: &csi.VolumeCapability{
-					AccessType: &csi.VolumeCapability_Mount{
-						Mount: &csi.VolumeCapability_MountVolume{},
-					},
-					AccessMode: &csi.VolumeCapability_AccessMode{
-						Mode: csi.VolumeCapability_AccessMode_SINGLE_NODE_WRITER,
-					},
+
+		pubReq := &csi.ControllerPublishVolumeRequest{
+			VolumeId: vol.GetVolume().GetId(),
+			NodeId:   nid.GetNodeId(),
+			VolumeCapability: &csi.VolumeCapability{
+				AccessType: &csi.VolumeCapability_Mount{
+					Mount: &csi.VolumeCapability_MountVolume{},
 				},
-				Readonly: false,
-			})
+				AccessMode: &csi.VolumeCapability_AccessMode{
+					Mode: csi.VolumeCapability_AccessMode_SINGLE_NODE_WRITER,
+				},
+			},
+			Readonly: false,
+		}
+
+		if secrets != nil {
+			pubReq.ControllerPublishSecrets = secrets.ControllerPublishVolumeSecret
+		}
+
+		conpubvol, err = s.ControllerPublishVolume(context.Background(), pubReq)
 		Expect(err).NotTo(HaveOccurred())
 		Expect(conpubvol).NotTo(BeNil())
 	}
@@ -290,6 +360,9 @@ func testFullWorkflowSuccess(s csi.ControllerClient, c csi.NodeClient, controlle
 		}
 		if controllerPublishSupported {
 			nodeStageVolReq.PublishInfo = conpubvol.GetPublishInfo()
+		}
+		if secrets != nil {
+			nodeStageVolReq.NodeStageSecrets = secrets.NodeStageVolumeSecret
 		}
 		nodestagevol, err := c.NodeStageVolume(
 			context.Background(), nodeStageVolReq)
@@ -315,6 +388,9 @@ func testFullWorkflowSuccess(s csi.ControllerClient, c csi.NodeClient, controlle
 	}
 	if controllerPublishSupported {
 		nodepubvolRequest.PublishInfo = conpubvol.GetPublishInfo()
+	}
+	if secrets != nil {
+		nodepubvolRequest.NodePublishSecrets = secrets.NodePublishVolumeSecret
 	}
 	nodepubvol, err := c.NodePublishVolume(context.Background(), nodepubvolRequest)
 	Expect(err).NotTo(HaveOccurred())
@@ -346,21 +422,197 @@ func testFullWorkflowSuccess(s csi.ControllerClient, c csi.NodeClient, controlle
 
 	if controllerPublishSupported {
 		By("cleaning up calling controllerunpublishing")
-		controllerunpubvol, err := s.ControllerUnpublishVolume(
-			context.Background(),
-			&csi.ControllerUnpublishVolumeRequest{
-				VolumeId: vol.GetVolume().GetId(),
-				NodeId:   nid.GetNodeId(),
-			})
+
+		unpubReq := &csi.ControllerUnpublishVolumeRequest{
+			VolumeId: vol.GetVolume().GetId(),
+			NodeId:   nid.GetNodeId(),
+		}
+
+		if secrets != nil {
+			unpubReq.ControllerUnpublishSecrets = secrets.ControllerUnpublishVolumeSecret
+		}
+
+		controllerunpubvol, err := s.ControllerUnpublishVolume(context.Background(), unpubReq)
 		Expect(err).NotTo(HaveOccurred())
 		Expect(controllerunpubvol).NotTo(BeNil())
 	}
 
 	By("cleaning up deleting the volume")
-	_, err = s.DeleteVolume(
-		context.Background(),
-		&csi.DeleteVolumeRequest{
-			VolumeId: vol.GetVolume().GetId(),
-		})
+
+	delReq := &csi.DeleteVolumeRequest{
+		VolumeId: vol.GetVolume().GetId(),
+	}
+
+	if secrets != nil {
+		delReq.ControllerDeleteSecrets = secrets.DeleteVolumeSecret
+	}
+
+	_, err = s.DeleteVolume(context.Background(), delReq)
 	Expect(err).NotTo(HaveOccurred())
 }
+
+var _ = Describe("NodeStageVolume [Node Server]", func() {
+	var (
+		s                          csi.ControllerClient
+		c                          csi.NodeClient
+		controllerPublishSupported bool
+		nodeStageSupported         bool
+		device                     string
+	)
+
+	BeforeEach(func() {
+		s = csi.NewControllerClient(conn)
+		c = csi.NewNodeClient(conn)
+		device = "/dev/mock"
+		controllerPublishSupported = isControllerCapabilitySupported(
+			s,
+			csi.ControllerServiceCapability_RPC_PUBLISH_UNPUBLISH_VOLUME)
+		nodeStageSupported = isNodeCapabilitySupported(c, csi.NodeServiceCapability_RPC_STAGE_UNSTAGE_VOLUME)
+		if nodeStageSupported {
+			err := createMountTargetLocation(config.StagingPath)
+			Expect(err).NotTo(HaveOccurred())
+		} else {
+			Skip("NodeStageVolume not supported")
+		}
+	})
+
+	It("should fail when no volume id is provided", func() {
+
+		req := &csi.NodeStageVolumeRequest{
+			StagingTargetPath: config.StagingPath,
+			VolumeCapability: &csi.VolumeCapability{
+				AccessType: &csi.VolumeCapability_Mount{
+					Mount: &csi.VolumeCapability_MountVolume{},
+				},
+				AccessMode: &csi.VolumeCapability_AccessMode{
+					Mode: csi.VolumeCapability_AccessMode_SINGLE_NODE_WRITER,
+				},
+			},
+			PublishInfo: map[string]string{
+				"device": device,
+			},
+		}
+
+		if secrets != nil {
+			req.NodeStageSecrets = secrets.NodeStageVolumeSecret
+		}
+
+		_, err := c.NodeStageVolume(context.Background(), req)
+		Expect(err).To(HaveOccurred())
+
+		serverError, ok := status.FromError(err)
+		Expect(ok).To(BeTrue())
+		Expect(serverError.Code()).To(Equal(codes.InvalidArgument))
+	})
+
+	It("should fail when no staging target path is provided", func() {
+
+		req := &csi.NodeStageVolumeRequest{
+			VolumeId: "id",
+			VolumeCapability: &csi.VolumeCapability{
+				AccessType: &csi.VolumeCapability_Mount{
+					Mount: &csi.VolumeCapability_MountVolume{},
+				},
+				AccessMode: &csi.VolumeCapability_AccessMode{
+					Mode: csi.VolumeCapability_AccessMode_SINGLE_NODE_WRITER,
+				},
+			},
+			PublishInfo: map[string]string{
+				"device": device,
+			},
+		}
+
+		if secrets != nil {
+			req.NodeStageSecrets = secrets.NodeStageVolumeSecret
+		}
+
+		_, err := c.NodeStageVolume(context.Background(), req)
+		Expect(err).To(HaveOccurred())
+
+		serverError, ok := status.FromError(err)
+		Expect(ok).To(BeTrue())
+		Expect(serverError.Code()).To(Equal(codes.InvalidArgument))
+	})
+
+	It("should fail when no volume capability is provided", func() {
+
+		req := &csi.NodeStageVolumeRequest{
+			VolumeId:          "id",
+			StagingTargetPath: config.StagingPath,
+			PublishInfo: map[string]string{
+				"device": device,
+			},
+		}
+
+		if secrets != nil {
+			req.NodeStageSecrets = secrets.NodeStageVolumeSecret
+		}
+
+		_, err := c.NodeStageVolume(context.Background(), req)
+		Expect(err).To(HaveOccurred())
+
+		serverError, ok := status.FromError(err)
+		Expect(ok).To(BeTrue())
+		Expect(serverError.Code()).To(Equal(codes.InvalidArgument))
+	})
+
+	It("should return appropriate values (no optional values added)", func() {
+		testFullWorkflowSuccess(s, c, controllerPublishSupported, nodeStageSupported)
+	})
+})
+
+var _ = Describe("NodeUnstageVolume [Node Server]", func() {
+	var (
+		s                          csi.ControllerClient
+		c                          csi.NodeClient
+		controllerPublishSupported bool
+		nodeStageSupported         bool
+	)
+
+	BeforeEach(func() {
+		s = csi.NewControllerClient(conn)
+		c = csi.NewNodeClient(conn)
+		controllerPublishSupported = isControllerCapabilitySupported(
+			s,
+			csi.ControllerServiceCapability_RPC_PUBLISH_UNPUBLISH_VOLUME)
+		nodeStageSupported = isNodeCapabilitySupported(c, csi.NodeServiceCapability_RPC_STAGE_UNSTAGE_VOLUME)
+		if nodeStageSupported {
+			err := createMountTargetLocation(config.StagingPath)
+			Expect(err).NotTo(HaveOccurred())
+		} else {
+			Skip("NodeUnstageVolume not supported")
+		}
+	})
+
+	It("should fail when no volume id is provided", func() {
+
+		_, err := c.NodeUnstageVolume(
+			context.Background(),
+			&csi.NodeUnstageVolumeRequest{
+				StagingTargetPath: config.StagingPath,
+			})
+		Expect(err).To(HaveOccurred())
+
+		serverError, ok := status.FromError(err)
+		Expect(ok).To(BeTrue())
+		Expect(serverError.Code()).To(Equal(codes.InvalidArgument))
+	})
+
+	It("should fail when no staging target path is provided", func() {
+
+		_, err := c.NodeUnstageVolume(
+			context.Background(),
+			&csi.NodeUnstageVolumeRequest{
+				VolumeId: "id",
+			})
+		Expect(err).To(HaveOccurred())
+
+		serverError, ok := status.FromError(err)
+		Expect(ok).To(BeTrue())
+		Expect(serverError.Code()).To(Equal(codes.InvalidArgument))
+	})
+
+	It("should return appropriate values (no optional values added)", func() {
+		testFullWorkflowSuccess(s, c, controllerPublishSupported, nodeStageSupported)
+	})
+})

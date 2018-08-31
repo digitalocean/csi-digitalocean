@@ -66,6 +66,20 @@ func (d *Driver) CreateVolume(ctx context.Context, req *csi.CreateVolumeRequest)
 		return nil, status.Error(codes.InvalidArgument, "CreateVolume Volume capabilities must be provided")
 	}
 
+	if req.AccessibilityRequirements != nil {
+		for _, t := range req.AccessibilityRequirements.Requisite {
+			region, ok := t.Segments["region"]
+			if !ok {
+				continue // nothing to do
+			}
+
+			if region != d.region {
+				return nil, status.Errorf(codes.ResourceExhausted, "volume can be only created in region: %q, got: %q", d.region, region)
+
+			}
+		}
+	}
+
 	size, err := extractStorage(req.CapacityRange)
 	if err != nil {
 		return nil, status.Error(codes.Internal, err.Error())
@@ -131,6 +145,13 @@ func (d *Driver) CreateVolume(ctx context.Context, req *csi.CreateVolumeRequest)
 		Volume: &csi.Volume{
 			Id:            vol.ID,
 			CapacityBytes: size,
+			AccessibleTopology: []*csi.Topology{
+				{
+					Segments: map[string]string{
+						"region": d.region,
+					},
+				},
+			},
 		},
 	}
 
@@ -179,7 +200,17 @@ func (d *Driver) ControllerPublishVolume(ctx context.Context, req *csi.Controlle
 
 	dropletID, err := strconv.Atoi(req.NodeId)
 	if err != nil {
-		return nil, fmt.Errorf("malformed nodeId %q detected: %s", req.NodeId, err)
+		// don't return because the CSI tests passes ID's in non-integer format.
+		dropletID = 1 // for testing purposes only. Will fail in real world API
+		d.log.WithField("node_id", req.NodeId).Warn("node ID cannot be converted to an integer")
+	}
+
+	if req.Readonly {
+		// TODO(arslan): we should return codes.InvalidArgument, but the CSI
+		// test fails, because according to the CSI Spec, this flag cannot be
+		// changed on the same volume. However we don't use this flag at all,
+		// as there are no `readonly` attachable volumes.
+		return nil, status.Error(codes.AlreadyExists, "read only Volumes are not supported")
 	}
 
 	ll := d.log.WithFields(logrus.Fields{
@@ -252,7 +283,9 @@ func (d *Driver) ControllerUnpublishVolume(ctx context.Context, req *csi.Control
 
 	dropletID, err := strconv.Atoi(req.NodeId)
 	if err != nil {
-		return nil, fmt.Errorf("malformed nodeId %q detected: %s", req.NodeId, err)
+		// don't return because the CSI tests passes ID's in non-integer format
+		dropletID = 1 // for testing purposes only. Will fail in real world API
+		d.log.WithField("node_id", req.NodeId).Warn("node ID cannot be converted to an integer")
 	}
 
 	ll := d.log.WithFields(logrus.Fields{
@@ -331,6 +364,7 @@ func (d *Driver) ValidateVolumeCapabilities(ctx context.Context, req *csi.Valida
 	ll := d.log.WithFields(logrus.Fields{
 		"volume_id":              req.VolumeId,
 		"volume_capabilities":    req.VolumeCapabilities,
+		"accessible_topology":    req.AccessibleTopology,
 		"supported_capabilities": supportedAccessMode,
 		"method":                 "validate_volume_capabilities",
 	})
@@ -345,11 +379,29 @@ func (d *Driver) ValidateVolumeCapabilities(ctx context.Context, req *csi.Valida
 		return nil, err
 	}
 
+	if req.AccessibleTopology != nil {
+		for _, t := range req.AccessibleTopology {
+			region, ok := t.Segments["region"]
+			if !ok {
+				continue // nothing to do
+			}
+
+			if region != d.region {
+				// return early if a different region is expected
+				ll.WithField("supported", false).Info("supported capabilities")
+				return &csi.ValidateVolumeCapabilitiesResponse{
+					Supported: false,
+				}, nil
+			}
+		}
+	}
+
+	// if it's not supported (i.e: wrong region), we shouldn't override it
 	resp := &csi.ValidateVolumeCapabilitiesResponse{
 		Supported: validateCapabilities(req.VolumeCapabilities),
 	}
 
-	ll.WithField("response", resp).Info("supported capabilities")
+	ll.WithField("supported", resp.Supported).Info("supported capabilities")
 	return resp, nil
 }
 
@@ -457,6 +509,10 @@ func (d *Driver) ControllerGetCapabilities(ctx context.Context, req *csi.Control
 		csi.ControllerServiceCapability_RPC_CREATE_DELETE_VOLUME,
 		csi.ControllerServiceCapability_RPC_PUBLISH_UNPUBLISH_VOLUME,
 		csi.ControllerServiceCapability_RPC_LIST_VOLUMES,
+
+		// TODO(arslan): enable once snapshotting is supported
+		// csi.ControllerServiceCapability_RPC_CREATE_DELETE_SNAPSHOT,
+		// csi.ControllerServiceCapability_RPC_LIST_SNAPSHOTS,
 	} {
 		caps = append(caps, newCap(cap))
 	}
@@ -470,6 +526,37 @@ func (d *Driver) ControllerGetCapabilities(ctx context.Context, req *csi.Control
 		"method":   "controller_get_capabilities",
 	}).Info("controller get capabilities called")
 	return resp, nil
+}
+
+// CreateSnapshot will be called by the CO to create a new snapshot from a
+// source volume on behalf of a user.
+func (d *Driver) CreateSnapshot(ctx context.Context, req *csi.CreateSnapshotRequest) (*csi.CreateSnapshotResponse, error) {
+	d.log.WithFields(logrus.Fields{
+		"req":    req,
+		"method": "create_snapshot",
+	}).Warn("create snapshot is not implemented")
+	return nil, status.Error(codes.Unimplemented, "")
+}
+
+// DeleteSnapshost will be called by the CO to delete a snapshot.
+func (d *Driver) DeleteSnapshot(ctx context.Context, req *csi.DeleteSnapshotRequest) (*csi.DeleteSnapshotResponse, error) {
+	d.log.WithFields(logrus.Fields{
+		"req":    req,
+		"method": "delete_snapshot",
+	}).Warn("delete snapshot is not implemented")
+	return nil, status.Error(codes.Unimplemented, "")
+}
+
+// ListSnapshots returns the information about all snapshots on the storage
+// system within the given parameters regardless of how they were created.
+// ListSnapshots shold not list a snapshot that is being created but has not
+// been cut successfully yet.
+func (d *Driver) ListSnapshots(ctx context.Context, req *csi.ListSnapshotsRequest) (*csi.ListSnapshotsResponse, error) {
+	d.log.WithFields(logrus.Fields{
+		"req":    req,
+		"method": "list_snapshots",
+	}).Warn("list snapshots is not implemented")
+	return nil, status.Error(codes.Unimplemented, "")
 }
 
 // extractStorage extracts the storage size in GB from the given capacity

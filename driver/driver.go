@@ -25,6 +25,7 @@ import (
 	"path"
 	"path/filepath"
 	"strconv"
+	"sync"
 
 	csi "github.com/container-storage-interface/spec/lib/go/csi/v0"
 	metadata "github.com/digitalocean/go-metadata"
@@ -59,6 +60,11 @@ type Driver struct {
 	doClient *godo.Client
 	mounter  Mounter
 	log      *logrus.Entry
+
+	// ready defines whether the driver is ready to function. This value will
+	// be used by the `Identity` service via the `Probe()` method.
+	readyMu sync.Mutex // protects ready
+	ready   bool
 }
 
 // NewDriver returns a CSI plugin that contains the necessary gRPC
@@ -146,12 +152,17 @@ func (d *Driver) Run() error {
 	csi.RegisterControllerServer(d.srv, d)
 	csi.RegisterNodeServer(d.srv, d)
 
+	d.ready = true // we're now ready to go!
 	d.log.WithField("addr", addr).Info("server started")
 	return d.srv.Serve(listener)
 }
 
 // Stop stops the plugin
 func (d *Driver) Stop() {
+	d.readyMu.Lock()
+	d.ready = false
+	d.readyMu.Unlock()
+
 	d.log.Info("server stopped")
 	d.srv.Stop()
 }
