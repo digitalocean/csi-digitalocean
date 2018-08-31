@@ -1,5 +1,9 @@
 ## unreleased
 
+* Add support to CSI Spec `v0.3.0`. This includes many new changes, make sure 
+  to read the Github PR for more information
+  [[GH-72]](https://github.com/digitalocean/csi-digitalocean/pull/72)
+
 ## v0.1.5 - 2018.08.27
 
 * Makefile improvements. Please check the GH link for more information.
