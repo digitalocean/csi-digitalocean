@@ -74,7 +74,7 @@ func (d *Driver) CreateVolume(ctx context.Context, req *csi.CreateVolumeRequest)
 			}
 
 			if region != d.region {
-				return nil, status.Errorf(codes.ResourceExhausted, "volume can be only crated in region: %q, got: %q", d.region, region)
+				return nil, status.Errorf(codes.ResourceExhausted, "volume can be only created in region: %q, got: %q", d.region, region)
 
 			}
 		}
