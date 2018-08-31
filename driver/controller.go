@@ -135,6 +135,11 @@ func (d *Driver) CreateVolume(ctx context.Context, req *csi.CreateVolumeRequest)
 		return nil, status.Error(codes.AlreadyExists, "invalid volume capabilities requested. Only SINGLE_NODE_WRITER is supported ('accessModes.ReadWriteOnce' on Kubernetes)")
 	}
 
+	ll.Info("checking volume limit")
+	if err := d.checkLimit(ctx); err != nil {
+		return nil, err
+	}
+
 	ll.WithField("volume_req", volumeReq).Info("creating volume")
 	vol, _, err := d.doClient.Storage.CreateVolume(ctx, volumeReq)
 	if err != nil {
@@ -621,6 +626,40 @@ func (d *Driver) waitAction(ctx context.Context, volumeId string, actionId int) 
 			return fmt.Errorf("timeout occured waiting for storage action of volume: %q", volumeId)
 		}
 	}
+}
+
+// checkLimit checks whether the user hit their volume limit to ensure.
+func (d *Driver) checkLimit(ctx context.Context) error {
+	// only one provisioner runs, we can make sure to prevent burst creation
+	d.readyMu.Lock()
+	defer d.readyMu.Unlock()
+
+	account, _, err := d.doClient.Account.Get(ctx)
+	if err != nil {
+		return status.Errorf(codes.Internal,
+			"couldn't get account information to check volume limit: %s", err.Error())
+	}
+
+	// administrative accounts might have zero length limits, make sure to not check them
+	if account.VolumeLimit == 0 {
+		return nil //  hail to the king!
+	}
+
+	volumes, _, err := d.doClient.Storage.ListVolumes(ctx, &godo.ListVolumeParams{
+		Region: d.region,
+	})
+	if err != nil {
+		return status.Errorf(codes.Internal,
+			"couldn't get fetch volume list to check volume limit: %s", err.Error())
+	}
+
+	if account.VolumeLimit <= len(volumes) {
+		return status.Errorf(codes.ResourceExhausted,
+			"volume limit (%d) has been reached. Current number of volumes: %d. Please contact support.",
+			account.VolumeLimit, len(volumes))
+	}
+
+	return nil
 }
 
 // validateCapabilities validates the requested capabilities. It returns false
