@@ -135,6 +135,19 @@ func (f *fakeAPI) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// return empty response to account, assuming there is no volume limit
+	if strings.HasPrefix(r.URL.Path, "/v2/account") {
+		var resp = struct {
+			Account *godo.Account
+		}{
+			Account: &godo.Account{},
+		}
+
+		_ = json.NewEncoder(w).Encode(&resp)
+		return
+	}
+
+	// rest is /v2/volumes related
 	switch r.Method {
 	case "GET":
 		// A list call
