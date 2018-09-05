@@ -645,6 +645,9 @@ func (d *Driver) checkLimit(ctx context.Context) error {
 		return nil //  hail to the king!
 	}
 
+	// NOTE(arslan): the API returns the limit for *all* regions, so passing
+	// the region down as a parameter doesn't change the response.
+	// Nevertheless, this is something we should be aware of.
 	volumes, _, err := d.doClient.Storage.ListVolumes(ctx, &godo.ListVolumeParams{
 		Region: d.region,
 	})
