@@ -1,5 +1,7 @@
 ## unreleased
 
+## v0.2.0 - 2018.09.05
+
 * Add support to CSI Spec `v0.3.0`. This includes many new changes, make sure 
   to read the Github PR for more information
   [[GH-72]](https://github.com/digitalocean/csi-digitalocean/pull/72)
@@ -8,6 +10,20 @@
 * Rename resource (DaemonSet, StatefulSet, containers, etc..) names and combine the
   attacher and provisioner into a single Statefulset.
   [[GH-74]](https://github.com/digitalocean/csi-digitalocean/pull/74)
+
+**IMPORTANT**:This release contains breaking changes, mainly about how thing
+are deployed. The minimum Kubernetes version needs to be now **v1.10.5**. 
+To upgrade from a prior `v0.1.x` versions please remove the old CSI plugin
+completely and re-install the new one:
+
+```sh
+# delete old version, i.e: v0.1.5
+kubectl delete -f https://raw.githubusercontent.com/digitalocean/csi-digitalocean/master/deploy/kubernetes/releases/csi-digitalocean-v0.1.5.yaml
+
+# install v0.2.0
+kubectl apply -f https://raw.githubusercontent.com/digitalocean/csi-digitalocean/master/deploy/kubernetes/releases/csi-digitalocean-v0.2.0.yaml
+```
+
 
 ## v0.1.5 - 2018.08.27
 
