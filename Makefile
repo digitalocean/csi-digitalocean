@@ -16,8 +16,7 @@ VERSION ?= $(shell cat VERSION)
 
 all: test
 
-publish: compile build push clean
-publish-dev: compile-dev build-dev push-dev clean
+publish: clean compile build push
 
 bump-version: 
 	@go get -u github.com/jessfraz/junk/sembump # update sembump tool
@@ -36,10 +35,6 @@ compile:
 	@echo "==> Building the project"
 	@env CGO_ENABLED=0 GOOS=${OS} GOARCH=amd64 go build -o cmd/do-csi-plugin/${NAME} -ldflags "$(LDFLAGS)" ${PKG} 
 
-compile-dev:
-	@echo "==> Building the project"
-	$(eval VERSION = dev)
-	@env CGO_ENABLED=0 GOOS=${OS} GOARCH=amd64 go build -o cmd/do-csi-plugin/${NAME} -ldflags "$(LDFLAGS)" ${PKG} 
 
 test:
 	@echo "==> Testing all packages"
@@ -52,8 +47,7 @@ build:
 
 
 push:
-
-ifneq ($(BRANCH),master)
+ifeq ($(shell [[ $(BRANCH) != "master" && $(VERSION) != "dev" ]] && echo true ),true)
 	@echo "ERROR: Publishing image with a SEMVER version '$(VERSION)' is only allowed from master"
 else
 	@echo "==> Publishing digitalocean/do-csi-plugin:$(VERSION)"
@@ -61,17 +55,6 @@ else
 	@echo "==> Your image is now available at digitalocean/do-csi-plugin:$(VERSION)"
 endif
 
-
-build-dev:
-	@echo "==> Building the docker image"
-	$(eval VERSION = dev)
-	@docker build -t digitalocean/do-csi-plugin:$(VERSION) cmd/do-csi-plugin -f cmd/do-csi-plugin/Dockerfile
-
-push-dev:
-	$(eval VERSION = dev)
-	@echo "==> Publishing digitalocean/do-csi-plugin:$(VERSION)"
-	@docker push digitalocean/do-csi-plugin:$(VERSION)
-	@echo "==> Your image is now available at digitalocean/do-csi-plugin:$(VERSION)"
 
 clean:
 	@echo "==> Cleaning releases"
