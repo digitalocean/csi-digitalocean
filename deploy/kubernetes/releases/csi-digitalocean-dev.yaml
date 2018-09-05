@@ -14,11 +14,12 @@
  
 # Configuration to deploy release version of the CSI DigitalOcean
 # plugin (https://github.com/digitalocean/csi-digitalocean) compatible with
-# Kubernetes >=v1.10
+# Kubernetes >=v1.10.5
 #
 # example usage: kubectl create -f <this_file>
 
 ---
+
 kind: StorageClass
 apiVersion: storage.k8s.io/v1
 metadata:
@@ -27,188 +28,30 @@ metadata:
   annotations:
     storageclass.kubernetes.io/is-default-class: "true"
 provisioner: com.digitalocean.csi.dobs
----
-apiVersion: v1
-kind: ServiceAccount
-metadata:
-  name: csi-attacher
-  namespace: kube-system
----
-kind: ClusterRole
-apiVersion: rbac.authorization.k8s.io/v1
-metadata:
-  name: external-attacher-runner
-  namespace: kube-system
-rules:
-  - apiGroups: [""]
-    resources: ["secrets"]
-    verbs: ["get", "list"]
-  - apiGroups: [""]
-    resources: ["events"]
-    verbs: ["get", "list", "watch", "update"]
-  - apiGroups: [""]
-    resources: ["persistentvolumes"]
-    verbs: ["get", "list", "watch", "update"]
-  - apiGroups: [""]
-    resources: ["nodes"]
-    verbs: ["get", "list", "watch"]
-  - apiGroups: ["storage.k8s.io"]
-    resources: ["volumeattachments"]
-    verbs: ["get", "list", "watch", "update"]
 
 ---
-kind: ClusterRoleBinding
-apiVersion: rbac.authorization.k8s.io/v1
-metadata:
-  name: csi-attacher-role
-  namespace: kube-system
-subjects:
-  - kind: ServiceAccount
-    name: csi-attacher
-    namespace: kube-system
-roleRef:
-  kind: ClusterRole
-  name: external-attacher-runner
-  apiGroup: rbac.authorization.k8s.io
----
-# needed for StatefulSet
-kind: Service
-apiVersion: v1
-metadata:
-  name: csi-attacher-doplugin
-  namespace: kube-system
-  labels:
-    app: csi-attacher-doplugin
-spec:
-  selector:
-    app: csi-attacher-doplugin
-  ports:
-    - name: dummy
-      port: 12345
----
+
+##############################################
+###########                       ############
+###########   Controller plugin   ############
+###########                       ############
+##############################################
+
 kind: StatefulSet
 apiVersion: apps/v1beta1
 metadata:
-  name: csi-attacher-doplugin
+  name: csi-do-controller
   namespace: kube-system
 spec:
-  serviceName: "csi-attacher-doplugin"
+  serviceName: "csi-do"
   replicas: 1
   template:
     metadata:
       labels:
-        app: csi-attacher-doplugin
+        app: csi-do-controller
+        role: csi-do
     spec:
-      serviceAccount: csi-attacher
-      containers:
-        - name: csi-attacher
-          image: quay.io/k8scsi/csi-attacher:v0.3.0
-          args:
-            - "--v=5"
-            - "--csi-address=$(ADDRESS)"
-          env:
-            - name: ADDRESS
-              value: /var/lib/csi/sockets/pluginproxy/csi.sock
-          imagePullPolicy: "Always"
-          volumeMounts:
-            - name: socket-dir
-              mountPath: /var/lib/csi/sockets/pluginproxy/
-        - name: digitalocean-csi-plugin
-          image: digitalocean/do-csi-plugin:dev
-          args :
-            - "--endpoint=$(CSI_ENDPOINT)"
-            - "--token=$(DIGITALOCEAN_ACCESS_TOKEN)"
-            - "--url=$(DIGITALOCEAN_API_URL)"
-          env:
-            - name: CSI_ENDPOINT
-              value: unix:///var/lib/csi/sockets/pluginproxy/csi.sock
-            - name: DIGITALOCEAN_API_URL
-              value: https://api.digitalocean.com/
-            - name: DIGITALOCEAN_ACCESS_TOKEN
-              valueFrom:
-                secretKeyRef:
-                  name: digitalocean
-                  key: access-token
-          imagePullPolicy: "Always"
-          volumeMounts:
-            - name: socket-dir
-              mountPath: /var/lib/csi/sockets/pluginproxy/
-      volumes:
-        - name: socket-dir
-          emptyDir: {}
----
-apiVersion: v1
-kind: ServiceAccount
-metadata:
-  name: csi-provisioner
-  namespace: kube-system
----
-kind: ClusterRole
-apiVersion: rbac.authorization.k8s.io/v1
-metadata:
-  name: external-provisioner-runner
-  namespace: kube-system
-rules:
-  - apiGroups: [""]
-    resources: ["secrets"]
-    verbs: ["get", "list"]
-  - apiGroups: [""]
-    resources: ["persistentvolumes"]
-    verbs: ["get", "list", "watch", "create", "delete"]
-  - apiGroups: [""]
-    resources: ["persistentvolumeclaims"]
-    verbs: ["get", "list", "watch", "update"]
-  - apiGroups: ["storage.k8s.io"]
-    resources: ["storageclasses"]
-    verbs: ["get", "list", "watch"]
-  - apiGroups: [""]
-    resources: ["events"]
-    verbs: ["list", "watch", "create", "update", "patch"]
-    
----
-kind: ClusterRoleBinding
-apiVersion: rbac.authorization.k8s.io/v1
-metadata:
-  name: csi-provisioner-role
-  namespace: kube-system
-subjects:
-  - kind: ServiceAccount
-    name: csi-provisioner
-    namespace: kube-system
-roleRef:
-  kind: ClusterRole
-  name: external-provisioner-runner
-  apiGroup: rbac.authorization.k8s.io
----
-# needed for StatefulSet
-kind: Service
-apiVersion: v1
-metadata:
-  name: csi-provisioner-doplugin
-  namespace: kube-system
-  labels:
-    app: csi-provisioner-doplugin
-spec:
-  selector:
-    app: csi-provisioner-doplugin
-  ports:
-    - name: dummy
-      port: 12345
----
-kind: StatefulSet
-apiVersion: apps/v1beta1
-metadata:
-  name: csi-provisioner-doplugin
-  namespace: kube-system
-spec:
-  serviceName: "csi-provisioner-doplugin"
-  replicas: 1
-  template:
-    metadata:
-      labels:
-        app: csi-provisioner-doplugin
-    spec:
-      serviceAccount: csi-provisioner
+      serviceAccount: csi-do-controller-sa
       containers:
         - name: csi-provisioner
           image: quay.io/k8scsi/csi-provisioner:v0.3.0
@@ -223,7 +66,19 @@ spec:
           volumeMounts:
             - name: socket-dir
               mountPath: /var/lib/csi/sockets/pluginproxy/
-        - name: digitalocean-csi-plugin
+        - name: csi-attacher
+          image: quay.io/k8scsi/csi-attacher:v0.3.0
+          args:
+            - "--v=5"
+            - "--csi-address=$(ADDRESS)"
+          env:
+            - name: ADDRESS
+              value: /var/lib/csi/sockets/pluginproxy/csi.sock
+          imagePullPolicy: "Always"
+          volumeMounts:
+            - name: socket-dir
+              mountPath: /var/lib/csi/sockets/pluginproxy/
+        - name: csi-do-plugin
           image: digitalocean/do-csi-plugin:dev
           args :
             - "--endpoint=$(CSI_ENDPOINT)"
@@ -247,64 +102,70 @@ spec:
         - name: socket-dir
           emptyDir: {}
 ---
+
 apiVersion: v1
 kind: ServiceAccount
 metadata:
-  name: csi-doplugin
+  name: csi-do-controller-sa
   namespace: kube-system
+
 ---
-kind: ClusterRole
-apiVersion: rbac.authorization.k8s.io/v1
-metadata:
-  name: csi-doplugin
-  namespace: kube-system
-rules:
-  - apiGroups: [""]
-    resources: ["secrets"]
-    verbs: ["get", "list"]
-  - apiGroups: [""]
-    resources: ["nodes"]
-    verbs: ["get", "list", "update"]
-  - apiGroups: [""]
-    resources: ["namespaces"]
-    verbs: ["get", "list"]
-  - apiGroups: [""]
-    resources: ["persistentvolumes"]
-    verbs: ["get", "list", "watch", "update"]
-  - apiGroups: ["storage.k8s.io"]
-    resources: ["volumeattachments"]
-    verbs: ["get", "list", "watch", "update"]
----
+
 kind: ClusterRoleBinding
 apiVersion: rbac.authorization.k8s.io/v1
 metadata:
-  name: csi-doplugin
+  name: csi-do-controller-provisioner-binding
   namespace: kube-system
 subjects:
   - kind: ServiceAccount
-    name: csi-doplugin
+    name: csi-do-controller-sa
     namespace: kube-system
 roleRef:
   kind: ClusterRole
-  name: csi-doplugin
-  apiGroup: rbac.authorization.k8s.io          
+  name: system:csi-external-provisioner
+  apiGroup: rbac.authorization.k8s.io
 
 ---
+
+kind: ClusterRoleBinding
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  name: csi-do-controller-attacher-binding
+  namespace: kube-system
+subjects:
+  - kind: ServiceAccount
+    name: csi-do-controller-sa
+    namespace: kube-system
+roleRef:
+  kind: ClusterRole
+  name: system:csi-external-attacher
+  apiGroup: rbac.authorization.k8s.io
+
+---
+
+
+########################################
+###########                 ############
+###########   Node plugin   ############
+###########                 ############
+########################################
+
 kind: DaemonSet
 apiVersion: apps/v1beta2
 metadata:
-  name: csi-doplugin
+  name: csi-do-node
   namespace: kube-system
 spec:
   selector:
     matchLabels:
-      app: csi-doplugin
+      app: csi-do-node
   template:
     metadata:
       labels:
-        app: csi-doplugin
+        app: csi-do-node
+        role: csi-do
     spec:
-      serviceAccount: csi-doplugin
+      serviceAccount: csi-do-node-sa
       hostNetwork: true
       containers:
         - name: driver-registrar
@@ -325,12 +186,7 @@ spec:
               # TODO(arslan): the registrar is not implemented yet
               # - name: registrar-socket-dir
               #   mountPath: /var/lib/csi/sockets/
-        - name: csi-doplugin 
-          securityContext:
-            privileged: true
-            capabilities:
-              add: ["SYS_ADMIN"]
-            allowPrivilegeEscalation: true
+        - name: csi-do-plugin
           image: digitalocean/do-csi-plugin:dev
           args :
             - "--endpoint=$(CSI_ENDPOINT)"
@@ -347,6 +203,11 @@ spec:
                   name: digitalocean
                   key: access-token
           imagePullPolicy: "Always"
+          securityContext:
+            privileged: true
+            capabilities:
+              add: ["SYS_ADMIN"]
+            allowPrivilegeEscalation: true
           volumeMounts:
             - name: plugin-dir
               mountPath: /csi
@@ -355,8 +216,8 @@ spec:
               # needed so that any mounts setup inside this container are
               # propagated back to the host machine.
               mountPropagation: "Bidirectional"
-            - mountPath: /dev
-              name: device-dir
+            - name: device-dir
+              mountPath: /dev
       volumes:
         # TODO(arslan): the registar is not implemented yet
         #- name: registrar-socket-dir
@@ -374,3 +235,43 @@ spec:
         - name: device-dir
           hostPath:
             path: /dev
+---
+
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: csi-do-node-sa
+  namespace: kube-system
+
+---
+
+kind: ClusterRoleBinding
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  name: csi-do-driver-registrar-binding
+  namespace: kube-system
+subjects:
+  - kind: ServiceAccount
+    name: csi-do-node-sa
+    namespace: kube-system
+roleRef:
+  kind: ClusterRole
+  name: csi-do-driver-registrar-role
+  apiGroup: rbac.authorization.k8s.io          
+
+
+---
+
+kind: ClusterRole
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  name: csi-do-driver-registrar-role
+  namespace: kube-system
+rules:
+  - apiGroups: [""]
+    resources: ["nodes"]
+    verbs: ["get", "list", "update"]
+  - apiGroups: [""]
+    resources: ["events"]
+    verbs: ["list", "watch", "create", "update", "patch"]
+

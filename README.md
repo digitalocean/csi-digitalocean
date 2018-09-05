@@ -23,7 +23,7 @@ will continue following the rules below:
 
 **Requirements:**
 
-* Kubernetes v1.10 minimum 
+* Kubernetes v1.10.5 minimum 
 * `--allow-privileged` flag must be set to true for both the API server and the kubelet
 * (if you use Docker) the Docker daemon of the cluster nodes must allow shared mounts
 

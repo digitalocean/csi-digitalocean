@@ -5,6 +5,9 @@
   [[GH-72]](https://github.com/digitalocean/csi-digitalocean/pull/72)
 * Check volume limits before provisioning calls
   [[GH-73]](https://github.com/digitalocean/csi-digitalocean/pull/73)
+* Rename resource (DaemonSet, StatefulSet, containers, etc..) names and combine the
+  attacher and provisioner into a single Statefulset.
+  [[GH-74]](https://github.com/digitalocean/csi-digitalocean/pull/74)
 
 ## v0.1.5 - 2018.08.27
 
