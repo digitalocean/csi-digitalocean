@@ -16,7 +16,7 @@ VERSION ?= $(shell cat VERSION)
 
 all: test
 
-publish: clean compile build push
+publish: compile build push clean
 
 .PHONY: bump-version
 bump-version: 
