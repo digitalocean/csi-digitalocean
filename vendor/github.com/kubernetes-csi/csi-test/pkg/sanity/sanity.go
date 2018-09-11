@@ -17,10 +17,10 @@ limitations under the License.
 package sanity
 
 import (
+	"crypto/rand"
 	"fmt"
 	"io/ioutil"
 	"os"
-	"sync"
 	"testing"
 
 	"github.com/kubernetes-csi/csi-test/utils"
@@ -40,16 +40,12 @@ type CSISecrets struct {
 	ControllerUnpublishVolumeSecret map[string]string `yaml:"ControllerUnpublishVolumeSecret"`
 	NodeStageVolumeSecret           map[string]string `yaml:"NodeStageVolumeSecret"`
 	NodePublishVolumeSecret         map[string]string `yaml:"NodePublishVolumeSecret"`
+	CreateSnapshotSecret            map[string]string `yaml:"CreateSnapshotSecret"`
+	DeleteSnapshotSecret            map[string]string `yaml:"DeleteSnapshotSecret"`
 }
 
-var (
-	config  *Config
-	conn    *grpc.ClientConn
-	lock    sync.Mutex
-	secrets *CSISecrets
-)
-
-// Config provides the configuration for the sanity tests
+// Config provides the configuration for the sanity tests. It
+// needs to be initialized by the user of the sanity package.
 type Config struct {
 	TargetPath     string
 	StagingPath    string
@@ -58,40 +54,63 @@ type Config struct {
 	TestVolumeSize int64
 }
 
-// Test will test the CSI driver at the specified address
-func Test(t *testing.T, reqConfig *Config) {
-	lock.Lock()
-	defer lock.Unlock()
+// SanityContext holds the variables that each test can depend on. It
+// gets initialized before each test block runs.
+type SanityContext struct {
+	Config  *Config
+	Conn    *grpc.ClientConn
+	Secrets *CSISecrets
+}
 
-	config = reqConfig
+// Test will test the CSI driver at the specified address by
+// setting up a Ginkgo suite and running it.
+func Test(t *testing.T, reqConfig *Config) {
+	sc := &SanityContext{
+		Config: reqConfig,
+	}
+
+	registerTestsInGinkgo(sc)
 	RegisterFailHandler(Fail)
 	RunSpecs(t, "CSI Driver Test Suite")
 }
 
-var _ = BeforeSuite(func() {
+func GinkgoTest(reqConfig *Config) {
+	sc := &SanityContext{
+		Config: reqConfig,
+	}
+
+	registerTestsInGinkgo(sc)
+}
+
+func (sc *SanityContext) setup() {
 	var err error
 
-	if len(config.SecretsFile) > 0 {
-		secrets, err = loadSecrets(config.SecretsFile)
+	if len(sc.Config.SecretsFile) > 0 {
+		sc.Secrets, err = loadSecrets(sc.Config.SecretsFile)
 		Expect(err).NotTo(HaveOccurred())
+	} else {
+		sc.Secrets = &CSISecrets{}
 	}
 
 	By("connecting to CSI driver")
-	conn, err = utils.Connect(config.Address)
+	sc.Conn, err = utils.Connect(sc.Config.Address)
 	Expect(err).NotTo(HaveOccurred())
 
 	By("creating mount and staging directories")
-	err = createMountTargetLocation(config.TargetPath)
+	err = createMountTargetLocation(sc.Config.TargetPath)
 	Expect(err).NotTo(HaveOccurred())
-	if len(config.StagingPath) > 0 {
-		err = createMountTargetLocation(config.StagingPath)
+	if len(sc.Config.StagingPath) > 0 {
+		err = createMountTargetLocation(sc.Config.StagingPath)
 		Expect(err).NotTo(HaveOccurred())
 	}
-})
+}
 
-var _ = AfterSuite(func() {
-	conn.Close()
-})
+func (sc *SanityContext) teardown() {
+	if sc.Conn != nil {
+		sc.Conn.Close()
+		sc.Conn = nil
+	}
+}
 
 func createMountTargetLocation(targetPath string) error {
 	fileInfo, err := os.Stat(targetPath)
@@ -121,4 +140,24 @@ func loadSecrets(path string) (*CSISecrets, error) {
 	}
 
 	return &creds, nil
+}
+
+var uniqueSuffix = "-" + pseudoUUID()
+
+// pseudoUUID returns a unique string generated from random
+// bytes, empty string in case of error.
+func pseudoUUID() string {
+	b := make([]byte, 8)
+	if _, err := rand.Read(b); err != nil {
+		// Shouldn't happen?!
+		return ""
+	}
+	return fmt.Sprintf("%08X-%08X", b[0:4], b[4:8])
+}
+
+// uniqueString returns a unique string by appending a random
+// number. In case of an error, just the prefix is returned, so it
+// alone should already be fairly unique.
+func uniqueString(prefix string) string {
+	return prefix + uniqueSuffix
 }
