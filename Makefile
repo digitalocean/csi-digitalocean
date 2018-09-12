@@ -43,6 +43,11 @@ test:
 	@echo "==> Testing all packages"
 	@go test -v ./...
 
+.PHONY: test-integration
+test-integration:
+	@echo "==> Started integration tests"
+	@go test -v ./test/...
+
 
 .PHONY: build
 build:
