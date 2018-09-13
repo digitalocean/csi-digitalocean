@@ -45,8 +45,9 @@ test:
 
 .PHONY: test-integration
 test-integration:
+
 	@echo "==> Started integration tests"
-	@go test -v ./test/...
+	@env GOCACHE=off go test -v ./test/...
 
 
 .PHONY: build
