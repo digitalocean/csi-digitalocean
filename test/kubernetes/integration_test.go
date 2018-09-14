@@ -3,7 +3,7 @@
 package integration
 
 import (
-	"context"
+	"errors"
 	"fmt"
 	"log"
 	"os"
@@ -115,10 +115,9 @@ func TestPod_Single_Volume(t *testing.T) {
 	}
 
 	fmt.Println("Waiting pod to be running ...")
-	ctx, cancel := context.WithTimeout(context.Background(), time.Minute*5)
-	defer cancel()
-
-	waitForPod(ctx, client, pod.Name)
+	if err := waitForPod(client, pod.Name); err != nil {
+		t.Error(err)
+	}
 
 	fmt.Println("Finished!")
 }
@@ -173,13 +172,16 @@ func strPtr(s string) *string {
 }
 
 // waitForPod waits for the given pod name to be running
-func waitForPod(ctx context.Context, client kubernetes.Interface, name string) {
+func waitForPod(client kubernetes.Interface, name string) error {
+	var err error
 	stopCh := make(chan struct{})
+
 	go func() {
 		select {
-		case <-ctx.Done():
+		case <-time.After(time.Minute * 5):
+			err = errors.New("timing out waiting for pod state")
 			close(stopCh)
-		default:
+		case <-stopCh:
 		}
 	}()
 
@@ -193,6 +195,12 @@ func waitForPod(ctx context.Context, client kubernetes.Interface, name string) {
 					return
 				}
 
+				if pod.Status.Phase == v1.PodFailed || pod.Status.Phase == v1.PodSucceeded {
+					err = errors.New("pod status is Failed or in Succeeded status (terminated)")
+					close(stopCh)
+					return
+				}
+
 				if pod.Status.Phase == v1.PodRunning {
 					close(stopCh)
 					return
@@ -201,4 +209,5 @@ func waitForPod(ctx context.Context, client kubernetes.Interface, name string) {
 		})
 
 	controller.Run(stopCh)
+	return err
 }
