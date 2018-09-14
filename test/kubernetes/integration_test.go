@@ -4,8 +4,6 @@ package integration
 
 import (
 	"context"
-	"errors"
-	"flag"
 	"fmt"
 	"log"
 	"os"
@@ -40,7 +38,7 @@ func TestMain(m *testing.M) {
 	// run the tests, don't call any defer yet as it'll fail due `os.Exit()
 	exitStatus := m.Run()
 
-	fmt.Println("\n\n==> Tearing down tests")
+	fmt.Println("==> Tearing down tests")
 	if err := teardown(); err != nil {
 		// don't call log.Fatalln() as we exit with `m.Run()`'s exit status
 		log.Println(err)
@@ -126,21 +124,16 @@ func TestPod_Single_Volume(t *testing.T) {
 }
 
 func setup() error {
-	var kubeconfig string
-	flag.StringVar(&kubeconfig, "kubeconfig", "", "absolute path to the kubeconfig file")
-	flag.Parse()
+	// if you want to change the loading rules (which files in which order),
+	// you can do so here
+	loadingRules := clientcmd.NewDefaultClientConfigLoadingRules()
 
-	if kubeconfig == "" {
-		kubeconfig = os.Getenv(clientcmd.RecommendedConfigPathEnvVar)
-		fmt.Println("==> Using kubeconfig from env(KUBECONFIG) path:", kubeconfig)
-	}
+	// if you want to change override values or bind them to flags, there are
+	// methods to help you
+	configOverrides := &clientcmd.ConfigOverrides{}
 
-	if kubeconfig == "" {
-		return errors.New("neither --kubeconfig nor KUBECONFIG is specified")
-	}
-
-	// use the current context in kubeconfig
-	config, err := clientcmd.BuildConfigFromFlags("", kubeconfig)
+	kubeConfig := clientcmd.NewNonInteractiveDeferredLoadingClientConfig(loadingRules, configOverrides)
+	config, err := kubeConfig.ClientConfig()
 	if err != nil {
 		return err
 	}
@@ -157,7 +150,8 @@ func setup() error {
 			Name: namespace,
 		},
 	})
-	if err != nil && !kubeerrors.IsAlreadyExists(err) {
+
+	if err != nil {
 		return err
 	}
 
