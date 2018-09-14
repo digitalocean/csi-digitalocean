@@ -43,6 +43,12 @@ test:
 	@echo "==> Testing all packages"
 	@go test -v ./...
 
+.PHONY: test-integration
+test-integration:
+
+	@echo "==> Started integration tests"
+	@env GOCACHE=off go test -v -tags integration ./test/...
+
 
 .PHONY: build
 build:

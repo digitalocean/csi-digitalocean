@@ -1,0 +1,21 @@
+kind: Pod
+apiVersion: v1
+metadata:
+  name: my-csi-app
+spec:
+  containers:
+    - name: my-csi-app
+      image: busybox
+      volumeMounts:
+      - mountPath: "/data/pod-1/"
+        name: my-do-volume-1
+      - mountPath: "/data/pod-2/"
+        name: my-do-volume-2
+      command: [ "sleep", "1000000" ]
+  volumes:
+    - name: my-do-volume-1
+      persistentVolumeClaim:
+        claimName: csi-pod-1
+    - name: my-do-volume-2
+      persistentVolumeClaim:
+        claimName: csi-pod-2
