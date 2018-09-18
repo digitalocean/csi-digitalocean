@@ -10,11 +10,14 @@ import (
 	"testing"
 	"time"
 
+	appsv1 "k8s.io/api/apps/v1"
 	"k8s.io/api/core/v1"
 	kubeerrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/fields"
+	"k8s.io/apimachinery/pkg/labels"
+	"k8s.io/apimachinery/pkg/selection"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/tools/cache"
 	"k8s.io/client-go/tools/clientcmd"
@@ -114,7 +117,114 @@ func TestPod_Single_Volume(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	fmt.Println("Waiting pod to be running ...")
+	fmt.Printf("Waiting pod %q to be running ...\n", pod.Name)
+	if err := waitForPod(client, pod.Name); err != nil {
+		t.Error(err)
+	}
+
+	fmt.Println("Finished!")
+}
+
+func TestDeployment_Single_Volume(t *testing.T) {
+	volumeName := "my-do-volume"
+	claimName := "csi-deployment-pvc"
+	appName := "my-csi-app"
+
+	replicaCount := new(int32)
+	*replicaCount = 1
+
+	dep := &appsv1.Deployment{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: appName,
+		},
+		Spec: appsv1.DeploymentSpec{
+			Replicas: replicaCount,
+			Selector: &metav1.LabelSelector{
+				MatchLabels: map[string]string{
+					"app": appName,
+				},
+			},
+			Template: v1.PodTemplateSpec{
+				ObjectMeta: metav1.ObjectMeta{
+					Labels: map[string]string{
+						"app": appName,
+					},
+				},
+				Spec: v1.PodSpec{
+					Containers: []v1.Container{
+						{
+							Name:  "my-busybox",
+							Image: "busybox",
+							VolumeMounts: []v1.VolumeMount{
+								{
+									MountPath: "/data",
+									Name:      volumeName,
+								},
+							},
+							Command: []string{
+								"sleep",
+								"1000000",
+							},
+						},
+					},
+					Volumes: []v1.Volume{
+						{
+							Name: volumeName,
+							VolumeSource: v1.VolumeSource{
+								PersistentVolumeClaim: &v1.PersistentVolumeClaimVolumeSource{
+									ClaimName: claimName,
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+
+	fmt.Println("Creating deployment")
+	_, err := client.AppsV1().Deployments(namespace).Create(dep)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	pvc := &v1.PersistentVolumeClaim{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: claimName,
+		},
+		Spec: v1.PersistentVolumeClaimSpec{
+			AccessModes: []v1.PersistentVolumeAccessMode{
+				v1.ReadWriteOnce,
+			},
+			Resources: v1.ResourceRequirements{
+				Requests: v1.ResourceList{
+					v1.ResourceStorage: resource.MustParse("5Gi"),
+				},
+			},
+			StorageClassName: strPtr("do-block-storage"),
+		},
+	}
+
+	fmt.Println("Creating pvc")
+	_, err = client.CoreV1().PersistentVolumeClaims(namespace).Create(pvc)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// get pod associated with the deployment
+	selector, err := appSelector(appName)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	pods, err := client.CoreV1().Pods(namespace).
+		List(metav1.ListOptions{LabelSelector: selector.String()})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	pod := pods.Items[0]
+	fmt.Printf("Waiting pod %q to be running ...\n", pod.Name)
 	if err := waitForPod(client, pod.Name); err != nil {
 		t.Error(err)
 	}
@@ -210,4 +320,20 @@ func waitForPod(client kubernetes.Interface, name string) error {
 
 	controller.Run(stopCh)
 	return err
+}
+
+// appSelector returns a selector that selects deployed applications with the
+// given name
+func appSelector(appName string) (labels.Selector, error) {
+	selector := labels.NewSelector()
+	appRequirement, err := labels.NewRequirement("app", selection.Equals, []string{appName})
+	if err != nil {
+		return nil, err
+	}
+
+	selector = selector.Add(
+		*appRequirement,
+	)
+
+	return selector, nil
 }
