@@ -4,7 +4,6 @@ package integration
 
 import (
 	"errors"
-	"fmt"
 	"log"
 	"os"
 	"testing"
@@ -33,7 +32,6 @@ var (
 )
 
 func TestMain(m *testing.M) {
-	fmt.Println("==> Setting up tests")
 	if err := setup(); err != nil {
 		log.Fatalln(err)
 	}
@@ -41,7 +39,6 @@ func TestMain(m *testing.M) {
 	// run the tests, don't call any defer yet as it'll fail due `os.Exit()
 	exitStatus := m.Run()
 
-	fmt.Println("==> Tearing down tests")
 	if err := teardown(); err != nil {
 		// don't call log.Fatalln() as we exit with `m.Run()`'s exit status
 		log.Println(err)
@@ -88,7 +85,7 @@ func TestPod_Single_Volume(t *testing.T) {
 		},
 	}
 
-	fmt.Println("Creating pod")
+	t.Log("Creating pod")
 	_, err := client.CoreV1().Pods(namespace).Create(pod)
 	if err != nil {
 		t.Fatal(err)
@@ -111,18 +108,18 @@ func TestPod_Single_Volume(t *testing.T) {
 		},
 	}
 
-	fmt.Println("Creating pvc")
+	t.Log("Creating pvc")
 	_, err = client.CoreV1().PersistentVolumeClaims(namespace).Create(pvc)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	fmt.Printf("Waiting pod %q to be running ...\n", pod.Name)
+	t.Logf("Waiting pod %q to be running ...\n", pod.Name)
 	if err := waitForPod(client, pod.Name); err != nil {
 		t.Error(err)
 	}
 
-	fmt.Println("Finished!")
+	t.Log("Finished!")
 }
 
 func TestDeployment_Single_Volume(t *testing.T) {
@@ -182,7 +179,7 @@ func TestDeployment_Single_Volume(t *testing.T) {
 		},
 	}
 
-	fmt.Println("Creating deployment")
+	t.Log("Creating deployment")
 	_, err := client.AppsV1().Deployments(namespace).Create(dep)
 	if err != nil {
 		t.Fatal(err)
@@ -205,7 +202,7 @@ func TestDeployment_Single_Volume(t *testing.T) {
 		},
 	}
 
-	fmt.Println("Creating pvc")
+	t.Log("Creating pvc")
 	_, err = client.CoreV1().PersistentVolumeClaims(namespace).Create(pvc)
 	if err != nil {
 		t.Fatal(err)
@@ -224,12 +221,12 @@ func TestDeployment_Single_Volume(t *testing.T) {
 	}
 
 	pod := pods.Items[0]
-	fmt.Printf("Waiting pod %q to be running ...\n", pod.Name)
+	t.Logf("Waiting pod %q to be running ...\n", pod.Name)
 	if err := waitForPod(client, pod.Name); err != nil {
 		t.Error(err)
 	}
 
-	fmt.Println("Finished!")
+	t.Log("Finished!")
 }
 
 func TestPod_Multi_Volume(t *testing.T) {
@@ -285,13 +282,13 @@ func TestPod_Multi_Volume(t *testing.T) {
 		},
 	}
 
-	fmt.Println("Creating pod")
+	t.Log("Creating pod")
 	_, err := client.CoreV1().Pods(namespace).Create(pod)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	fmt.Println("Creating pvc1")
+	t.Log("Creating pvc1")
 	pvc1 := &v1.PersistentVolumeClaim{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: claimName1,
@@ -313,7 +310,7 @@ func TestPod_Multi_Volume(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	fmt.Println("Creating pvc2")
+	t.Log("Creating pvc2")
 	pvc2 := &v1.PersistentVolumeClaim{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: claimName2,
@@ -335,12 +332,12 @@ func TestPod_Multi_Volume(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	fmt.Printf("Waiting pod %q to be running ...\n", pod.Name)
+	t.Logf("Waiting pod %q to be running ...\n", pod.Name)
 	if err := waitForPod(client, pod.Name); err != nil {
 		t.Error(err)
 	}
 
-	fmt.Println("Finished!")
+	t.Log("Finished!")
 }
 
 func setup() error {
