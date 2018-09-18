@@ -220,7 +220,12 @@ func TestDeployment_Single_Volume(t *testing.T) {
 		t.Fatal(err)
 	}
 
+	if len(pods.Items) != 1 || len(pods.Items) > 1 {
+		t.Fatalf("expected to have a 1 pod, got %d pods for the given deployment", len(pods.Items))
+
+	}
 	pod := pods.Items[0]
+
 	t.Logf("Waiting pod %q to be running ...\n", pod.Name)
 	if err := waitForPod(client, pod.Name); err != nil {
 		t.Error(err)
