@@ -61,7 +61,7 @@ func TestPod_Single_Volume(t *testing.T) {
 		Spec: v1.PodSpec{
 			Containers: []v1.Container{
 				{
-					Name:  "my-busybox",
+					Name:  "my-csi-app",
 					Image: "busybox",
 					VolumeMounts: []v1.VolumeMount{
 						{
@@ -224,6 +224,117 @@ func TestDeployment_Single_Volume(t *testing.T) {
 	}
 
 	pod := pods.Items[0]
+	fmt.Printf("Waiting pod %q to be running ...\n", pod.Name)
+	if err := waitForPod(client, pod.Name); err != nil {
+		t.Error(err)
+	}
+
+	fmt.Println("Finished!")
+}
+
+func TestPod_Multi_Volume(t *testing.T) {
+	volumeName1 := "my-do-volume-1"
+	volumeName2 := "my-do-volume-2"
+	claimName1 := "csi-pod-pvc-1"
+	claimName2 := "csi-pod-pvc-2"
+	appName := "my-multi-csi-app"
+
+	pod := &v1.Pod{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: appName,
+		},
+		Spec: v1.PodSpec{
+			Containers: []v1.Container{
+				{
+					Name:  appName,
+					Image: "busybox",
+					VolumeMounts: []v1.VolumeMount{
+						{
+							MountPath: "/data/pod-1/",
+							Name:      volumeName1,
+						},
+						{
+							MountPath: "/data/pod-2/",
+							Name:      volumeName2,
+						},
+					},
+					Command: []string{
+						"sleep",
+						"1000000",
+					},
+				},
+			},
+			Volumes: []v1.Volume{
+				{
+					Name: volumeName1,
+					VolumeSource: v1.VolumeSource{
+						PersistentVolumeClaim: &v1.PersistentVolumeClaimVolumeSource{
+							ClaimName: claimName1,
+						},
+					},
+				},
+				{
+					Name: volumeName2,
+					VolumeSource: v1.VolumeSource{
+						PersistentVolumeClaim: &v1.PersistentVolumeClaimVolumeSource{
+							ClaimName: claimName2,
+						},
+					},
+				},
+			},
+		},
+	}
+
+	fmt.Println("Creating pod")
+	_, err := client.CoreV1().Pods(namespace).Create(pod)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	fmt.Println("Creating pvc1")
+	pvc1 := &v1.PersistentVolumeClaim{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: claimName1,
+		},
+		Spec: v1.PersistentVolumeClaimSpec{
+			AccessModes: []v1.PersistentVolumeAccessMode{
+				v1.ReadWriteOnce,
+			},
+			Resources: v1.ResourceRequirements{
+				Requests: v1.ResourceList{
+					v1.ResourceStorage: resource.MustParse("5Gi"),
+				},
+			},
+			StorageClassName: strPtr("do-block-storage"),
+		},
+	}
+	_, err = client.CoreV1().PersistentVolumeClaims(namespace).Create(pvc1)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	fmt.Println("Creating pvc2")
+	pvc2 := &v1.PersistentVolumeClaim{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: claimName2,
+		},
+		Spec: v1.PersistentVolumeClaimSpec{
+			AccessModes: []v1.PersistentVolumeAccessMode{
+				v1.ReadWriteOnce,
+			},
+			Resources: v1.ResourceRequirements{
+				Requests: v1.ResourceList{
+					v1.ResourceStorage: resource.MustParse("5Gi"),
+				},
+			},
+			StorageClassName: strPtr("do-block-storage"),
+		},
+	}
+	_, err = client.CoreV1().PersistentVolumeClaims(namespace).Create(pvc2)
+	if err != nil {
+		t.Fatal(err)
+	}
+
 	fmt.Printf("Waiting pod %q to be running ...\n", pod.Name)
 	if err := waitForPod(client, pod.Name); err != nil {
 		t.Error(err)
