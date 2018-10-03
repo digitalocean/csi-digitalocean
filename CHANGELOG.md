@@ -1,5 +1,10 @@
 ## unreleased
 
+* Add a [tutorial](examples/kubernetes/pod-single-existing-volume/README.md) on how to re-use an existing volume. Also a new option is introduced to prevent formatting an existing volume.
+  [[GH-87]](https://github.com/digitalocean/csi-digitalocean/pull/87)
+* Handle case if a volume is already attached to a droplet
+  [[GH-87]](https://github.com/digitalocean/csi-digitalocean/pull/87)
+
 ## v0.2.0 - 2018.09.05
 
 * Add support to CSI Spec `v0.3.0`. This includes many new changes, make sure 
