@@ -187,7 +187,7 @@ $ make test
 If you want to test your changes, create a new image with the version set to `dev`:
 
 ```
-$ VERSION=dev make publish-dev
+$ VERSION=dev make publish
 ```
 
 This will create a binary with version `dev` and docker image pushed to

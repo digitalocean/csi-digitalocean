@@ -1,0 +1,23 @@
+kind: PersistentVolume
+apiVersion: v1
+metadata:
+  name: volume-nyc1-01
+  annotations:
+    # fake it by indicating this is provisioned dynamically, so the system
+    # works properly
+    pv.kubernetes.io/provisioned-by: com.digitalocean.csi.dobs
+spec:
+  storageClassName: do-block-storage
+  # by default, the volume will be not deleted if you delete the PVC, change to
+  # "Delete" if you wish the volume to be deleted automatically with the PVC
+  persistentVolumeReclaimPolicy: Delete
+  capacity:
+    storage: 5Gi
+  accessModes:
+    - ReadWriteOnce
+  csi:
+    driver: com.digitalocean.csi.dobs
+    fsType: ext4
+    volumeHandle: 1952d58a-c714-11e8-bc0c-0a58ac14421e
+    volumeAttributes:
+      com.digitalocean.csi/noformat: "true"

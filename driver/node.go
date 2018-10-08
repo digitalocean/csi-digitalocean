@@ -41,6 +41,11 @@ const (
 
 	// See: https://www.digitalocean.com/docs/volumes/overview/#limits
 	maxVolumesPerNode = 7
+
+	// This annotation is added to a PV to indicate that the volume should be
+	// not formatted. Useful for cases if the user wants to reuse an existing
+	// volume.
+	annNoFormatVolume = "com.digitalocean.csi/noformat"
 )
 
 // NodeStageVolume mounts the volume to a staging path on the node. This is
@@ -83,6 +88,7 @@ func (d *Driver) NodeStageVolume(ctx context.Context, req *csi.NodeStageVolumeRe
 	ll := d.log.WithFields(logrus.Fields{
 		"volume_id":           req.VolumeId,
 		"volume_name":         vol.Name,
+		"volume_attributes":   req.VolumeAttributes,
 		"staging_target_path": req.StagingTargetPath,
 		"source":              source,
 		"fsType":              fsType,
@@ -90,18 +96,24 @@ func (d *Driver) NodeStageVolume(ctx context.Context, req *csi.NodeStageVolumeRe
 		"method":              "node_stage_volume",
 	})
 
-	formatted, err := d.mounter.IsFormatted(source)
-	if err != nil {
-		return nil, err
-	}
-
-	if !formatted {
-		ll.Info("formatting the volume for staging")
-		if err := d.mounter.Format(source, fsType); err != nil {
-			return nil, status.Error(codes.Internal, err.Error())
+	_, ok := req.VolumeAttributes[annNoFormatVolume]
+	if !ok {
+		formatted, err := d.mounter.IsFormatted(source)
+		if err != nil {
+			return nil, err
 		}
+
+		if !formatted {
+			ll.Info("formatting the volume for staging")
+			if err := d.mounter.Format(source, fsType); err != nil {
+				return nil, status.Error(codes.Internal, err.Error())
+			}
+		} else {
+			ll.Info("source device is already formatted")
+		}
+
 	} else {
-		ll.Info("source device is already formatted")
+		ll.Info("skipping formatting the source device")
 	}
 
 	ll.Info("mounting the volume for staging")

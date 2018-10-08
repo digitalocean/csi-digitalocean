@@ -180,6 +180,10 @@ func (d *Driver) DeleteVolume(ctx context.Context, req *csi.DeleteVolumeRequest)
 	if err != nil {
 		if resp != nil && resp.StatusCode == http.StatusNotFound {
 			// we assume it's deleted already for idempotency
+			ll.WithFields(logrus.Fields{
+				"error": err,
+				"resp":  resp,
+			}).Warn("assuming volume is deleted already")
 			return &csi.DeleteVolumeResponse{}, nil
 		}
 		return nil, err
@@ -227,7 +231,7 @@ func (d *Driver) ControllerPublishVolume(ctx context.Context, req *csi.Controlle
 	ll.Info("controller publish volume called")
 
 	// check if volume exist before trying to attach it
-	_, resp, err := d.doClient.Storage.GetVolume(ctx, req.VolumeId)
+	vol, resp, err := d.doClient.Storage.GetVolume(ctx, req.VolumeId)
 	if err != nil {
 		if resp != nil && resp.StatusCode == http.StatusNotFound {
 			return nil, status.Errorf(codes.NotFound, "volume %q not found", req.VolumeId)
@@ -244,6 +248,22 @@ func (d *Driver) ControllerPublishVolume(ctx context.Context, req *csi.Controlle
 		return nil, err
 	}
 
+	attachedID := 0
+	for _, id := range vol.DropletIDs {
+		attachedID = id
+		if id == dropletID {
+			ll.Info("volume is already attached")
+			return &csi.ControllerPublishVolumeResponse{}, nil
+		}
+	}
+
+	// droplet is attached to a different node, return an error
+	if attachedID != 0 {
+		return nil, status.Errorf(codes.FailedPrecondition,
+			"volume is attached to a wrong droplet(%q), dettach the volume to fix it", attachedID)
+	}
+
+	// attach the volume to the correct node
 	action, resp, err := d.doClient.StorageActions.Attach(ctx, req.VolumeId, dropletID)
 	if err != nil {
 		// don't do anything if attached
