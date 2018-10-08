@@ -51,7 +51,7 @@ Couple of things to note,
 * `volumeAttributes` has a special, csi-digitalocean specific annotation called `com.digitalocean.csi/format`. If you add this key, the CSI plugin make sure to **not format** the volume. If you don't add this, it'll be formatted.
 * `storage` make sure it's set to the same storage size as your existing DigitalOcean Block Storage volume.
 
-Create a file with this content, naming it `pv.yaml` and deploy it:
+Create a file with this content, naming it `pv.yaml` and deploying it:
 
 ```
 kubectl create -f pv.yaml

@@ -260,7 +260,7 @@ func (d *Driver) ControllerPublishVolume(ctx context.Context, req *csi.Controlle
 	// droplet is attached to a different node, return an error
 	if attachedID != 0 {
 		return nil, status.Errorf(codes.FailedPrecondition,
-			"volume is attached to a wrong droplet(%q), dettach the volume to fix it", attachedID)
+			"volume is attached to the wrong droplet(%q), dettach the volume to fix it", attachedID)
 	}
 
 	// attach the volume to the correct node
