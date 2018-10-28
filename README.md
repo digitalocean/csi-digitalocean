@@ -176,7 +176,7 @@ hello-world
 
 Requirements:
 
-* Go: min `v1.10.x`
+* Go: min `v1.11.x`
 
 After making your changes, run the unit tests: 
 
@@ -200,6 +200,7 @@ To run the integration tests run the following:
 $ KUBECONFIG=$(pwd)/kubeconfig make test-integration
 ```
 
+Dependencies are managed via [Go modules](https://github.com/golang/go/wiki/Modules).
 
 ### Release a new version
 
