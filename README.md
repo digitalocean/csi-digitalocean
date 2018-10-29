@@ -8,7 +8,7 @@ Cloud Foundry. Feel free to test it on other CO's and give us a feedback.
 ## Releases
 
 The DigitalOcean CSI plugin follows [semantic versioning](https://semver.org/).
-The current version is: **`v0.2.0`**. This means that the project is still
+The current version is: **`v0.3.0`**. This means that the project is still
 under active development and may not be production ready. The plugin will be
 bumped to **`v1.0.0`** once the [DigitalOcean Kubernetes
 product](https://www.digitalocean.com/products/kubernetes/) is released and
@@ -21,11 +21,15 @@ will continue following the rules below:
 
 ## Installing to Kubernetes
 
+Note: The [`DigitalOcean Kubernetes`](https://www.digitalocean.com/products/kubernetes/) products comes
+with the CSI driver pre-installed and no further steps are required.
+
 **Requirements:**
 
-* Kubernetes v1.10.5 minimum 
+* Kubernetes v1.12.0 minimum 
 * `--allow-privileged` flag must be set to true for both the API server and the kubelet
-* (if you use Docker) the Docker daemon of the cluster nodes must allow shared mounts
+* `--feature-gates=VolumeSnapshotDataSource=true,KubeletPluginsWatcher=true,CSINodeInfo=true,CSIDriverRegistry=true` feature gate flags must be set to true for both the API server and the kubelet
+* Mount Propagation needs to be enabled. If you use Docker, the Docker daemon of the cluster nodes must allow shared mounts.
 
 
 ### [Rancher](https://rancher.com/) users:
@@ -83,10 +87,10 @@ digitalocean          Opaque                                1         18h
 
 Before you continue, be sure to checkout to a [tagged
 release](https://github.com/digitalocean/csi-digitalocean/releases). Always use the [latest stable version](https://github.com/digitalocean/csi-digitalocean/releases/latest) 
-For example, to use the latest stable version (`v0.2.0`) you can execute the following command:
+For example, to use the latest stable version (`v0.3.0`) you can execute the following command:
 
 ```
-$ kubectl apply -f https://raw.githubusercontent.com/digitalocean/csi-digitalocean/master/deploy/kubernetes/releases/csi-digitalocean-v0.2.0.yaml
+$ kubectl apply -f https://raw.githubusercontent.com/digitalocean/csi-digitalocean/master/deploy/kubernetes/releases/csi-digitalocean-v0.3.0.yaml
 ```
 
 This file will be always updated to point to the latest stable release.
@@ -220,15 +224,15 @@ $ git push origin
 
 After it's merged to master, [create a new Github
 release](https://github.com/digitalocean/csi-digitalocean/releases/new) from
-master with the version `v0.2.0` and then publish a new docker build:
+master with the version `v0.3.0` and then publish a new docker build:
 
 ```
 $ git checkout master
 $ make publish
 ```
 
-This will create a binary with version `v0.2.0` and docker image pushed to
-`digitalocean/do-csi-plugin:v0.2.0`
+This will create a binary with version `v0.3.0` and docker image pushed to
+`digitalocean/do-csi-plugin:v0.3.0`
 
 ## Contributing
 
