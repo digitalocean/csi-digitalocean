@@ -4,6 +4,8 @@
   [[GH-87]](https://github.com/digitalocean/csi-digitalocean/pull/87)
 * Handle case if a volume is already attached to a droplet
   [[GH-87]](https://github.com/digitalocean/csi-digitalocean/pull/87)
+* Switch to Go modules for dependency management
+  [[GH-94]](https://github.com/digitalocean/csi-digitalocean/pull/94)
 
 ## v0.2.0 - 2018.09.05
 
