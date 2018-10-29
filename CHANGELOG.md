@@ -1,5 +1,10 @@
 ## unreleased
 
+## v0.3.0 - 2018.10.29
+
+* This release is intended to be used with Kubernetes `v1.12.x` and is not compatible with older versions of Kubernetes. The latest CSI changes in v1.12.x are not compatible with older version unfortunately, therefore going forward we will not support older version anymore. The requirements also has changed, please make sure to read the README.md to see what kubelet and kube-apiserver flags needs to be enabled.
+  [[GH-95]](https://github.com/digitalocean/csi-digitalocean/pull/95)
+* Two new `CRD's` are installed: `CSINodeInfo` and `CSIDriver` to simplify node and driver discovery in Kubernetes.
 * Add a [tutorial](examples/kubernetes/pod-single-existing-volume/README.md) on how to re-use an existing volume. Also a new option is introduced to prevent formatting an existing volume.
   [[GH-87]](https://github.com/digitalocean/csi-digitalocean/pull/87)
 * Handle case if a volume is already attached to a droplet
