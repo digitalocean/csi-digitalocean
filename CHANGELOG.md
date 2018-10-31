@@ -1,5 +1,7 @@
 ## unreleased
 
+## v0.3.1 - 2018.10.31
+
 * Fix driver name in CSIDriver, StorageClass and GetNodeInfo()
   [[GH-96]](https://github.com/digitalocean/csi-digitalocean/pull/96)
 
