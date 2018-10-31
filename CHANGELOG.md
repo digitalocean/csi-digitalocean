@@ -1,5 +1,8 @@
 ## unreleased
 
+* Fix driver name in CSIDriver, StorageClass and GetNodeInfo()
+  [[GH-96]](https://github.com/digitalocean/csi-digitalocean/pull/96)
+
 ## v0.3.0 - 2018.10.29
 
 * This release is intended to be used with Kubernetes `v1.12.x` and is not compatible with older versions of Kubernetes. The latest CSI changes in v1.12.x are not compatible with older version unfortunately, therefore going forward we will not support older version anymore. The requirements also has changed, please make sure to read the README.md to see what kubelet and kube-apiserver flags needs to be enabled.
