@@ -36,7 +36,7 @@ import (
 )
 
 const (
-	driverName = "com.digitalocean.csi.dobs"
+	driverName = "dobs.csi.digitalocean.com"
 )
 
 var (
