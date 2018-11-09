@@ -44,7 +44,7 @@ const (
 	// This annotation is added to a PV to indicate that the volume should be
 	// not formatted. Useful for cases if the user wants to reuse an existing
 	// volume.
-	annNoFormatVolume = "com.digitalocean.csi/noformat"
+	annNoFormatVolume = DriverName + "/noformat"
 )
 
 // NodeStageVolume mounts the volume to a staging path on the node. This is

@@ -41,10 +41,15 @@ const (
 )
 
 const (
-	PublishInfoVolumeName = "com.digitalocean.csi/volume-name"
+	// PublishInfoVolumeName is used to pass the volume name from
+	// `ControllerPublishVolume` to `NodeStageVolume or `NodePublishVolume`
+	PublishInfoVolumeName = DriverName + "/volume-name"
 
+	// defaultVolumeSizeInGB is used when the user didn't defined a correct
+	// storage size or if the size is not satisfised
 	defaultVolumeSizeInGB = 16 * GB
 
+	// createdByDO is used to tag volumes that are created by this CSI plugin
 	createdByDO = "Created by DigitalOcean CSI driver"
 )
 

@@ -36,7 +36,9 @@ import (
 )
 
 const (
-	driverName = "dobs.csi.digitalocean.com"
+	// DriverName defines the name that is used in Kubernetes and the CSI
+	// system for the canonical, official name of this plugin
+	DriverName = "dobs.csi.digitalocean.com"
 )
 
 var (
