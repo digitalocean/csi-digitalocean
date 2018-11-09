@@ -41,6 +41,8 @@ const (
 )
 
 const (
+	PublishInfoVolumeName = "com.digitalocean.csi/volume-name"
+
 	defaultVolumeSizeInGB = 16 * GB
 
 	createdByDO = "Created by DigitalOcean CSI driver"
@@ -253,7 +255,11 @@ func (d *Driver) ControllerPublishVolume(ctx context.Context, req *csi.Controlle
 		attachedID = id
 		if id == dropletID {
 			ll.Info("volume is already attached")
-			return &csi.ControllerPublishVolumeResponse{}, nil
+			return &csi.ControllerPublishVolumeResponse{
+				PublishInfo: map[string]string{
+					PublishInfoVolumeName: vol.Name,
+				},
+			}, nil
 		}
 	}
 
@@ -273,7 +279,11 @@ func (d *Driver) ControllerPublishVolume(ctx context.Context, req *csi.Controlle
 					"error": err,
 					"resp":  resp,
 				}).Warn("assuming volume is attached already")
-				return &csi.ControllerPublishVolumeResponse{}, nil
+				return &csi.ControllerPublishVolumeResponse{
+					PublishInfo: map[string]string{
+						PublishInfoVolumeName: vol.Name,
+					},
+				}, nil
 			}
 
 			if strings.Contains(err.Error(), "Droplet already has a pending event") {
@@ -297,7 +307,11 @@ func (d *Driver) ControllerPublishVolume(ctx context.Context, req *csi.Controlle
 	}
 
 	ll.Info("volume is attached")
-	return &csi.ControllerPublishVolumeResponse{}, nil
+	return &csi.ControllerPublishVolumeResponse{
+		PublishInfo: map[string]string{
+			PublishInfoVolumeName: vol.Name,
+		},
+	}, nil
 }
 
 // ControllerUnpublishVolume deattaches the given volume from the node
