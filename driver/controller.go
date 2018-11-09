@@ -41,6 +41,8 @@ const (
 )
 
 const (
+	PublishInfoVolumeName = "com.digitalocean.csi/volume-name"
+
 	defaultVolumeSizeInGB = 16 * GB
 
 	createdByDO = "Created by DigitalOcean CSI driver"
@@ -227,7 +229,7 @@ func (d *Driver) ControllerPublishVolume(ctx context.Context, req *csi.Controlle
 	ll.Info("controller publish volume called")
 
 	// check if volume exist before trying to attach it
-	_, resp, err := d.doClient.Storage.GetVolume(ctx, req.VolumeId)
+	vol, resp, err := d.doClient.Storage.GetVolume(ctx, req.VolumeId)
 	if err != nil {
 		if resp != nil && resp.StatusCode == http.StatusNotFound {
 			return nil, status.Errorf(codes.NotFound, "volume %q not found", req.VolumeId)
@@ -244,6 +246,26 @@ func (d *Driver) ControllerPublishVolume(ctx context.Context, req *csi.Controlle
 		return nil, err
 	}
 
+	attachedID := 0
+	for _, id := range vol.DropletIDs {
+		attachedID = id
+		if id == dropletID {
+			ll.Info("volume is already attached")
+			return &csi.ControllerPublishVolumeResponse{
+				PublishInfo: map[string]string{
+					PublishInfoVolumeName: vol.Name,
+				},
+			}, nil
+		}
+	}
+
+	// droplet is attached to a different node, return an error
+	if attachedID != 0 {
+		return nil, status.Errorf(codes.FailedPrecondition,
+			"volume is attached to the wrong droplet(%q), dettach the volume to fix it", attachedID)
+	}
+
+	// attach the volume to the correct node
 	action, resp, err := d.doClient.StorageActions.Attach(ctx, req.VolumeId, dropletID)
 	if err != nil {
 		// don't do anything if attached
@@ -253,7 +275,11 @@ func (d *Driver) ControllerPublishVolume(ctx context.Context, req *csi.Controlle
 					"error": err,
 					"resp":  resp,
 				}).Warn("assuming volume is attached already")
-				return &csi.ControllerPublishVolumeResponse{}, nil
+				return &csi.ControllerPublishVolumeResponse{
+					PublishInfo: map[string]string{
+						PublishInfoVolumeName: vol.Name,
+					},
+				}, nil
 			}
 
 			if strings.Contains(err.Error(), "Droplet already has a pending event") {
@@ -277,7 +303,11 @@ func (d *Driver) ControllerPublishVolume(ctx context.Context, req *csi.Controlle
 	}
 
 	ll.Info("volume is attached")
-	return &csi.ControllerPublishVolumeResponse{}, nil
+	return &csi.ControllerPublishVolumeResponse{
+		PublishInfo: map[string]string{
+			PublishInfoVolumeName: vol.Name,
+		},
+	}, nil
 }
 
 // ControllerUnpublishVolume deattaches the given volume from the node

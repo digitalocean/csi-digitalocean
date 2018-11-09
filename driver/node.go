@@ -26,7 +26,6 @@ package driver
 
 import (
 	"context"
-	"net/http"
 	"path/filepath"
 
 	csi "github.com/container-storage-interface/spec/lib/go/csi/v0"
@@ -61,15 +60,14 @@ func (d *Driver) NodeStageVolume(ctx context.Context, req *csi.NodeStageVolumeRe
 		return nil, status.Error(codes.InvalidArgument, "NodeStageVolume Volume Capability must be provided")
 	}
 
-	vol, resp, err := d.doClient.Storage.GetVolume(ctx, req.VolumeId)
-	if err != nil {
-		if resp != nil && resp.StatusCode == http.StatusNotFound {
-			return nil, status.Errorf(codes.NotFound, "volume %q not found", req.VolumeId)
-		}
-		return nil, err
+	volumeName := ""
+	if volName, ok := req.GetPublishInfo()[PublishInfoVolumeName]; !ok {
+		return nil, status.Error(codes.InvalidArgument, "Could not find the volume by name")
+	} else {
+		volumeName = volName
 	}
 
-	source := getDiskSource(vol.Name)
+	source := getDiskSource(volumeName)
 	target := req.StagingTargetPath
 
 	mnt := req.VolumeCapability.GetMount()
@@ -82,7 +80,8 @@ func (d *Driver) NodeStageVolume(ctx context.Context, req *csi.NodeStageVolumeRe
 
 	ll := d.log.WithFields(logrus.Fields{
 		"volume_id":           req.VolumeId,
-		"volume_name":         vol.Name,
+		"volume_name":         volumeName,
+		"volume_attributes":   req.VolumeAttributes,
 		"staging_target_path": req.StagingTargetPath,
 		"source":              source,
 		"fsType":              fsType,
