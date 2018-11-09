@@ -1,5 +1,10 @@
 ## unreleased
 
+* Use publish_info in ControllerPublishVolume for storing and accessing the
+  volume name on Node plugins. This allows us to do all Node related operations
+  without relying on the DO API.
+  [[GH-99]](https://github.com/digitalocean/csi-digitalocean/pull/99)
+
 ## v0.3.1 - 2018.10.31
 
 * Fix driver name in CSIDriver, StorageClass and GetNodeInfo()
