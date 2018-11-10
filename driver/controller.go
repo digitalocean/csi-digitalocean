@@ -84,6 +84,11 @@ func (d *Driver) CreateVolume(ctx context.Context, req *csi.CreateVolumeRequest)
 		return nil, status.Error(codes.InvalidArgument, "invalid volume capabilities requested. Only SINGLE_NODE_WRITER is supported ('accessModes.ReadWriteOnce' on Kubernetes)")
 	}
 
+	size, err := extractStorage(req.CapacityRange)
+	if err != nil {
+		return nil, status.Error(codes.InvalidArgument, "invalid capacity range: %v", err)
+	}
+
 	if req.AccessibilityRequirements != nil {
 		for _, t := range req.AccessibilityRequirements.Requisite {
 			region, ok := t.Segments["region"]
@@ -96,11 +101,6 @@ func (d *Driver) CreateVolume(ctx context.Context, req *csi.CreateVolumeRequest)
 
 			}
 		}
-	}
-
-	size, err := extractStorage(req.CapacityRange)
-	if err != nil {
-		return nil, status.Error(codes.InvalidArgument, "invalid capacity range: %v", err)
 	}
 
 	volumeName := req.Name
