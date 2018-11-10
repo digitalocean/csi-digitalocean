@@ -86,7 +86,7 @@ func (d *Driver) CreateVolume(ctx context.Context, req *csi.CreateVolumeRequest)
 
 	size, err := extractStorage(req.CapacityRange)
 	if err != nil {
-		return nil, status.Error(codes.InvalidArgument, "invalid capacity range: %v", err)
+		return nil, status.Errorf(codes.InvalidArgument, "invalid capacity range: %v", err)
 	}
 
 	if req.AccessibilityRequirements != nil {
@@ -98,7 +98,6 @@ func (d *Driver) CreateVolume(ctx context.Context, req *csi.CreateVolumeRequest)
 
 			if region != d.region {
 				return nil, status.Errorf(codes.ResourceExhausted, "volume can be only created in region: %q, got: %q", d.region, region)
-
 			}
 		}
 	}
@@ -632,36 +631,36 @@ func extractStorage(capRange *csi.CapacityRange) (int64, error) {
 		return 0, fmt.Errorf("limit bytes %v is less than required bytes %v", limitBytes, requiredBytes)
 	}
 
-	if requiredSet && !limitSet && requiredBytes < MinimumVolumeSizeInBytes {
-		return 0, fmt.Errorf("required bytes %v is less than minimum supported volume size: %v", requiredBytes, MinimumVolumeSizeInBytes)
+	if requiredSet && !limitSet && requiredBytes < minimumVolumeSizeInBytes {
+		return 0, fmt.Errorf("required bytes %v is less than minimum supported volume size: %v", requiredBytes, minimumVolumeSizeInBytes)
 	}
 
-	if limitSet && limitBytes < MinimumVolumeSizeInBytes {
-		return 0, fmt.Errorf("limit bytes %v is less than minimum supported volume size: %v", limitBytes, MinimumVolumeSizeInBytes)
+	if limitSet && limitBytes < minimumVolumeSizeInBytes {
+		return 0, fmt.Errorf("limit bytes %v is less than minimum supported volume size: %v", limitBytes, minimumVolumeSizeInBytes)
 	}
 
-	if requiredSet && requiredBytes > MaximumVolumeSizeInBytes {
-		return 0, fmt.Errorf("required bytes %v is more than maximum supported volume size: %v", requiredBytes, MinimumVolumeSizeInBytes)
+	if requiredSet && requiredBytes > maximumVolumeSizeInBytes {
+		return 0, fmt.Errorf("required bytes %v is more than maximum supported volume size: %v", requiredBytes, maximumVolumeSizeInBytes)
 	}
 
-	if !requiredSet && limitSet && limitBytes > MaximumVolumeSizeInBytes {
-		return 0, fmt.Errorf("limit bytes %v is more than maximum supported volume size: %v", limitBytes, MaximumVolumeSizeInBytes)
+	if !requiredSet && limitSet && limitBytes > maximumVolumeSizeInBytes {
+		return 0, fmt.Errorf("limit bytes %v is more than maximum supported volume size: %v", limitBytes, maximumVolumeSizeInBytes)
 	}
 
 	if requiredSet && limitSet && requiredBytes == limitBytes {
 		return requiredBytes, nil
 	}
 
-	if requiredSet && requiredBytes < MinimumVolumeSizeInBytes {
-		return MinimumVolumeSizeInBytes, nil
+	if requiredSet && requiredBytes < minimumVolumeSizeInBytes {
+		return minimumVolumeSizeInBytes, nil
 	}
 
 	if requiredSet {
 		return requiredBytes, nil
 	}
 
-	if limitSet && limitBytes > MaximumVolumeSizeInBytes {
-		return MaximumVolumeSizeInBytes, nil
+	if limitSet && limitBytes > maximumVolumeSizeInBytes {
+		return maximumVolumeSizeInBytes, nil
 	}
 
 	if limitSet {
