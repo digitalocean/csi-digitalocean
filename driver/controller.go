@@ -103,7 +103,7 @@ func (d *Driver) CreateVolume(ctx context.Context, req *csi.CreateVolumeRequest)
 	ll.Info("create volume called")
 
 	// get volume first, if it's created do no thing
-	volumes, _, err := d.doClient.Storage.ListVolumes(ctx, &godo.ListVolumeParams{
+	volumes, _, err := d.storage.ListVolumes(ctx, &godo.ListVolumeParams{
 		Region: d.region,
 		Name:   volumeName,
 	})
@@ -148,7 +148,7 @@ func (d *Driver) CreateVolume(ctx context.Context, req *csi.CreateVolumeRequest)
 	}
 
 	ll.WithField("volume_req", volumeReq).Info("creating volume")
-	vol, _, err := d.doClient.Storage.CreateVolume(ctx, volumeReq)
+	vol, _, err := d.storage.CreateVolume(ctx, volumeReq)
 	if err != nil {
 		return nil, status.Error(codes.Internal, err.Error())
 	}
@@ -183,7 +183,7 @@ func (d *Driver) DeleteVolume(ctx context.Context, req *csi.DeleteVolumeRequest)
 	})
 	ll.Info("delete volume called")
 
-	resp, err := d.doClient.Storage.DeleteVolume(ctx, req.VolumeId)
+	resp, err := d.storage.DeleteVolume(ctx, req.VolumeId)
 	if err != nil {
 		if resp != nil && resp.StatusCode == http.StatusNotFound {
 			// we assume it's deleted already for idempotency
@@ -238,7 +238,7 @@ func (d *Driver) ControllerPublishVolume(ctx context.Context, req *csi.Controlle
 	ll.Info("controller publish volume called")
 
 	// check if volume exist before trying to attach it
-	vol, resp, err := d.doClient.Storage.GetVolume(ctx, req.VolumeId)
+	vol, resp, err := d.storage.GetVolume(ctx, req.VolumeId)
 	if err != nil {
 		if resp != nil && resp.StatusCode == http.StatusNotFound {
 			return nil, status.Errorf(codes.NotFound, "volume %q not found", req.VolumeId)
@@ -247,7 +247,7 @@ func (d *Driver) ControllerPublishVolume(ctx context.Context, req *csi.Controlle
 	}
 
 	// check if droplet exist before trying to attach the volume to the droplet
-	_, resp, err = d.doClient.Droplets.Get(ctx, dropletID)
+	_, resp, err = d.droplets.Get(ctx, dropletID)
 	if err != nil {
 		if resp != nil && resp.StatusCode == http.StatusNotFound {
 			return nil, status.Errorf(codes.NotFound, "droplet %q not found", dropletID)
@@ -275,7 +275,7 @@ func (d *Driver) ControllerPublishVolume(ctx context.Context, req *csi.Controlle
 	}
 
 	// attach the volume to the correct node
-	action, resp, err := d.doClient.StorageActions.Attach(ctx, req.VolumeId, dropletID)
+	action, resp, err := d.storageActions.Attach(ctx, req.VolumeId, dropletID)
 	if err != nil {
 		// don't do anything if attached
 		if resp != nil && resp.StatusCode == http.StatusUnprocessableEntity {
@@ -341,7 +341,7 @@ func (d *Driver) ControllerUnpublishVolume(ctx context.Context, req *csi.Control
 	ll.Info("controller unpublish volume called")
 
 	// check if volume exist before trying to detach it
-	_, resp, err := d.doClient.Storage.GetVolume(ctx, req.VolumeId)
+	_, resp, err := d.storage.GetVolume(ctx, req.VolumeId)
 	if err != nil {
 		if resp != nil && resp.StatusCode == http.StatusNotFound {
 			// assume it's detached
@@ -351,7 +351,7 @@ func (d *Driver) ControllerUnpublishVolume(ctx context.Context, req *csi.Control
 	}
 
 	// check if droplet exist before trying to detach the volume from the droplet
-	_, resp, err = d.doClient.Droplets.Get(ctx, dropletID)
+	_, resp, err = d.droplets.Get(ctx, dropletID)
 	if err != nil {
 		if resp != nil && resp.StatusCode == http.StatusNotFound {
 			return nil, status.Errorf(codes.NotFound, "droplet %q not found", dropletID)
@@ -359,7 +359,7 @@ func (d *Driver) ControllerUnpublishVolume(ctx context.Context, req *csi.Control
 		return nil, err
 	}
 
-	action, resp, err := d.doClient.StorageActions.DetachByDropletID(ctx, req.VolumeId, dropletID)
+	action, resp, err := d.storageActions.DetachByDropletID(ctx, req.VolumeId, dropletID)
 	if err != nil {
 		if resp != nil && resp.StatusCode == http.StatusUnprocessableEntity {
 			if strings.Contains(err.Error(), "Attachment not found") {
@@ -415,7 +415,7 @@ func (d *Driver) ValidateVolumeCapabilities(ctx context.Context, req *csi.Valida
 	ll.Info("validate volume capabilities called")
 
 	// check if volume exist before trying to validate it it
-	_, volResp, err := d.doClient.Storage.GetVolume(ctx, req.VolumeId)
+	_, volResp, err := d.storage.GetVolume(ctx, req.VolumeId)
 	if err != nil {
 		if volResp != nil && volResp.StatusCode == http.StatusNotFound {
 			return nil, status.Errorf(codes.NotFound, "volume %q not found", req.VolumeId)
@@ -478,7 +478,7 @@ func (d *Driver) ListVolumes(ctx context.Context, req *csi.ListVolumesRequest) (
 	var volumes []godo.Volume
 	lastPage := 0
 	for {
-		vols, resp, err := d.doClient.Storage.ListVolumes(ctx, listOpts)
+		vols, resp, err := d.storage.ListVolumes(ctx, listOpts)
 		if err != nil {
 			return nil, err
 		}
@@ -646,7 +646,7 @@ func (d *Driver) waitAction(ctx context.Context, volumeId string, actionId int) 
 	for {
 		select {
 		case <-ticker.C:
-			action, _, err := d.doClient.StorageActions.Get(ctx, volumeId, actionId)
+			action, _, err := d.storageActions.Get(ctx, volumeId, actionId)
 			if err != nil {
 				ll.WithError(err).Info("waiting for volume errored")
 				continue
@@ -673,7 +673,7 @@ func (d *Driver) checkLimit(ctx context.Context) error {
 	d.readyMu.Lock()
 	defer d.readyMu.Unlock()
 
-	account, _, err := d.doClient.Account.Get(ctx)
+	account, _, err := d.account.Get(ctx)
 	if err != nil {
 		return status.Errorf(codes.Internal,
 			"couldn't get account information to check volume limit: %s", err.Error())
@@ -687,7 +687,7 @@ func (d *Driver) checkLimit(ctx context.Context) error {
 	// NOTE(arslan): the API returns the limit for *all* regions, so passing
 	// the region down as a parameter doesn't change the response.
 	// Nevertheless, this is something we should be aware of.
-	volumes, _, err := d.doClient.Storage.ListVolumes(ctx, &godo.ListVolumeParams{
+	volumes, _, err := d.storage.ListVolumes(ctx, &godo.ListVolumeParams{
 		Region: d.region,
 	})
 	if err != nil {

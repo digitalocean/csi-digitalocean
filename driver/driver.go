@@ -58,10 +58,14 @@ type Driver struct {
 	nodeId   string
 	region   string
 
-	srv      *grpc.Server
-	doClient *godo.Client
-	mounter  Mounter
-	log      *logrus.Entry
+	srv     *grpc.Server
+	log     *logrus.Entry
+	mounter Mounter
+
+	storage        godo.StorageService
+	storageActions godo.StorageActionsService
+	droplets       godo.DropletsService
+	account        godo.AccountService
 
 	// ready defines whether the driver is ready to function. This value will
 	// be used by the `Identity` service via the `Probe()` method.
@@ -104,9 +108,13 @@ func NewDriver(ep, token, url string) (*Driver, error) {
 		endpoint: ep,
 		nodeId:   nodeId,
 		region:   region,
-		doClient: doClient,
 		mounter:  newMounter(log),
 		log:      log,
+
+		storage:        doClient.Storage,
+		storageActions: doClient.StorageActions,
+		droplets:       doClient.Droplets,
+		account:        doClient.Account,
 	}, nil
 }
 
