@@ -17,15 +17,13 @@ limitations under the License.
 package driver
 
 import (
-	"encoding/json"
+	"context"
+	"errors"
 	"io/ioutil"
 	"math/rand"
 	"net/http"
-	"net/http/httptest"
-	"net/url"
 	"os"
-	"path/filepath"
-	"strings"
+	"strconv"
 	"testing"
 	"time"
 
@@ -60,30 +58,32 @@ func TestDriverSuite(t *testing.T) {
 		t.Fatalf("failed to remove unix domain socket file %s, error: %s", socket, err)
 	}
 
-	// fake DO Server, not working yet ...
-	nodeId := "987654"
-	fake := &fakeAPI{
-		t:       t,
-		volumes: map[string]*godo.Volume{},
-		droplets: map[string]*godo.Droplet{
-			nodeId: &godo.Droplet{},
+	nodeID := 987654
+	volumes := make(map[string]*godo.Volume, 0)
+	droplets := map[int]*godo.Droplet{
+		nodeID: &godo.Droplet{
+			ID: nodeID,
 		},
 	}
 
-	ts := httptest.NewServer(fake)
-	defer ts.Close()
-
-	doClient := godo.NewClient(nil)
-	url, _ := url.Parse(ts.URL)
-	doClient.BaseURL = url
-
 	driver := &Driver{
 		endpoint: endpoint,
-		nodeId:   nodeId,
+		nodeId:   strconv.Itoa(nodeID),
 		region:   "nyc3",
-		doClient: doClient,
 		mounter:  &fakeMounter{},
 		log:      logrus.New().WithField("test_enabed", true),
+
+		storage: &fakeStorageDriver{
+			volumes: volumes,
+		},
+		storageActions: &fakeStorageActionsDriver{
+			volumes:  volumes,
+			droplets: droplets,
+		},
+		droplets: &fakeDropletsDriver{
+			droplets: droplets,
+		},
+		account: &fakeAccountDriver{},
 	}
 	defer driver.Stop()
 
@@ -110,139 +110,170 @@ func TestDriverSuite(t *testing.T) {
 	sanity.Test(t, cfg)
 }
 
-// fakeAPI implements a fake, cached DO API
-type fakeAPI struct {
-	t        *testing.T
+type fakeAccountDriver struct{}
+
+func (f *fakeAccountDriver) Get(context.Context) (*godo.Account, *godo.Response, error) {
+	return &godo.Account{}, godoResponse(), nil
+}
+
+type fakeStorageDriver struct {
+	volumes map[string]*godo.Volume
+}
+
+func (f *fakeStorageDriver) ListVolumes(ctx context.Context, param *godo.ListVolumeParams) ([]godo.Volume, *godo.Response, error) {
+	var volumes []godo.Volume
+
+	for _, vol := range f.volumes {
+		volumes = append(volumes, *vol)
+	}
+
+	if param.Name != "" {
+		var filtered []godo.Volume
+		for _, vol := range volumes {
+			if vol.Name == param.Name {
+				filtered = append(filtered, vol)
+			}
+		}
+
+		return filtered, godoResponse(), nil
+	}
+
+	return volumes, godoResponse(), nil
+}
+
+func (f *fakeStorageDriver) GetVolume(ctx context.Context, id string) (*godo.Volume, *godo.Response, error) {
+	resp := godoResponse()
+	vol, ok := f.volumes[id]
+	if !ok {
+		resp.Response = &http.Response{
+			StatusCode: http.StatusNotFound,
+		}
+		return nil, resp, errors.New("volume not found")
+	}
+
+	return vol, resp, nil
+}
+
+func (f *fakeStorageDriver) CreateVolume(ctx context.Context, req *godo.VolumeCreateRequest) (*godo.Volume, *godo.Response, error) {
+	id := randString(10)
+	vol := &godo.Volume{
+		ID:            id,
+		Region:        &godo.Region{Slug: req.Region},
+		Name:          req.Name,
+		Description:   req.Description,
+		SizeGigaBytes: req.SizeGigaBytes,
+	}
+
+	f.volumes[id] = vol
+
+	return vol, godoResponse(), nil
+}
+
+func (f *fakeStorageDriver) DeleteVolume(ctx context.Context, id string) (*godo.Response, error) {
+	delete(f.volumes, id)
+	return godoResponse(), nil
+}
+
+func (f *fakeStorageDriver) ListSnapshots(ctx context.Context, volumeID string, opts *godo.ListOptions) ([]godo.Snapshot, *godo.Response, error) {
+	panic("not implemented")
+}
+
+func (f *fakeStorageDriver) GetSnapshot(context.Context, string) (*godo.Snapshot, *godo.Response, error) {
+	panic("not implemented")
+}
+
+func (f *fakeStorageDriver) CreateSnapshot(context.Context, *godo.SnapshotCreateRequest) (*godo.Snapshot, *godo.Response, error) {
+	panic("not implemented")
+}
+
+func (f *fakeStorageDriver) DeleteSnapshot(context.Context, string) (*godo.Response, error) {
+	panic("not implemented")
+}
+
+type fakeStorageActionsDriver struct {
 	volumes  map[string]*godo.Volume
-	droplets map[string]*godo.Droplet
+	droplets map[int]*godo.Droplet
 }
 
-func (f *fakeAPI) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	// don't deal with droplets for now
-	if strings.HasPrefix(r.URL.Path, "/v2/droplets/") {
-		// for now we only do a GET, so we assume it's a GET and don't check
-		// for the method
-		resp := new(dropletRoot)
-		id := filepath.Base(r.URL.Path)
-		droplet, ok := f.droplets[id]
-		if !ok {
-			w.WriteHeader(http.StatusNotFound)
-		} else {
-			resp.Droplet = droplet
-		}
-
-		_ = json.NewEncoder(w).Encode(&resp)
-		return
-	}
-
-	// return empty response to account, assuming there is no volume limit
-	if strings.HasPrefix(r.URL.Path, "/v2/account") {
-		var resp = struct {
-			Account *godo.Account
-		}{
-			Account: &godo.Account{},
-		}
-
-		_ = json.NewEncoder(w).Encode(&resp)
-		return
-	}
-
-	// rest is /v2/volumes related
-	switch r.Method {
-	case "GET":
-		// A list call
-		if strings.HasPrefix(r.URL.String(), "/v2/volumes?") {
-			volumes := []godo.Volume{}
-			if name := r.URL.Query().Get("name"); name != "" {
-				for _, vol := range f.volumes {
-					if vol.Name == name {
-						volumes = append(volumes, *vol)
-					}
-				}
-			} else {
-				for _, vol := range f.volumes {
-					volumes = append(volumes, *vol)
-				}
-			}
-
-			resp := new(storageVolumesRoot)
-			resp.Volumes = volumes
-
-			err := json.NewEncoder(w).Encode(&resp)
-			if err != nil {
-				f.t.Fatal(err)
-			}
-			return
-
-		} else {
-			resp := new(storageVolumeRoot)
-			// single volume get
-			id := filepath.Base(r.URL.Path)
-			vol, ok := f.volumes[id]
-			if !ok {
-				w.WriteHeader(http.StatusNotFound)
-			} else {
-				resp.Volume = vol
-			}
-
-			_ = json.NewEncoder(w).Encode(&resp)
-			return
-		}
-
-		// response with zero items
-		var resp = struct {
-			Volume []*godo.Volume
-			Links  *godo.Links
-		}{}
-
-		err := json.NewEncoder(w).Encode(&resp)
-		if err != nil {
-			f.t.Fatal(err)
-		}
-	case "POST":
-		v := new(godo.VolumeCreateRequest)
-		err := json.NewDecoder(r.Body).Decode(v)
-		if err != nil {
-			f.t.Fatal(err)
-		}
-
-		id := randString(10)
-		vol := &godo.Volume{
-			ID: id,
-			Region: &godo.Region{
-				Slug: v.Region,
-			},
-			Description:   v.Description,
-			Name:          v.Name,
-			SizeGigaBytes: v.SizeGigaBytes,
-			CreatedAt:     time.Now().UTC(),
-		}
-
-		f.volumes[id] = vol
-
-		var resp = struct {
-			Volume *godo.Volume
-			Links  *godo.Links
-		}{
-			Volume: vol,
-		}
-		err = json.NewEncoder(w).Encode(&resp)
-		if err != nil {
-			f.t.Fatal(err)
-		}
-	case "DELETE":
-		id := filepath.Base(r.URL.Path)
-		delete(f.volumes, id)
-	}
+func (f *fakeStorageActionsDriver) Attach(ctx context.Context, volumeID string, dropletID int) (*godo.Action, *godo.Response, error) {
+	return nil, godoResponse(), nil
 }
 
-func randString(n int) string {
-	const letterBytes = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
-	b := make([]byte, n)
-	for i := range b {
-		b[i] = letterBytes[rand.Intn(len(letterBytes))]
+func (f *fakeStorageActionsDriver) DetachByDropletID(ctx context.Context, volumeID string, dropletID int) (*godo.Action, *godo.Response, error) {
+	return nil, godoResponse(), nil
+}
+
+func (f *fakeStorageActionsDriver) Get(ctx context.Context, volumeID string, actionID int) (*godo.Action, *godo.Response, error) {
+	return nil, godoResponse(), nil
+}
+
+func (f *fakeStorageActionsDriver) List(ctx context.Context, volumeID string, opt *godo.ListOptions) ([]godo.Action, *godo.Response, error) {
+	return nil, godoResponse(), nil
+}
+
+func (f *fakeStorageActionsDriver) Resize(ctx context.Context, volumeID string, sizeGigabytes int, regionSlug string) (*godo.Action, *godo.Response, error) {
+	return nil, godoResponse(), nil
+}
+
+type fakeDropletsDriver struct {
+	droplets map[int]*godo.Droplet
+}
+
+func (f *fakeDropletsDriver) List(context.Context, *godo.ListOptions) ([]godo.Droplet, *godo.Response, error) {
+	panic("not implemented")
+}
+
+func (f *fakeDropletsDriver) ListByTag(context.Context, string, *godo.ListOptions) ([]godo.Droplet, *godo.Response, error) {
+	panic("not implemented")
+}
+
+func (f *fakeDropletsDriver) Get(ctx context.Context, dropletID int) (*godo.Droplet, *godo.Response, error) {
+	resp := godoResponse()
+	droplet, ok := f.droplets[dropletID]
+	if !ok {
+		resp.Response = &http.Response{
+			StatusCode: http.StatusNotFound,
+		}
+		return nil, resp, errors.New("droplet not found")
 	}
-	return string(b)
+
+	return droplet, godoResponse(), nil
+}
+
+func (f *fakeDropletsDriver) Create(context.Context, *godo.DropletCreateRequest) (*godo.Droplet, *godo.Response, error) {
+	panic("not implemented")
+}
+
+func (f *fakeDropletsDriver) CreateMultiple(context.Context, *godo.DropletMultiCreateRequest) ([]godo.Droplet, *godo.Response, error) {
+	panic("not implemented")
+}
+
+func (f *fakeDropletsDriver) Delete(context.Context, int) (*godo.Response, error) {
+	panic("not implemented")
+}
+
+func (f *fakeDropletsDriver) DeleteByTag(context.Context, string) (*godo.Response, error) {
+	panic("not implemented")
+}
+
+func (f *fakeDropletsDriver) Kernels(context.Context, int, *godo.ListOptions) ([]godo.Kernel, *godo.Response, error) {
+	panic("not implemented")
+}
+
+func (f *fakeDropletsDriver) Snapshots(context.Context, int, *godo.ListOptions) ([]godo.Image, *godo.Response, error) {
+	panic("not implemented")
+}
+
+func (f *fakeDropletsDriver) Backups(context.Context, int, *godo.ListOptions) ([]godo.Image, *godo.Response, error) {
+	panic("not implemented")
+}
+
+func (f *fakeDropletsDriver) Actions(context.Context, int, *godo.ListOptions) ([]godo.Action, *godo.Response, error) {
+	panic("not implemented")
+}
+
+func (f *fakeDropletsDriver) Neighbors(context.Context, int) ([]godo.Droplet, *godo.Response, error) {
+	panic("not implemented")
 }
 
 type fakeMounter struct{}
@@ -264,4 +295,20 @@ func (f *fakeMounter) IsFormatted(source string) (bool, error) {
 }
 func (f *fakeMounter) IsMounted(target string) (bool, error) {
 	return true, nil
+}
+
+func godoResponse() *godo.Response {
+	return &godo.Response{
+		Response: &http.Response{StatusCode: 200},
+		Rate:     godo.Rate{Limit: 10, Remaining: 10},
+	}
+}
+
+func randString(n int) string {
+	const letterBytes = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
+	b := make([]byte, n)
+	for i := range b {
+		b[i] = letterBytes[rand.Intn(len(letterBytes))]
+	}
+	return string(b)
 }
