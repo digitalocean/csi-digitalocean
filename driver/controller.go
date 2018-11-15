@@ -597,7 +597,7 @@ func (d *Driver) CreateSnapshot(ctx context.Context, req *csi.CreateSnapshotRequ
 
 	for _, snap := range snapshots {
 		if snap.Name == req.GetName() && snap.ResourceID == req.GetSourceVolumeId() {
-			s, err := toCsiSnapshot(&snap)
+			s, err := toCSISnapshot(&snap)
 			if err != nil {
 				return nil, status.Errorf(codes.Internal,
 					"couldn't convert DO snapshot to CSI snapshot: %s", err.Error())
@@ -628,7 +628,7 @@ func (d *Driver) CreateSnapshot(ctx context.Context, req *csi.CreateSnapshotRequ
 		return nil, status.Error(codes.Internal, err.Error())
 	}
 
-	s, err := toCsiSnapshot(snap)
+	s, err := toCSISnapshot(snap)
 	if err != nil {
 		return nil, status.Errorf(codes.Internal,
 			"couldn't convert DO snapshot to CSI snapshot: %s", err.Error())
@@ -674,22 +674,22 @@ func (d *Driver) DeleteSnapshot(ctx context.Context, req *csi.DeleteSnapshotRequ
 // ListSnapshots shold not list a snapshot that is being created but has not
 // been cut successfully yet.
 func (d *Driver) ListSnapshots(ctx context.Context, req *csi.ListSnapshotsRequest) (*csi.ListSnapshotsResponse, error) {
-	// Pagination in the CSI world works different than at DO. CSI sens the
+	// Pagination in the CSI world works different than at DO. CSI sends the
 	// `req.MaxEntries` to indicate how much snapshots it wants. The
 	// req.StartingToken is returned by us, if we somehow need to indicate that
 	// we couldn't fetch and need to fetch again. But it's NOT the page number.
-	// Suppose CSI wants us to fetch 50 entries, we only fetch 30, we need to
-	// return NextToken as 31, to indicate that we want to continue returning
-	// from the index 31 up to 50.
+	// I.e: suppose CSI wants us to fetch 50 entries, we only fetch 30, we need to
+	// return NextToken as 31 (so req.StartingToken will be set to 31 when CSI
+	// calls us again), to indicate that we want to continue returning from the
+	// index 31 up to 50.
 
-	// Check if it's an integer
 	var nextToken int
 	var err error
 	if req.StartingToken != "" {
 		nextToken, err = strconv.Atoi(req.StartingToken)
 		if err != nil {
-			return nil, status.Errorf(codes.Aborted, "ListSnapshots starting token is not valid : %s",
-				err.Error())
+			return nil, status.Errorf(codes.Aborted, "ListSnapshots starting token %s is not valid : %s",
+				req.StartingToken, err.Error())
 		}
 	}
 
@@ -705,7 +705,9 @@ func (d *Driver) ListSnapshots(ctx context.Context, req *csi.ListSnapshotsReques
 	ll.Info("list snapshots is called")
 
 	// fetch all entries
-	listOpts := &godo.ListOptions{}
+	listOpts := &godo.ListOptions{
+		PerPage: int(req.MaxEntries),
+	}
 	var snapshots []godo.Snapshot
 	for {
 		snaps, resp, err := d.snapshots.ListVolume(ctx, listOpts)
@@ -725,6 +727,7 @@ func (d *Driver) ListSnapshots(ctx context.Context, req *csi.ListSnapshotsReques
 		}
 
 		listOpts.Page = page + 1
+		listOpts.PerPage = len(snaps)
 	}
 
 	if nextToken > len(snapshots) {
@@ -740,9 +743,9 @@ func (d *Driver) ListSnapshots(ctx context.Context, req *csi.ListSnapshotsReques
 		snapshots = snapshots[:req.MaxEntries]
 	}
 
-	var entries []*csi.ListSnapshotsResponse_Entry
+	entries := make([]*csi.ListSnapshotsResponse_Entry, 0, len(snapshots))
 	for _, snapshot := range snapshots {
-		snap, err := toCsiSnapshot(&snapshot)
+		snap, err := toCSISnapshot(&snapshot)
 		if err != nil {
 			return nil, status.Errorf(codes.Internal,
 				"couldn't convert DO snapshot to CSI snapshot: %s", err.Error())
@@ -863,12 +866,11 @@ func (d *Driver) checkLimit(ctx context.Context) error {
 	return nil
 }
 
-// toCsiSnapshot converts a DO Snapshot struct into a csi.Snapshot struct
-func toCsiSnapshot(snap *godo.Snapshot) (*csi.Snapshot, error) {
-	// snapshot already exists, return the information we have
+// toCSISnapshot converts a DO Snapshot struct into a csi.Snapshot struct
+func toCSISnapshot(snap *godo.Snapshot) (*csi.Snapshot, error) {
 	createdAt, err := time.Parse(time.RFC3339, snap.Created)
 	if err != nil {
-		return nil, status.Errorf(codes.Internal, "couldn't parse snapshot's created field: %s", err.Error())
+		return nil, fmt.Errorf("couldn't parse snapshot's created field: %s", err.Error())
 	}
 
 	return &csi.Snapshot{
