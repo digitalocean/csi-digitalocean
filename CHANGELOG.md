@@ -1,5 +1,7 @@
 ## unreleased
 
+* Add Snapshots functionality
+  [[GH-103]](https://github.com/digitalocean/csi-digitalocean/pull/103)
 * Fix inconsistent usage of the driver name
   [[GH-100]](https://github.com/digitalocean/csi-digitalocean/pull/100)
 * Use publish_info in ControllerPublishVolume for storing and accessing the

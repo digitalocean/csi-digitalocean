@@ -60,6 +60,7 @@ func TestDriverSuite(t *testing.T) {
 
 	nodeID := 987654
 	volumes := make(map[string]*godo.Volume, 0)
+	snapshots := make(map[string]*godo.Snapshot, 0)
 	droplets := map[int]*godo.Droplet{
 		nodeID: &godo.Droplet{
 			ID: nodeID,
@@ -74,7 +75,8 @@ func TestDriverSuite(t *testing.T) {
 		log:      logrus.New().WithField("test_enabed", true),
 
 		storage: &fakeStorageDriver{
-			volumes: volumes,
+			volumes:   volumes,
+			snapshots: snapshots,
 		},
 		storageActions: &fakeStorageActionsDriver{
 			volumes:  volumes,
@@ -82,6 +84,9 @@ func TestDriverSuite(t *testing.T) {
 		},
 		droplets: &fakeDropletsDriver{
 			droplets: droplets,
+		},
+		snapshots: &fakeSnapshotsDriver{
+			snapshots: snapshots,
 		},
 		account: &fakeAccountDriver{},
 	}
@@ -117,7 +122,8 @@ func (f *fakeAccountDriver) Get(context.Context) (*godo.Account, *godo.Response,
 }
 
 type fakeStorageDriver struct {
-	volumes map[string]*godo.Volume
+	volumes   map[string]*godo.Volume
+	snapshots map[string]*godo.Snapshot
 }
 
 func (f *fakeStorageDriver) ListVolumes(ctx context.Context, param *godo.ListVolumeParams) ([]godo.Volume, *godo.Response, error) {
@@ -175,19 +181,58 @@ func (f *fakeStorageDriver) DeleteVolume(ctx context.Context, id string) (*godo.
 }
 
 func (f *fakeStorageDriver) ListSnapshots(ctx context.Context, volumeID string, opts *godo.ListOptions) ([]godo.Snapshot, *godo.Response, error) {
-	panic("not implemented")
+	var snapshots []godo.Snapshot
+
+	for _, snap := range f.snapshots {
+		if snap.ResourceID == volumeID {
+			snapshots = append(snapshots, *snap)
+		}
+	}
+
+	return snapshots, godoResponse(), nil
 }
 
-func (f *fakeStorageDriver) GetSnapshot(context.Context, string) (*godo.Snapshot, *godo.Response, error) {
-	panic("not implemented")
+func (f *fakeStorageDriver) GetSnapshot(ctx context.Context, id string) (*godo.Snapshot, *godo.Response, error) {
+	resp := godoResponse()
+	snap, ok := f.snapshots[id]
+	if !ok {
+		resp.Response = &http.Response{
+			StatusCode: http.StatusNotFound,
+		}
+		return nil, resp, errors.New("volume not found")
+	}
+
+	return snap, resp, nil
 }
 
-func (f *fakeStorageDriver) CreateSnapshot(context.Context, *godo.SnapshotCreateRequest) (*godo.Snapshot, *godo.Response, error) {
-	panic("not implemented")
+func (f *fakeStorageDriver) CreateSnapshot(crx context.Context, req *godo.SnapshotCreateRequest) (*godo.Snapshot, *godo.Response, error) {
+
+	resp := godoResponse()
+	for _, s := range f.snapshots {
+		if s.Name == req.Name {
+			resp.Response = &http.Response{
+				StatusCode: http.StatusConflict,
+			}
+			return nil, resp, errors.New("snapshot with the same name exist")
+		}
+	}
+
+	id := randString(10)
+	snap := &godo.Snapshot{
+		ID:         id,
+		Name:       req.Name,
+		ResourceID: req.VolumeID,
+		Created:    time.Now().UTC().Format(time.RFC3339),
+	}
+
+	f.snapshots[id] = snap
+
+	return snap, resp, nil
 }
 
-func (f *fakeStorageDriver) DeleteSnapshot(context.Context, string) (*godo.Response, error) {
-	panic("not implemented")
+func (f *fakeStorageDriver) DeleteSnapshot(ctx context.Context, id string) (*godo.Response, error) {
+	delete(f.snapshots, id)
+	return godoResponse(), nil
 }
 
 type fakeStorageActionsDriver struct {
@@ -273,6 +318,35 @@ func (f *fakeDropletsDriver) Actions(context.Context, int, *godo.ListOptions) ([
 }
 
 func (f *fakeDropletsDriver) Neighbors(context.Context, int) ([]godo.Droplet, *godo.Response, error) {
+	panic("not implemented")
+}
+
+type fakeSnapshotsDriver struct {
+	snapshots map[string]*godo.Snapshot
+}
+
+func (f *fakeSnapshotsDriver) List(context.Context, *godo.ListOptions) ([]godo.Snapshot, *godo.Response, error) {
+	panic("not implemented")
+}
+
+func (f *fakeSnapshotsDriver) ListVolume(ctx context.Context, opts *godo.ListOptions) ([]godo.Snapshot, *godo.Response, error) {
+	var snapshots []godo.Snapshot
+	for _, snap := range f.snapshots {
+		snapshots = append(snapshots, *snap)
+	}
+
+	return snapshots, godoResponse(), nil
+}
+
+func (f *fakeSnapshotsDriver) ListDroplet(context.Context, *godo.ListOptions) ([]godo.Snapshot, *godo.Response, error) {
+	panic("not implemented")
+}
+
+func (f *fakeSnapshotsDriver) Get(context.Context, string) (*godo.Snapshot, *godo.Response, error) {
+	panic("not implemented")
+}
+
+func (f *fakeSnapshotsDriver) Delete(context.Context, string) (*godo.Response, error) {
 	panic("not implemented")
 }
 

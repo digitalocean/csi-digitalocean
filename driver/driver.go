@@ -65,6 +65,7 @@ type Driver struct {
 	storage        godo.StorageService
 	storageActions godo.StorageActionsService
 	droplets       godo.DropletsService
+	snapshots      godo.SnapshotsService
 	account        godo.AccountService
 
 	// ready defines whether the driver is ready to function. This value will
@@ -114,6 +115,7 @@ func NewDriver(ep, token, url string) (*Driver, error) {
 		storage:        doClient.Storage,
 		storageActions: doClient.StorageActions,
 		droplets:       doClient.Droplets,
+		snapshots:      doClient.Snapshots,
 		account:        doClient.Account,
 	}, nil
 }
