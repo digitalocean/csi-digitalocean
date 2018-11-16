@@ -24,8 +24,9 @@ import (
 	"strings"
 	"time"
 
-	csi "github.com/container-storage-interface/spec/lib/go/csi/v0"
+	"github.com/container-storage-interface/spec/lib/go/csi"
 	"github.com/digitalocean/godo"
+	"github.com/golang/protobuf/ptypes"
 	"github.com/sirupsen/logrus"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -135,7 +136,7 @@ func (d *Driver) CreateVolume(ctx context.Context, req *csi.CreateVolumeRequest)
 		ll.Info("volume already created")
 		return &csi.CreateVolumeResponse{
 			Volume: &csi.Volume{
-				Id:            vol.ID,
+				VolumeId:      vol.ID,
 				CapacityBytes: vol.SizeGigaBytes * GB,
 			},
 		}, nil
@@ -161,7 +162,7 @@ func (d *Driver) CreateVolume(ctx context.Context, req *csi.CreateVolumeRequest)
 
 	resp := &csi.CreateVolumeResponse{
 		Volume: &csi.Volume{
-			Id:            vol.ID,
+			VolumeId:      vol.ID,
 			CapacityBytes: size,
 			AccessibleTopology: []*csi.Topology{
 				{
@@ -267,7 +268,7 @@ func (d *Driver) ControllerPublishVolume(ctx context.Context, req *csi.Controlle
 		if id == dropletID {
 			ll.Info("volume is already attached")
 			return &csi.ControllerPublishVolumeResponse{
-				PublishInfo: map[string]string{
+				PublishContext: map[string]string{
 					PublishInfoVolumeName: vol.Name,
 				},
 			}, nil
@@ -291,7 +292,7 @@ func (d *Driver) ControllerPublishVolume(ctx context.Context, req *csi.Controlle
 					"resp":  resp,
 				}).Warn("assuming volume is attached already")
 				return &csi.ControllerPublishVolumeResponse{
-					PublishInfo: map[string]string{
+					PublishContext: map[string]string{
 						PublishInfoVolumeName: vol.Name,
 					},
 				}, nil
@@ -319,7 +320,7 @@ func (d *Driver) ControllerPublishVolume(ctx context.Context, req *csi.Controlle
 
 	ll.Info("volume is attached")
 	return &csi.ControllerPublishVolumeResponse{
-		PublishInfo: map[string]string{
+		PublishContext: map[string]string{
 			PublishInfoVolumeName: vol.Name,
 		},
 	}, nil
@@ -414,7 +415,6 @@ func (d *Driver) ValidateVolumeCapabilities(ctx context.Context, req *csi.Valida
 	ll := d.log.WithFields(logrus.Fields{
 		"volume_id":              req.VolumeId,
 		"volume_capabilities":    req.VolumeCapabilities,
-		"accessible_topology":    req.AccessibleTopology,
 		"supported_capabilities": supportedAccessMode,
 		"method":                 "validate_volume_capabilities",
 	})
@@ -429,29 +429,18 @@ func (d *Driver) ValidateVolumeCapabilities(ctx context.Context, req *csi.Valida
 		return nil, err
 	}
 
-	if req.AccessibleTopology != nil {
-		for _, t := range req.AccessibleTopology {
-			region, ok := t.Segments["region"]
-			if !ok {
-				continue // nothing to do
-			}
-
-			if region != d.region {
-				// return early if a different region is expected
-				ll.WithField("supported", false).Info("supported capabilities")
-				return &csi.ValidateVolumeCapabilitiesResponse{
-					Supported: false,
-				}, nil
-			}
-		}
-	}
-
 	// if it's not supported (i.e: wrong region), we shouldn't override it
 	resp := &csi.ValidateVolumeCapabilitiesResponse{
-		Supported: validateCapabilities(req.VolumeCapabilities),
+		Confirmed: &csi.ValidateVolumeCapabilitiesResponse_Confirmed{
+			VolumeCapabilities: []*csi.VolumeCapability{
+				{
+					AccessMode: supportedAccessMode,
+				},
+			},
+		},
 	}
 
-	ll.WithField("supported", resp.Supported).Info("supported capabilities")
+	ll.WithField("confirmed", resp.Confirmed).Info("supported capabilities")
 	return resp, nil
 }
 
@@ -515,7 +504,7 @@ func (d *Driver) ListVolumes(ctx context.Context, req *csi.ListVolumesRequest) (
 	for _, vol := range volumes {
 		entries = append(entries, &csi.ListVolumesResponse_Entry{
 			Volume: &csi.Volume{
-				Id:            vol.ID,
+				VolumeId:      vol.ID,
 				CapacityBytes: vol.SizeGigaBytes * GB,
 			},
 		})
@@ -931,14 +920,18 @@ func toCSISnapshot(snap *godo.Snapshot) (*csi.Snapshot, error) {
 		return nil, fmt.Errorf("couldn't parse snapshot's created field: %s", err.Error())
 	}
 
+	tstamp, err := ptypes.TimestampProto(createdAt)
+	if err != nil {
+		return nil, fmt.Errorf("couldn't convert protobuf timestamp to go time.Time: %s",
+			err.Error())
+	}
+
 	return &csi.Snapshot{
-		Id:             snap.ID,
+		SnapshotId:     snap.ID,
 		SourceVolumeId: snap.ResourceID,
 		SizeBytes:      int64(snap.SizeGigaBytes) * GB,
-		CreatedAt:      createdAt.UTC().UnixNano(),
-		Status: &csi.SnapshotStatus{
-			Type: csi.SnapshotStatus_READY,
-		},
+		CreationTime:   tstamp,
+		ReadyToUse:     true,
 	}, nil
 }
 

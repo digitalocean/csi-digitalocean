@@ -27,7 +27,7 @@ import (
 	"strconv"
 	"sync"
 
-	csi "github.com/container-storage-interface/spec/lib/go/csi/v0"
+	"github.com/container-storage-interface/spec/lib/go/csi"
 	metadata "github.com/digitalocean/go-metadata"
 	"github.com/digitalocean/godo"
 	"github.com/sirupsen/logrus"

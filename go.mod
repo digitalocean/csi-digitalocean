@@ -1,7 +1,7 @@
 module github.com/digitalocean/csi-digitalocean
 
 require (
-	github.com/container-storage-interface/spec v0.3.0
+	github.com/container-storage-interface/spec v1.0.0
 	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/digitalocean/go-metadata v0.0.0-20180111002115-15bd36e5f6f7
 	github.com/digitalocean/godo v1.4.2
@@ -9,7 +9,7 @@ require (
 	github.com/gogo/protobuf v1.1.1 // indirect
 	github.com/golang/glog v0.0.0-20160126235308-23def4e6c14b // indirect
 	github.com/golang/groupcache v0.0.0-20181024230925-c65c006176ff // indirect
-	github.com/golang/protobuf v1.1.0
+	github.com/golang/protobuf v1.2.0
 	github.com/google/btree v0.0.0-20180813153112-4030bb1f1f0c // indirect
 	github.com/google/go-querystring v0.0.0-20170111101155-53e6ce116135 // indirect
 	github.com/google/gofuzz v0.0.0-20170612174753-24818f796faf // indirect
@@ -18,7 +18,7 @@ require (
 	github.com/hashicorp/golang-lru v0.5.0 // indirect
 	github.com/imdario/mergo v0.3.6 // indirect
 	github.com/json-iterator/go v1.1.5 // indirect
-	github.com/kubernetes-csi/csi-test v0.3.0-4
+	github.com/kubernetes-csi/csi-test v1.0.0-1
 	github.com/kubernetes-csi/external-snapshotter v0.4.1
 	github.com/modern-go/concurrent v0.0.0-20180306012644-bacd9c7ef1dd // indirect
 	github.com/modern-go/reflect2 v0.0.0-20180701023420-4b7aa43c6742 // indirect
