@@ -86,7 +86,7 @@ func (d *Driver) CreateVolume(ctx context.Context, req *csi.CreateVolumeRequest)
 
 	size, err := extractStorage(req.CapacityRange)
 	if err != nil {
-		return nil, status.Errorf(codes.InvalidArgument, "invalid capacity range: %v", err)
+		return nil, status.Errorf(codes.OutOfRange, "invalid capacity range: %v", err)
 	}
 
 	if req.AccessibilityRequirements != nil {
@@ -628,39 +628,31 @@ func extractStorage(capRange *csi.CapacityRange) (int64, error) {
 	}
 
 	if requiredSet && limitSet && limitBytes < requiredBytes {
-		return 0, fmt.Errorf("limit bytes %v is less than required bytes %v", limitBytes, requiredBytes)
+		return 0, fmt.Errorf("limit (%v) can not be less than required (%v) size", formatBytes(limitBytes), formatBytes(requiredBytes))
 	}
 
 	if requiredSet && !limitSet && requiredBytes < minimumVolumeSizeInBytes {
-		return 0, fmt.Errorf("required bytes %v is less than minimum supported volume size: %v", requiredBytes, minimumVolumeSizeInBytes)
+		return 0, fmt.Errorf("required (%v) can not be less than minimum supported volume size (%v)", formatBytes(requiredBytes), formatBytes(minimumVolumeSizeInBytes))
 	}
 
 	if limitSet && limitBytes < minimumVolumeSizeInBytes {
-		return 0, fmt.Errorf("limit bytes %v is less than minimum supported volume size: %v", limitBytes, minimumVolumeSizeInBytes)
+		return 0, fmt.Errorf("limit (%v) can not be less than minimum supported volume size (%v)", formatBytes(limitBytes), formatBytes(minimumVolumeSizeInBytes))
 	}
 
 	if requiredSet && requiredBytes > maximumVolumeSizeInBytes {
-		return 0, fmt.Errorf("required bytes %v is more than maximum supported volume size: %v", requiredBytes, maximumVolumeSizeInBytes)
+		return 0, fmt.Errorf("required (%v) can not exceed maximum supported volume size (%v)", formatBytes(requiredBytes), formatBytes(maximumVolumeSizeInBytes))
 	}
 
 	if !requiredSet && limitSet && limitBytes > maximumVolumeSizeInBytes {
-		return 0, fmt.Errorf("limit bytes %v is more than maximum supported volume size: %v", limitBytes, maximumVolumeSizeInBytes)
+		return 0, fmt.Errorf("limit (%v) can not exceed maximum supported volume size (%v)", formatBytes(limitBytes), formatBytes(maximumVolumeSizeInBytes))
 	}
 
 	if requiredSet && limitSet && requiredBytes == limitBytes {
 		return requiredBytes, nil
 	}
 
-	if requiredSet && requiredBytes < minimumVolumeSizeInBytes {
-		return minimumVolumeSizeInBytes, nil
-	}
-
 	if requiredSet {
 		return requiredBytes, nil
-	}
-
-	if limitSet && limitBytes > maximumVolumeSizeInBytes {
-		return maximumVolumeSizeInBytes, nil
 	}
 
 	if limitSet {
@@ -668,6 +660,32 @@ func extractStorage(capRange *csi.CapacityRange) (int64, error) {
 	}
 
 	return defaultVolumeSizeInBytes, nil
+}
+
+func formatBytes(inputBytes int64) string {
+	output := float64(inputBytes)
+	unit := ""
+
+	switch {
+	case inputBytes >= TB:
+		output = output / TB
+		unit = "Ti"
+	case inputBytes >= GB:
+		output = output / GB
+		unit = "Gi"
+	case inputBytes >= MB:
+		output = output / MB
+		unit = "Mi"
+	case inputBytes >= KB:
+		output = output / KB
+		unit = "Ki"
+	case inputBytes == 0:
+		return "0"
+	}
+
+	result := strconv.FormatFloat(output, 'f', 1, 64)
+	result = strings.TrimSuffix(result, ".0")
+	return result + unit
 }
 
 // waitAction waits until the given action for the volume is completed
