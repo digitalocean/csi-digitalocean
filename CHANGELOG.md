@@ -8,6 +8,9 @@
   volume name on Node plugins. This allows us to do all Node related operations
   without relying on the DO API.
   [[GH-99]](https://github.com/digitalocean/csi-digitalocean/pull/99)
+* Improve creating volumes by validating the storage size requirements stricter
+  and returning more human friendly errors.
+  [[GH-101]](https://github.com/digitalocean/csi-digitalocean/pull/101)
 
 ## v0.3.1 - 2018.10.31
 
