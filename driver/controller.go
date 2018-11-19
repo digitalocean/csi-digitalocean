@@ -18,7 +18,6 @@ package driver
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"net/http"
 	"strconv"
@@ -45,9 +44,17 @@ const (
 	// `ControllerPublishVolume` to `NodeStageVolume or `NodePublishVolume`
 	PublishInfoVolumeName = DriverName + "/volume-name"
 
-	// defaultVolumeSizeInGB is used when the user didn't defined a correct
-	// storage size or if the size is not satisfised
-	defaultVolumeSizeInGB = 16 * GB
+	// minimumVolumeSizeInBytes is used to validate that the user is not trying
+	// to create a volume that is smaller than what we support
+	minimumVolumeSizeInBytes int64 = 1 * GB
+
+	// maximumVolumeSizeInBytes is used to validate that the user is not trying
+	// to create a volume that is larger than what we support
+	maximumVolumeSizeInBytes int64 = 16 * TB
+
+	// defaultVolumeSizeInBytes is used when the user did not provide a size or
+	// the size they provided did not satisfy our requirements
+	defaultVolumeSizeInBytes int64 = 16 * GB
 
 	// createdByDO is used to tag volumes that are created by this CSI plugin
 	createdByDO = "Created by DigitalOcean CSI driver"
@@ -73,6 +80,15 @@ func (d *Driver) CreateVolume(ctx context.Context, req *csi.CreateVolumeRequest)
 		return nil, status.Error(codes.InvalidArgument, "CreateVolume Volume capabilities must be provided")
 	}
 
+	if !validateCapabilities(req.VolumeCapabilities) {
+		return nil, status.Error(codes.InvalidArgument, "invalid volume capabilities requested. Only SINGLE_NODE_WRITER is supported ('accessModes.ReadWriteOnce' on Kubernetes)")
+	}
+
+	size, err := extractStorage(req.CapacityRange)
+	if err != nil {
+		return nil, status.Errorf(codes.OutOfRange, "invalid capacity range: %v", err)
+	}
+
 	if req.AccessibilityRequirements != nil {
 		for _, t := range req.AccessibilityRequirements.Requisite {
 			region, ok := t.Segments["region"]
@@ -82,14 +98,8 @@ func (d *Driver) CreateVolume(ctx context.Context, req *csi.CreateVolumeRequest)
 
 			if region != d.region {
 				return nil, status.Errorf(codes.ResourceExhausted, "volume can be only created in region: %q, got: %q", d.region, region)
-
 			}
 		}
-	}
-
-	size, err := extractStorage(req.CapacityRange)
-	if err != nil {
-		return nil, status.Error(codes.Internal, err.Error())
 	}
 
 	volumeName := req.Name
@@ -136,10 +146,6 @@ func (d *Driver) CreateVolume(ctx context.Context, req *csi.CreateVolumeRequest)
 		Name:          volumeName,
 		Description:   createdByDO,
 		SizeGigaBytes: size / GB,
-	}
-
-	if !validateCapabilities(req.VolumeCapabilities) {
-		return nil, status.Error(codes.AlreadyExists, "invalid volume capabilities requested. Only SINGLE_NODE_WRITER is supported ('accessModes.ReadWriteOnce' on Kubernetes)")
 	}
 
 	ll.Info("checking volume limit")
@@ -765,31 +771,83 @@ func (d *Driver) ListSnapshots(ctx context.Context, req *csi.ListSnapshotsReques
 	return listResp, nil
 }
 
-// extractStorage extracts the storage size in GB from the given capacity
+// extractStorage extracts the storage size in bytes from the given capacity
 // range. If the capacity range is not satisfied it returns the default volume
-// size.
+// size. If the capacity range is below or above supported sizes, it returns an
+// error.
 func extractStorage(capRange *csi.CapacityRange) (int64, error) {
 	if capRange == nil {
-		return defaultVolumeSizeInGB, nil
+		return defaultVolumeSizeInBytes, nil
 	}
 
-	if capRange.RequiredBytes == 0 && capRange.LimitBytes == 0 {
-		return defaultVolumeSizeInGB, nil
+	requiredBytes := capRange.GetRequiredBytes()
+	requiredSet := 0 < requiredBytes
+	limitBytes := capRange.GetLimitBytes()
+	limitSet := 0 < limitBytes
+
+	if !requiredSet && !limitSet {
+		return defaultVolumeSizeInBytes, nil
 	}
 
-	minSize := capRange.RequiredBytes
-
-	// limitBytes might be zero
-	maxSize := capRange.LimitBytes
-	if capRange.LimitBytes == 0 {
-		maxSize = minSize
+	if requiredSet && limitSet && limitBytes < requiredBytes {
+		return 0, fmt.Errorf("limit (%v) can not be less than required (%v) size", formatBytes(limitBytes), formatBytes(requiredBytes))
 	}
 
-	if minSize == maxSize {
-		return minSize, nil
+	if requiredSet && !limitSet && requiredBytes < minimumVolumeSizeInBytes {
+		return 0, fmt.Errorf("required (%v) can not be less than minimum supported volume size (%v)", formatBytes(requiredBytes), formatBytes(minimumVolumeSizeInBytes))
 	}
 
-	return 0, errors.New("requiredBytes and LimitBytes are not the same")
+	if limitSet && limitBytes < minimumVolumeSizeInBytes {
+		return 0, fmt.Errorf("limit (%v) can not be less than minimum supported volume size (%v)", formatBytes(limitBytes), formatBytes(minimumVolumeSizeInBytes))
+	}
+
+	if requiredSet && requiredBytes > maximumVolumeSizeInBytes {
+		return 0, fmt.Errorf("required (%v) can not exceed maximum supported volume size (%v)", formatBytes(requiredBytes), formatBytes(maximumVolumeSizeInBytes))
+	}
+
+	if !requiredSet && limitSet && limitBytes > maximumVolumeSizeInBytes {
+		return 0, fmt.Errorf("limit (%v) can not exceed maximum supported volume size (%v)", formatBytes(limitBytes), formatBytes(maximumVolumeSizeInBytes))
+	}
+
+	if requiredSet && limitSet && requiredBytes == limitBytes {
+		return requiredBytes, nil
+	}
+
+	if requiredSet {
+		return requiredBytes, nil
+	}
+
+	if limitSet {
+		return limitBytes, nil
+	}
+
+	return defaultVolumeSizeInBytes, nil
+}
+
+func formatBytes(inputBytes int64) string {
+	output := float64(inputBytes)
+	unit := ""
+
+	switch {
+	case inputBytes >= TB:
+		output = output / TB
+		unit = "Ti"
+	case inputBytes >= GB:
+		output = output / GB
+		unit = "Gi"
+	case inputBytes >= MB:
+		output = output / MB
+		unit = "Mi"
+	case inputBytes >= KB:
+		output = output / KB
+		unit = "Ki"
+	case inputBytes == 0:
+		return "0"
+	}
+
+	result := strconv.FormatFloat(output, 'f', 1, 64)
+	result = strings.TrimSuffix(result, ".0")
+	return result + unit
 }
 
 // waitAction waits until the given action for the volume is completed
