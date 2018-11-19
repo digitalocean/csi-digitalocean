@@ -1,7 +1,13 @@
 ## unreleased
 
-* Add Snapshots functionality
+* Add CSI Snapshots functionality
   [[GH-103]](https://github.com/digitalocean/csi-digitalocean/pull/103)
+* Add csi-snapshotter sidecars and associated RBAC rules
+  [[GH-104]](https://github.com/digitalocean/csi-digitalocean/pull/104)
+* Revisit existing RBAC rules for the attacher, provisioner and
+  driver-registrar. We no longer use the system cluster-role bindings as those
+  will be deleted in v1.13
+  [[GH-104]](https://github.com/digitalocean/csi-digitalocean/pull/104)
 * Fix inconsistent usage of the driver name
   [[GH-100]](https://github.com/digitalocean/csi-digitalocean/pull/100)
 * Use publish_info in ControllerPublishVolume for storing and accessing the

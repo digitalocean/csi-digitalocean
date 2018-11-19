@@ -47,7 +47,7 @@ test:
 test-integration:
 
 	@echo "==> Started integration tests"
-	@env GOCACHE=off go test -v -tags integration ./test/...
+	@env go test -v -tags integration ./test/...
 
 
 .PHONY: build

@@ -118,6 +118,20 @@ provisioner: dobs.csi.digitalocean.com
 
 ---
 
+# NOTE(arslan): this will probably fail , because the CRD is created via the
+# csi-snapshotter sidecar, that is part of the csi-do-controller statefulset.
+# We need to create this seperately.
+kind: VolumeSnapshotClass
+apiVersion: snapshot.storage.k8s.io/v1alpha1
+metadata:
+  name: do-block-storage
+  namespace: kube-system
+  annotations:
+    snapshot.storage.kubernetes.io/is-default-class: "true"
+snapshotter: dobs.csi.digitalocean.com
+
+---
+
 ##############################################
 ###########                       ############
 ###########   Controller plugin   ############
@@ -165,6 +179,18 @@ spec:
           volumeMounts:
             - name: socket-dir
               mountPath: /var/lib/csi/sockets/pluginproxy/
+        - name: csi-snapshotter
+          image: quay.io/k8scsi/csi-snapshotter:v0.4.1
+          args:
+            - "--connection-timeout=15s"
+            - "--csi-address=$(ADDRESS)"
+          env:
+            - name: ADDRESS
+              value: /var/lib/csi/sockets/pluginproxy/csi.sock
+          imagePullPolicy: Always
+          volumeMounts:
+            - name: socket-dir
+              mountPath: /var/lib/csi/sockets/pluginproxy/
         - name: csi-do-plugin
           image: digitalocean/do-csi-plugin:dev
           args :
@@ -190,45 +216,139 @@ spec:
           emptyDir: {}
 ---
 
-apiVersion: v1
 kind: ServiceAccount
+apiVersion: v1
 metadata:
   name: csi-do-controller-sa
   namespace: kube-system
 
 ---
-
-kind: ClusterRoleBinding
+kind: ClusterRole
 apiVersion: rbac.authorization.k8s.io/v1
 metadata:
-  name: csi-do-controller-provisioner-binding
-  namespace: kube-system
-subjects:
-  - kind: ServiceAccount
-    name: csi-do-controller-sa
-    namespace: kube-system
-roleRef:
-  kind: ClusterRole
-  name: system:csi-external-provisioner
-  apiGroup: rbac.authorization.k8s.io
+  name: csi-do-provisioner-role
+rules:
+  - apiGroups: [""]
+    resources: ["secrets"]
+    verbs: ["get", "list"]
+  - apiGroups: [""]
+    resources: ["persistentvolumes"]
+    verbs: ["get", "list", "watch", "create", "delete"]
+  - apiGroups: [""]
+    resources: ["persistentvolumeclaims"]
+    verbs: ["get", "list", "watch", "update"]
+  - apiGroups: ["storage.k8s.io"]
+    resources: ["storageclasses"]
+    verbs: ["get", "list", "watch"]
+  - apiGroups: [""]
+    resources: ["events"]
+    verbs: ["list", "watch", "create", "update", "patch"]
+  - apiGroups: ["snapshot.storage.k8s.io"]
+    resources: ["volumesnapshots"]
+    verbs: ["get", "list"]
+  - apiGroups: ["snapshot.storage.k8s.io"]
+    resources: ["volumesnapshotcontents"]
+    verbs: ["get", "list"]
 
 ---
 
 kind: ClusterRoleBinding
 apiVersion: rbac.authorization.k8s.io/v1
 metadata:
-  name: csi-do-controller-attacher-binding
-  namespace: kube-system
+  name: csi-do-provisioner-binding
 subjects:
   - kind: ServiceAccount
     name: csi-do-controller-sa
     namespace: kube-system
 roleRef:
   kind: ClusterRole
-  name: system:csi-external-attacher
+  name: csi-do-provisioner-role
   apiGroup: rbac.authorization.k8s.io
 
 ---
+# Attacher must be able to work with PVs, nodes and VolumeAttachments
+kind: ClusterRole
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  name: csi-do-attacher-role
+rules:
+  - apiGroups: [""]
+    resources: ["persistentvolumes"]
+    verbs: ["get", "list", "watch", "update"]
+  - apiGroups: [""]
+    resources: ["nodes"]
+    verbs: ["get", "list", "watch"]
+  - apiGroups: ["csi.storage.k8s.io"]
+    resources: ["csinodeinfos"]
+    verbs: ["get", "list", "watch"]
+  - apiGroups: ["storage.k8s.io"]
+    resources: ["volumeattachments"]
+    verbs: ["get", "list", "watch", "update"]
+
+---
+kind: ClusterRoleBinding
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  name: csi-do-attacher-binding
+subjects:
+  - kind: ServiceAccount
+    name: csi-do-controller-sa
+    namespace: kube-system
+roleRef:
+  kind: ClusterRole
+  name: csi-do-attacher-role
+  apiGroup: rbac.authorization.k8s.io
+
+---
+
+kind: ClusterRole
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  name: csi-do-snapshotter-role
+rules:
+  - apiGroups: [""]
+    resources: ["persistentvolumes"]
+    verbs: ["get", "list", "watch"]
+  - apiGroups: [""]
+    resources: ["persistentvolumeclaims"]
+    verbs: ["get", "list", "watch"]
+  - apiGroups: ["storage.k8s.io"]
+    resources: ["storageclasses"]
+    verbs: ["get", "list", "watch"]
+  - apiGroups: [""]
+    resources: ["events"]
+    verbs: ["list", "watch", "create", "update", "patch"]
+  - apiGroups: [""]
+    resources: ["secrets"]
+    verbs: ["get", "list"]
+  - apiGroups: ["snapshot.storage.k8s.io"]
+    resources: ["volumesnapshotclasses"]
+    verbs: ["get", "list", "watch"]
+  - apiGroups: ["snapshot.storage.k8s.io"]
+    resources: ["volumesnapshotcontents"]
+    verbs: ["create", "get", "list", "watch", "update", "delete"]
+  - apiGroups: ["snapshot.storage.k8s.io"]
+    resources: ["volumesnapshots"]
+    verbs: ["get", "list", "watch", "update"]
+  - apiGroups: ["apiextensions.k8s.io"]
+    resources: ["customresourcedefinitions"]
+    verbs: ["create", "list", "watch", "delete"]
+
+---
+kind: ClusterRoleBinding
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  name: csi-do-snapshotter-binding
+subjects:
+  - kind: ServiceAccount
+    name: csi-do-controller-sa
+    namespace: kube-system
+roleRef:
+  kind: ClusterRole
+  name: csi-do-snapshotter-role
+  apiGroup: rbac.authorization.k8s.io
+
+
 
 
 ########################################
@@ -336,11 +456,22 @@ metadata:
 
 ---
 
+kind: ClusterRole
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  name: csi-do-driver-registrar-role
+  namespace: kube-system
+rules:
+  - apiGroups: [""]
+    resources: ["events"]
+    verbs: ["get", "list", "watch", "create", "update", "patch"]
+
+---
+
 kind: ClusterRoleBinding
 apiVersion: rbac.authorization.k8s.io/v1
 metadata:
   name: csi-do-driver-registrar-binding
-  namespace: kube-system
 subjects:
   - kind: ServiceAccount
     name: csi-do-node-sa
@@ -349,20 +480,4 @@ roleRef:
   kind: ClusterRole
   name: csi-do-driver-registrar-role
   apiGroup: rbac.authorization.k8s.io          
-
-
----
-
-kind: ClusterRole
-apiVersion: rbac.authorization.k8s.io/v1
-metadata:
-  name: csi-do-driver-registrar-role
-  namespace: kube-system
-rules:
-  - apiGroups: [""]
-    resources: ["nodes"]
-    verbs: ["get", "list", "update"]
-  - apiGroups: [""]
-    resources: ["events"]
-    verbs: ["list", "watch", "create", "update", "patch"]
 
