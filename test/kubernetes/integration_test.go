@@ -9,6 +9,9 @@ import (
 	"testing"
 	"time"
 
+	"github.com/kubernetes-csi/external-snapshotter/pkg/apis/volumesnapshot/v1alpha1"
+	snapclientset "github.com/kubernetes-csi/external-snapshotter/pkg/client/clientset/versioned"
+
 	appsv1 "k8s.io/api/apps/v1"
 	"k8s.io/api/core/v1"
 	kubeerrors "k8s.io/apimachinery/pkg/api/errors"
@@ -28,7 +31,8 @@ const (
 )
 
 var (
-	client kubernetes.Interface
+	client     kubernetes.Interface
+	snapClient snapclientset.Interface
 )
 
 func TestMain(m *testing.M) {
@@ -345,6 +349,176 @@ func TestPod_Multi_Volume(t *testing.T) {
 	t.Log("Finished!")
 }
 
+func TestSnapshot_Create(t *testing.T) {
+	volumeName := "my-do-volume"
+	pvcName := "csi-do-test-pvc"
+
+	pod := &v1.Pod{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: "my-csi-app-2",
+		},
+		Spec: v1.PodSpec{
+			Containers: []v1.Container{
+				{
+					Name:  "my-csi-app",
+					Image: "busybox",
+					VolumeMounts: []v1.VolumeMount{
+						{
+							MountPath: "/data",
+							Name:      volumeName,
+						},
+					},
+					Command: []string{
+						"sleep",
+						"1000000",
+					},
+				},
+			},
+			Volumes: []v1.Volume{
+				{
+					Name: volumeName,
+					VolumeSource: v1.VolumeSource{
+						PersistentVolumeClaim: &v1.PersistentVolumeClaimVolumeSource{
+							ClaimName: pvcName,
+						},
+					},
+				},
+			},
+		},
+	}
+
+	t.Log("Creating pod")
+	_, err := client.CoreV1().Pods(namespace).Create(pod)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	pvc := &v1.PersistentVolumeClaim{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: pvcName,
+		},
+		Spec: v1.PersistentVolumeClaimSpec{
+			AccessModes: []v1.PersistentVolumeAccessMode{
+				v1.ReadWriteOnce,
+			},
+			Resources: v1.ResourceRequirements{
+				Requests: v1.ResourceList{
+					v1.ResourceStorage: resource.MustParse("5Gi"),
+				},
+			},
+			StorageClassName: strPtr("do-block-storage"),
+		},
+	}
+
+	t.Log("Creating pvc")
+	_, err = client.CoreV1().PersistentVolumeClaims(namespace).Create(pvc)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	t.Logf("Waiting for pod %q to be running ...\n", pod.Name)
+	if err := waitForPod(client, pod.Name); err != nil {
+		t.Error(err)
+	}
+
+	snapshotName := "csi-do-test-snapshot"
+	snapshot := &v1alpha1.VolumeSnapshot{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: snapshotName,
+		},
+		Spec: v1alpha1.VolumeSnapshotSpec{
+			Source: &v1alpha1.TypedLocalObjectReference{
+				Name: pvcName,
+				Kind: "PersistentVolumeClaim",
+			},
+		},
+	}
+
+	t.Log("Creating snapshots")
+	_, err = snapClient.VolumesnapshotV1alpha1().VolumeSnapshots(namespace).Create(snapshot)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	restorePVCName := "csi-do-test-pvc-restore"
+	apiGroup := "snapshot.storage.k8s.io"
+
+	restorePVC := &v1.PersistentVolumeClaim{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: restorePVCName,
+		},
+		Spec: v1.PersistentVolumeClaimSpec{
+			AccessModes: []v1.PersistentVolumeAccessMode{
+				v1.ReadWriteOnce,
+			},
+			Resources: v1.ResourceRequirements{
+				Requests: v1.ResourceList{
+					v1.ResourceStorage: resource.MustParse("5Gi"),
+				},
+			},
+			StorageClassName: strPtr("do-block-storage"),
+			DataSource: &v1.TypedLocalObjectReference{
+				APIGroup: &apiGroup,
+				Kind:     "VolumeSnapshot",
+				Name:     snapshotName,
+			},
+		},
+	}
+
+	t.Log("Restoring from snapshot using a new PVC")
+	_, err = client.CoreV1().PersistentVolumeClaims(namespace).Create(restorePVC)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	restoredPod := &v1.Pod{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: "my-csi-app-2-restored",
+		},
+		Spec: v1.PodSpec{
+			Containers: []v1.Container{
+				{
+					Name:  "my-csi-app",
+					Image: "busybox",
+					VolumeMounts: []v1.VolumeMount{
+						{
+							MountPath: "/data",
+							Name:      volumeName,
+						},
+					},
+					Command: []string{
+						"sleep",
+						"1000000",
+					},
+				},
+			},
+			Volumes: []v1.Volume{
+				{
+					Name: volumeName,
+					VolumeSource: v1.VolumeSource{
+						PersistentVolumeClaim: &v1.PersistentVolumeClaimVolumeSource{
+							ClaimName: restorePVCName,
+						},
+					},
+				},
+			},
+		},
+	}
+
+	t.Log("Creating a new pod with the resotored snapshot")
+	_, err = client.CoreV1().Pods(namespace).Create(restoredPod)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	t.Logf("Waiting pod %q to be running ...\n", restoredPod.Name)
+	if err := waitForPod(client, restoredPod.Name); err != nil {
+		t.Error(err)
+	}
+
+	t.Log("Finished!")
+}
+
 func setup() error {
 	// if you want to change the loading rules (which files in which order),
 	// you can do so here
@@ -372,6 +546,11 @@ func setup() error {
 			Name: namespace,
 		},
 	})
+
+	snapClient, err = snapclientset.NewForConfig(config)
+	if err != nil {
+		return err
+	}
 
 	if err != nil {
 		return err

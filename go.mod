@@ -19,6 +19,7 @@ require (
 	github.com/imdario/mergo v0.3.6 // indirect
 	github.com/json-iterator/go v1.1.5 // indirect
 	github.com/kubernetes-csi/csi-test v0.3.0-2
+	github.com/kubernetes-csi/external-snapshotter v0.4.1
 	github.com/modern-go/concurrent v0.0.0-20180306012644-bacd9c7ef1dd // indirect
 	github.com/modern-go/reflect2 v0.0.0-20180701023420-4b7aa43c6742 // indirect
 	github.com/onsi/ginkgo v1.4.0 // indirect
@@ -43,7 +44,9 @@ require (
 	gopkg.in/gemnasium/logrus-airbrake-hook.v2 v2.1.2 // indirect
 	gopkg.in/inf.v0 v0.9.1 // indirect
 	gopkg.in/yaml.v2 v2.2.1 // indirect
-	k8s.io/api v0.0.0-20180628040859-072894a440bd
-	k8s.io/apimachinery v0.0.0-20180621070125-103fd098999d
-	k8s.io/client-go v8.0.0+incompatible
+	k8s.io/api v0.0.0-20181117111259-46ad728b8d13
+	k8s.io/apimachinery v0.0.0-20181116115711-1b0702fe2927
+	k8s.io/client-go v9.0.0+incompatible
+	k8s.io/klog v0.1.0 // indirect
+	sigs.k8s.io/yaml v1.1.0 // indirect
 )
