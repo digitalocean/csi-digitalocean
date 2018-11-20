@@ -416,7 +416,7 @@ func TestSnapshot_Create(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	t.Logf("Waiting pod %q to be running ...\n", pod.Name)
+	t.Logf("Waiting for pod %q to be running ...\n", pod.Name)
 	if err := waitForPod(client, pod.Name); err != nil {
 		t.Error(err)
 	}
