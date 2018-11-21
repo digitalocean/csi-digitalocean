@@ -4,6 +4,8 @@
   [[GH-103]](https://github.com/digitalocean/csi-digitalocean/pull/103)
 * Add csi-snapshotter sidecars and associated RBAC rules
   [[GH-104]](https://github.com/digitalocean/csi-digitalocean/pull/104)
+* Add VolumeSnapshot CRD's to simplify the driver installation
+  [[GH-108]](https://github.com/digitalocean/csi-digitalocean/pull/108)
 * Revisit existing RBAC rules for the attacher, provisioner and
   driver-registrar. We no longer use the system cluster-role bindings as those
   will be deleted in v1.13
@@ -17,6 +19,7 @@
 * Improve creating volumes by validating the storage size requirements stricter
   and returning more human friendly errors.
   [[GH-101]](https://github.com/digitalocean/csi-digitalocean/pull/101)
+
 
 ## v0.3.1 - 2018.10.31
 
