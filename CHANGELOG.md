@@ -1,5 +1,7 @@
 ## unreleased
 
+## v0.4.0 - 2018.11.26
+
 * Add CSI Snapshots functionality
   [[GH-103]](https://github.com/digitalocean/csi-digitalocean/pull/103)
 * Add csi-snapshotter sidecars and associated RBAC rules

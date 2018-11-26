@@ -8,7 +8,7 @@ Cloud Foundry. Feel free to test it on other CO's and give us a feedback.
 ## Releases
 
 The DigitalOcean CSI plugin follows [semantic versioning](https://semver.org/).
-The current version is: **`v0.3.1`**. This means that the project is still
+The current version is: **`v0.4.0`**. This means that the project is still
 under active development and may not be production ready. The plugin will be
 bumped to **`v1.0.0`** once the [DigitalOcean Kubernetes
 product](https://www.digitalocean.com/products/kubernetes/) is released and
@@ -21,35 +21,23 @@ will continue following the rules below:
 
 ## Installing to Kubernetes
 
+### Kubernetes Compatibility
+
+| DigitalOcean CSI Driver\Kubernetes Version | 1.10.5 - 1.11 | 1.12+ | 1.13+ | 
+|--------------------------------------|---------------|------|-------|
+| v0.1.0 - v0.2.x                      | yes           | no   | no    |
+| v0.3.0 - v0.4.x                      | no            | yes  | no    |
+| dev                                  | no            | no   | no    |
+
+
 Note: The [`DigitalOcean Kubernetes`](https://www.digitalocean.com/products/kubernetes/) products comes
 with the CSI driver pre-installed and no further steps are required.
 
 **Requirements:**
 
-* Kubernetes v1.12.0 minimum 
 * `--allow-privileged` flag must be set to true for both the API server and the kubelet
 * `--feature-gates=VolumeSnapshotDataSource=true,KubeletPluginsWatcher=true,CSINodeInfo=true,CSIDriverRegistry=true` feature gate flags must be set to true for both the API server and the kubelet
 * Mount Propagation needs to be enabled. If you use Docker, the Docker daemon of the cluster nodes must allow shared mounts.
-
-
-### [Rancher](https://rancher.com/) users:
-
-`Mount Propagation` is [disabled by
-default](https://github.com/rancher/rke/issues/765) on latest `v2.0.6` version
-of Rancher, which prevents the `csi-digitalocean` to function correctly. To fix
-the issue temporary, make sure to add the following settings to your cluster
-configuration YAML file:
-
-```
-services:
-  kube-api:
-    extra_args:
-      feature-gates: MountPropagation=true
-
-  kubelet:
-    extra_args:
-      feature-gates: MountPropagation=true
-```
 
 
 #### 1. Create a secret with your DigitalOcean API Access Token:
@@ -87,22 +75,17 @@ digitalocean          Opaque                                1         18h
 
 Before you continue, be sure to checkout to a [tagged
 release](https://github.com/digitalocean/csi-digitalocean/releases). Always use the [latest stable version](https://github.com/digitalocean/csi-digitalocean/releases/latest) 
-For example, to use the latest stable version (`v0.3.1`) you can execute the following command:
+For example, to use the latest stable version (`v0.4.0`) you can execute the following command:
 
 ```
-$ kubectl apply -f https://raw.githubusercontent.com/digitalocean/csi-digitalocean/master/deploy/kubernetes/releases/csi-digitalocean-v0.3.1.yaml
+$ kubectl apply -f https://raw.githubusercontent.com/digitalocean/csi-digitalocean/master/deploy/kubernetes/releases/csi-digitalocean-v0.4.0.yaml
 ```
 
-This file will be always updated to point to the latest stable release.
+This file will be always updated to point to the latest stable release. If you
+see any issues during the installation, this could be because the newly created
+CRD's haven't been established yet. If you call `kubectl apply -f` again on the
+same file, the missing resources will be applied again
 
-A new storage class will be created with the name `do-block-storage` which is
-responsible for dynamic provisioning. This is set to **"default"** for dynamic
-provisioning. If you're using multiple storage classes you might want to remove
-the annotation from the `csi-storageclass.yaml` and re-deploy it. This is
-based on the [recommended mechanism](https://github.com/kubernetes/community/blob/master/contributors/design-proposals/storage/container-storage-interface.md#recommended-mechanism-for-deploying-csi-drivers-on-kubernetes) of deploying CSI drivers on Kubernetes
-
-*Note that the deployment proposal to Kubernetes is still a work in progress and not all of the written
-features are implemented. When in doubt, open an issue or ask #sig-storage in [Kubernetes Slack](http://slack.k8s.io)*
 
 #### 3. Test and verify:
 
@@ -224,15 +207,15 @@ $ git push origin
 
 After it's merged to master, [create a new Github
 release](https://github.com/digitalocean/csi-digitalocean/releases/new) from
-master with the version `v0.3.1` and then publish a new docker build:
+master with the version `v0.4.0` and then publish a new docker build:
 
 ```
 $ git checkout master
 $ make publish
 ```
 
-This will create a binary with version `v0.3.1` and docker image pushed to
-`digitalocean/do-csi-plugin:v0.3.1`
+This will create a binary with version `v0.4.0` and docker image pushed to
+`digitalocean/do-csi-plugin:v0.4.0`
 
 ## Contributing
 
