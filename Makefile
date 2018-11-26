@@ -10,7 +10,7 @@ BRANCH ?= $(shell git rev-parse --abbrev-ref HEAD)
 LDFLAGS ?= -X github.com/digitalocean/csi-digitalocean/driver.version=${VERSION} -X github.com/digitalocean/csi-digitalocean/driver.commit=${COMMIT} -X github.com/digitalocean/csi-digitalocean/driver.gitTreeState=${GIT_TREE_STATE}
 PKG ?= github.com/digitalocean/csi-digitalocean/cmd/do-csi-plugin
 
-## Bump the version in the version file. Set BUMP to [ patch | major | minor ]
+## Bump the version in the version file. Set BUMP to [ major | minor | patch ]
 BUMP := patch
 VERSION ?= $(shell cat VERSION)
 
