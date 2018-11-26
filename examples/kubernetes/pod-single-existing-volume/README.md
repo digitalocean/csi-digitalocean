@@ -19,7 +19,7 @@ error if the volume is attached to a wrong droplet.
 To use an existing volume, we have to create manually a `PersistentVolume` (PV)
 resource. Here is an example `PersistenVolume` resource for an existing volume:
 
-```
+```yaml
 kind: PersistentVolume
 apiVersion: v1
 metadata:
@@ -70,7 +70,7 @@ The status is `Available`. This means it has not yet been bound to a
 PersistentVolumeClaim. Now we can proceed to create our PVC:
 
 
-```
+```yaml
 apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
@@ -108,7 +108,7 @@ As you see, the output shows that the PVC is bound to our PersistentVolume, `vol
 
 Finally, define your pod that refers to this PVC:
 
-```
+```yaml
 kind: Pod
 apiVersion: v1
 metadata:
