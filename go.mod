@@ -18,7 +18,7 @@ require (
 	github.com/hashicorp/golang-lru v0.5.0 // indirect
 	github.com/imdario/mergo v0.3.6 // indirect
 	github.com/json-iterator/go v1.1.5 // indirect
-	github.com/kubernetes-csi/csi-test v0.3.0-2
+	github.com/kubernetes-csi/csi-test v0.3.0-4
 	github.com/kubernetes-csi/external-snapshotter v0.4.1
 	github.com/modern-go/concurrent v0.0.0-20180306012644-bacd9c7ef1dd // indirect
 	github.com/modern-go/reflect2 v0.0.0-20180701023420-4b7aa43c6742 // indirect
@@ -48,5 +48,6 @@ require (
 	k8s.io/apimachinery v0.0.0-20181116115711-1b0702fe2927
 	k8s.io/client-go v9.0.0+incompatible
 	k8s.io/klog v0.1.0 // indirect
+	launchpad.net/gocheck v0.0.0-20140225173054-000000000087 // indirect
 	sigs.k8s.io/yaml v1.1.0 // indirect
 )
