@@ -138,6 +138,7 @@ spec:
         app: csi-do-controller
         role: csi-do
     spec:
+      priortyClassName: system-cluster-critical
       serviceAccount: csi-do-controller-sa
       containers:
         - name: csi-provisioner
@@ -252,6 +253,7 @@ spec:
         app: csi-do-node
         role: csi-do
     spec:
+      priorityClassName: system-node-critical
       serviceAccount: csi-do-node-sa
       hostNetwork: true
       containers:
