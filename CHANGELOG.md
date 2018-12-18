@@ -1,5 +1,9 @@
 ## unreleased
 
+* Add priorityClassName to controller and node plugin to prevent the CSI
+  components from being evicted in favor of user workloads
+  [[GH-115]](https://github.com/digitalocean/csi-digitalocean/pull/115)
+
 ## v0.4.0 - 2018.11.26
 
 * Add CSI Snapshots functionality
