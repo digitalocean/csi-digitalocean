@@ -66,53 +66,6 @@ status:
 
 ---
 
-apiVersion: apiextensions.k8s.io/v1beta1
-kind: CustomResourceDefinition
-metadata:
-  creationTimestamp: null
-  name: csidrivers.csi.storage.k8s.io
-spec:
-  group: csi.storage.k8s.io
-  names:
-    kind: CSIDriver
-    plural: csidrivers
-  scope: Cluster
-  validation:
-    openAPIV3Schema:
-      properties:
-        spec:
-          description: Specification of the CSI Driver.
-          properties:
-            attachRequired:
-              description: Indicates this CSI volume driver requires an attach operation,
-                and that Kubernetes should call attach and wait for any attach operation
-                to complete before proceeding to mount.
-              type: boolean
-            podInfoOnMountVersion:
-              description: Indicates this CSI volume driver requires additional pod
-                information (like podName, podUID, etc.) during mount operations.
-              type: string
-  version: v1alpha1
-status:
-  acceptedNames:
-    kind: ""
-    plural: ""
-  conditions: []
-  storedVersions: []
-
----
-
-# CSIDriverRegistry feature gate needs to be enabled
-apiVersion: csi.storage.k8s.io/v1alpha1
-kind: CSIDriver
-metadata:
-  name: dobs.csi.digitalocean.com
-spec:
-  attachRequired: true
-  podInfoOnMountVersion: "v1"
-
----
-
 ##############################################
 ###########                       ############
 ###########     Snapshot CRDs     ############
@@ -190,7 +143,6 @@ provisioner: dobs.csi.digitalocean.com
 
 ---
 
-
 ##############################################
 ###########                       ############
 ###########   Controller plugin   ############
@@ -215,7 +167,7 @@ spec:
       serviceAccount: csi-do-controller-sa
       containers:
         - name: csi-provisioner
-          image: quay.io/k8scsi/csi-provisioner:v0.4.1
+          image: quay.io/k8scsi/csi-provisioner:v1.0.1
           args:
             - "--provisioner=dobs.csi.digitalocean.com"
             - "--csi-address=$(ADDRESS)"
@@ -228,7 +180,7 @@ spec:
             - name: socket-dir
               mountPath: /var/lib/csi/sockets/pluginproxy/
         - name: csi-attacher
-          image: quay.io/k8scsi/csi-attacher:v0.4.1
+          image: quay.io/k8scsi/csi-attacher:v1.0.1
           args:
             - "--v=5"
             - "--csi-address=$(ADDRESS)"
@@ -240,7 +192,7 @@ spec:
             - name: socket-dir
               mountPath: /var/lib/csi/sockets/pluginproxy/
         - name: csi-snapshotter
-          image: quay.io/k8scsi/csi-snapshotter:v0.4.1
+          image: quay.io/k8scsi/csi-snapshotter:v1.0.1
           args:
             - "--connection-timeout=15s"
             - "--csi-address=$(ADDRESS)"
@@ -248,6 +200,18 @@ spec:
             - name: ADDRESS
               value: /var/lib/csi/sockets/pluginproxy/csi.sock
           imagePullPolicy: Always
+          volumeMounts:
+            - name: socket-dir
+              mountPath: /var/lib/csi/sockets/pluginproxy/
+        - name: csi-cluster-driver-registrar
+          image: quay.io/k8scsi/csi-cluster-driver-registrar:v1.0.1
+          args:
+            - "--v=5"
+            - "--pod-info-mount-version=\"v1\""
+            - "--csi-address=$(ADDRESS)"
+          env:
+            - name: ADDRESS
+              value: /var/lib/csi/sockets/pluginproxy/csi.sock
           volumeMounts:
             - name: socket-dir
               mountPath: /var/lib/csi/sockets/pluginproxy/
@@ -410,6 +374,30 @@ roleRef:
 
 ---
 
+kind: ClusterRole
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  name: csi-do-cluster-driver-registrar-role
+rules:
+  - apiGroups: ["csi.storage.k8s.io"]
+    resources: ["csidrivers"]
+    verbs: ["create", "delete"]
+
+---
+kind: ClusterRoleBinding
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  name: csi-do-cluster-driver-registrar-binding
+subjects:
+  - kind: ServiceAccount
+    name: csi-do-controller-sa
+    namespace: kube-system
+roleRef:
+  kind: ClusterRole
+  name: csi-do-cluster-driver-registrar-role
+  apiGroup: rbac.authorization.k8s.io
+
+---
 
 ########################################
 ###########                 ############
@@ -436,15 +424,16 @@ spec:
       serviceAccount: csi-do-node-sa
       hostNetwork: true
       containers:
-        - name: driver-registrar
-          image: quay.io/k8scsi/driver-registrar:v0.4.1
+        - name: csi-node-driver-registrar
+          image: quay.io/k8scsi/csi-node-driver-registrar:v1.0.1
           args:
             - "--v=5"
             - "--csi-address=$(ADDRESS)"
-            - "--mode=node-register"
-            - "--driver-requires-attachment=true"
-            - "--pod-info-mount-version=\"v1\""
             - "--kubelet-registration-path=$(DRIVER_REG_SOCK_PATH)"
+          lifecycle:
+            preStop:
+              exec:
+                command: ["/bin/sh", "-c", "rm -rf /registration/dobs.csi.digitalocean.com /registration/dobs.csi.digitalocean.com-reg.sock"]
           env:
             - name: ADDRESS
               value: /csi/csi.sock
@@ -494,7 +483,7 @@ spec:
       volumes:
         - name: registration-dir
           hostPath:
-            path: /var/lib/kubelet/plugins/
+            path: /var/lib/kubelet/plugins_registry/
             type: DirectoryOrCreate
         - name: plugin-dir
           hostPath:
@@ -541,4 +530,3 @@ roleRef:
   kind: ClusterRole
   name: csi-do-driver-registrar-role
   apiGroup: rbac.authorization.k8s.io          
-

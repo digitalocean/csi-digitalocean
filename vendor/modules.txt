@@ -1,5 +1,5 @@
-# github.com/container-storage-interface/spec v0.3.0
-github.com/container-storage-interface/spec/lib/go/csi/v0
+# github.com/container-storage-interface/spec v1.0.0
+github.com/container-storage-interface/spec/lib/go/csi
 # github.com/davecgh/go-spew v1.1.1
 github.com/davecgh/go-spew/spew
 # github.com/digitalocean/go-metadata v0.0.0-20180111002115-15bd36e5f6f7
@@ -11,13 +11,14 @@ github.com/gogo/protobuf/proto
 github.com/gogo/protobuf/sortkeys
 # github.com/golang/glog v0.0.0-20160126235308-23def4e6c14b
 github.com/golang/glog
-# github.com/golang/protobuf v1.1.0
+# github.com/golang/protobuf v1.2.0
+github.com/golang/protobuf/ptypes
 github.com/golang/protobuf/ptypes/wrappers
 github.com/golang/protobuf/proto
-github.com/golang/protobuf/ptypes
+github.com/golang/protobuf/protoc-gen-go/descriptor
+github.com/golang/protobuf/ptypes/timestamp
 github.com/golang/protobuf/ptypes/any
 github.com/golang/protobuf/ptypes/duration
-github.com/golang/protobuf/ptypes/timestamp
 # github.com/google/btree v0.0.0-20180813153112-4030bb1f1f0c
 github.com/google/btree
 # github.com/google/go-querystring v0.0.0-20170111101155-53e6ce116135
@@ -38,7 +39,7 @@ github.com/hashicorp/golang-lru/simplelru
 github.com/imdario/mergo
 # github.com/json-iterator/go v1.1.5
 github.com/json-iterator/go
-# github.com/kubernetes-csi/csi-test v0.3.0-2
+# github.com/kubernetes-csi/csi-test v1.0.0-1
 github.com/kubernetes-csi/csi-test/pkg/sanity
 github.com/kubernetes-csi/csi-test/utils
 # github.com/kubernetes-csi/external-snapshotter v0.4.1

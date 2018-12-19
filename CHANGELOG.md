@@ -1,5 +1,8 @@
 ## unreleased
 
+* Add support for CSI SPEC `v1.0.0`. This includes various new changes and
+  additions in the driver and is intended to be used with Kubernetes `v1.13+`
+  [[GH-113]](https://github.com/digitalocean/csi-digitalocean/pull/113)
 * Add priorityClassName to controller and node plugin to prevent the CSI
   components from being evicted in favor of user workloads
   [[GH-115]](https://github.com/digitalocean/csi-digitalocean/pull/115)
