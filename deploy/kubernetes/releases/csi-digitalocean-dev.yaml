@@ -374,6 +374,30 @@ roleRef:
 
 ---
 
+kind: ClusterRole
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  name: csi-do-cluster-driver-registrar-role
+rules:
+  - apiGroups: ["csi.storage.k8s.io"]
+    resources: ["csidrivers"]
+    verbs: ["create", "delete"]
+
+---
+kind: ClusterRoleBinding
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  name: csi-do-cluster-driver-registrar-binding
+subjects:
+  - kind: ServiceAccount
+    name: csi-do-controller-sa
+    namespace: kube-system
+roleRef:
+  kind: ClusterRole
+  name: csi-do-cluster-driver-registrar-role
+  apiGroup: rbac.authorization.k8s.io
+
+---
 
 ########################################
 ###########                 ############
