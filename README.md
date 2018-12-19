@@ -8,14 +8,12 @@ Cloud Foundry. Feel free to test it on other CO's and give us a feedback.
 ## Releases
 
 The DigitalOcean CSI plugin follows [semantic versioning](https://semver.org/).
-The current version is: **`v0.4.0`**. This means that the project is still
+The current version is: **`v1.0.0`**. The project is still
 under active development and may not be production ready. The plugin will be
-bumped to **`v1.0.0`** once the [DigitalOcean Kubernetes
-product](https://www.digitalocean.com/products/kubernetes/) is released and
-will continue following the rules below:
+bumped following the rules below:
 
 * Bug fixes will be released as a `PATCH` update.
-* New features (such as CSI spec bumps) will be released as a `MINOR` update.
+* New features (such as CSI spec bumps with no breaking changes) will be released as a `MINOR` update.
 * Significant breaking changes makes a `MAJOR` update.
 
 
@@ -27,7 +25,8 @@ will continue following the rules below:
 |--------------------------------------|---------------|------|-------|
 | v0.1.0 - v0.2.x                      | yes           | no   | no    |
 | v0.3.0 - v0.4.x                      | no            | yes  | no    |
-| dev                                  | no            | no   | no    |
+| v1.0.0 - v1.0.x                      | no            | no   | yes   |
+| dev                                  | no            | no   | yes   |
 
 
 Note: The [`DigitalOcean Kubernetes`](https://www.digitalocean.com/products/kubernetes/) products comes
@@ -75,10 +74,10 @@ digitalocean          Opaque                                1         18h
 
 Before you continue, be sure to checkout to a [tagged
 release](https://github.com/digitalocean/csi-digitalocean/releases). Always use the [latest stable version](https://github.com/digitalocean/csi-digitalocean/releases/latest) 
-For example, to use the latest stable version (`v0.4.0`) you can execute the following command:
+For example, to use the latest stable version (`v1.0.0`) you can execute the following command:
 
 ```
-$ kubectl apply -f https://raw.githubusercontent.com/digitalocean/csi-digitalocean/master/deploy/kubernetes/releases/csi-digitalocean-v0.4.0.yaml
+$ kubectl apply -f https://raw.githubusercontent.com/digitalocean/csi-digitalocean/master/deploy/kubernetes/releases/csi-digitalocean-v1.0.0.yaml
 ```
 
 This file will be always updated to point to the latest stable release. If you
@@ -207,15 +206,15 @@ $ git push origin
 
 After it's merged to master, [create a new Github
 release](https://github.com/digitalocean/csi-digitalocean/releases/new) from
-master with the version `v0.4.0` and then publish a new docker build:
+master with the version `v1.0.0` and then publish a new docker build:
 
 ```
 $ git checkout master
 $ make publish
 ```
 
-This will create a binary with version `v0.4.0` and docker image pushed to
-`digitalocean/do-csi-plugin:v0.4.0`
+This will create a binary with version `v1.0.0` and docker image pushed to
+`digitalocean/do-csi-plugin:v1.0.0`
 
 ## Contributing
 

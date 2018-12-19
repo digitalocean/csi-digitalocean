@@ -1,5 +1,7 @@
 ## unreleased
 
+## v1.0.0 - 2018.12.19
+
 * Add support for CSI SPEC `v1.0.0`. This includes various new changes and
   additions in the driver and is intended to be used with Kubernetes `v1.13+`
   [[GH-113]](https://github.com/digitalocean/csi-digitalocean/pull/113)
