@@ -21,13 +21,46 @@ bumped following the rules below:
 
 ### Kubernetes Compatibility
 
-| DigitalOcean CSI Driver\Kubernetes Version | 1.10.5 - 1.11 | 1.12+ | 1.13+ | 
-|--------------------------------------|---------------|------|-------|
-| v0.1.0 - v0.2.x                      | yes           | no   | no    |
-| v0.3.0 - v0.4.x                      | no            | yes  | no    |
-| v1.0.0 - v1.0.x                      | no            | no   | yes   |
-| dev                                  | no            | no   | yes   |
-
+<table>
+  <thead>
+    <tr>
+      <th></th>
+      <th colspan=3>Kubernetes Version</th>
+    </tr>
+    <tr>
+      <th>DigitalOcean CSI Driver</th>
+      <th>1.10.5 - 1.11</th>
+      <th>1.12+</th>
+      <th>1.13+</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>v0.1.0 - v0.2.x</td>
+      <td>yes</td>
+      <td>no</td>
+      <td>no</td>
+    </tr>
+    <tr>
+      <td>v0.3.0 - v0.4.x</td>
+      <td>no</td>
+      <td>yes</td>
+      <td>no</td>
+    </tr>
+    <tr>
+      <td>v1.0.0 - v1.0.x</td>
+      <td>no</td>
+      <td>no</td>
+      <td>yes</td>
+    </tr>
+    <tr>
+      <td>dev</td>
+      <td>no</td>
+      <td>no</td>
+      <td>yes</td>
+    </tr>
+  </tbody>
+</table>
 
 Note: The [`DigitalOcean Kubernetes`](https://www.digitalocean.com/products/kubernetes/) products comes
 with the CSI driver pre-installed and no further steps are required.
