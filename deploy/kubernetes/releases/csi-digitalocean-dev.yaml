@@ -14,7 +14,7 @@
  
 # Configuration to deploy release version of the CSI DigitalOcean
 # plugin (https://github.com/digitalocean/csi-digitalocean) compatible with
-# Kubernetes >=v1.12.1
+# Kubernetes >=v1.13+
 #
 # example usage: kubectl create -f <this_file>
 
@@ -226,11 +226,6 @@ spec:
               value: unix:///var/lib/csi/sockets/pluginproxy/csi.sock
             - name: DIGITALOCEAN_API_URL
               value: https://api.digitalocean.com/
-            - name: DIGITALOCEAN_ACCESS_TOKEN
-              valueFrom:
-                secretKeyRef:
-                  name: digitalocean
-                  key: access-token
           imagePullPolicy: "Always"
           volumeMounts:
             - name: socket-dir
@@ -452,7 +447,6 @@ spec:
           image: digitalocean/do-csi-plugin:dev
           args :
             - "--endpoint=$(CSI_ENDPOINT)"
-            - "--token=$(DIGITALOCEAN_ACCESS_TOKEN)"
             - "--url=$(DIGITALOCEAN_API_URL)"
           env:
             - name: CSI_ENDPOINT
@@ -509,7 +503,7 @@ metadata:
 kind: ClusterRole
 apiVersion: rbac.authorization.k8s.io/v1
 metadata:
-  name: csi-do-driver-registrar-role
+  name: csi-do-node-driver-registrar-role
   namespace: kube-system
 rules:
   - apiGroups: [""]
@@ -521,12 +515,12 @@ rules:
 kind: ClusterRoleBinding
 apiVersion: rbac.authorization.k8s.io/v1
 metadata:
-  name: csi-do-driver-registrar-binding
+  name: csi-do-node-driver-registrar-binding
 subjects:
   - kind: ServiceAccount
     name: csi-do-node-sa
     namespace: kube-system
 roleRef:
   kind: ClusterRole
-  name: csi-do-driver-registrar-role
+  name: csi-do-node-driver-registrar-role
   apiGroup: rbac.authorization.k8s.io          
