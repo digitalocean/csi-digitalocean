@@ -1,5 +1,10 @@
 ## unreleased
 
+## v0.2.1 - 2019.01.09
+
+* Backported "use publish info for storing and accessing the volume name"
+  [[GH-99]](https://github.com/digitalocean/csi-digitalocean/pull/99)
+
 ## v0.2.0 - 2018.09.05
 
 * Add support to CSI Spec `v0.3.0`. This includes many new changes, make sure 
