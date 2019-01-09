@@ -33,10 +33,14 @@ import (
 )
 
 const (
-	_  = iota
+	_ = iota
+	// KB is a Kibibyte https://en.wikipedia.org/wiki/Kibibyte.
 	KB = 1 << (10 * iota)
+	// MB is a Mebibyte https://en.wikipedia.org/wiki/Mebibyte.
 	MB
+	// GB is a Gibibyte https://en.wikipedia.org/wiki/Gibibyte.
 	GB
+	// TB is a Tebibyte https://en.wikipedia.org/wiki/Tebibyte.
 	TB
 )
 
@@ -634,7 +638,7 @@ func (d *Driver) CreateSnapshot(ctx context.Context, req *csi.CreateSnapshotRequ
 	}, nil
 }
 
-// DeleteSnapshost will be called by the CO to delete a snapshot.
+// DeleteSnapshot will be called by the CO to delete a snapshot.
 func (d *Driver) DeleteSnapshot(ctx context.Context, req *csi.DeleteSnapshotRequest) (*csi.DeleteSnapshotResponse, error) {
 	ll := d.log.WithFields(logrus.Fields{
 		"req_snapshot_id": req.GetSnapshotId(),
@@ -871,7 +875,7 @@ func (d *Driver) waitAction(ctx context.Context, volumeId string, actionId int) 
 				continue
 			}
 		case <-ctx.Done():
-			return fmt.Errorf("timeout occured waiting for storage action of volume: %q", volumeId)
+			return fmt.Errorf("timeout occurred waiting for storage action of volume: %q", volumeId)
 		}
 	}
 }
