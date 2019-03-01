@@ -358,6 +358,22 @@ func TestSnapshot_Create(t *testing.T) {
 			Name: "my-csi-app-2",
 		},
 		Spec: v1.PodSpec{
+			InitContainers: []v1.Container{
+				{
+					Name:  "my-csi",
+					Image: "busybox",
+					VolumeMounts: []v1.VolumeMount{
+						{
+							MountPath: "/data",
+							Name:      volumeName,
+						},
+					},
+					Command: []string{
+						"sh", "-c",
+						"echo testcanary > /data/canary",
+					},
+				},
+			},
 			Containers: []v1.Container{
 				{
 					Name:  "my-csi-app",
@@ -369,8 +385,7 @@ func TestSnapshot_Create(t *testing.T) {
 						},
 					},
 					Command: []string{
-						"sleep",
-						"1000000",
+						"sleep", "1000000",
 					},
 				},
 			},
@@ -476,6 +491,22 @@ func TestSnapshot_Create(t *testing.T) {
 			Name: "my-csi-app-2-restored",
 		},
 		Spec: v1.PodSpec{
+			InitContainers: []v1.Container{
+				{
+					Name:  "my-csi",
+					Image: "busybox",
+					VolumeMounts: []v1.VolumeMount{
+						{
+							MountPath: "/data",
+							Name:      volumeName,
+						},
+					},
+					Command: []string{
+						"cat",
+						"/data/canary",
+					},
+				},
+			},
 			Containers: []v1.Container{
 				{
 					Name:  "my-csi-app",
@@ -487,8 +518,7 @@ func TestSnapshot_Create(t *testing.T) {
 						},
 					},
 					Command: []string{
-						"sleep",
-						"1000000",
+						"sleep", "1000000",
 					},
 				},
 			},
