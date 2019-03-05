@@ -358,22 +358,6 @@ func TestSnapshot_Create(t *testing.T) {
 			Name: "my-csi-app-2",
 		},
 		Spec: v1.PodSpec{
-			InitContainers: []v1.Container{
-				{
-					Name:  "my-csi",
-					Image: "busybox",
-					VolumeMounts: []v1.VolumeMount{
-						{
-							MountPath: "/data",
-							Name:      volumeName,
-						},
-					},
-					Command: []string{
-						"sh", "-c",
-						"echo testcanary > /data/canary",
-					},
-				},
-			},
 			Containers: []v1.Container{
 				{
 					Name:  "my-csi-app",
@@ -385,7 +369,8 @@ func TestSnapshot_Create(t *testing.T) {
 						},
 					},
 					Command: []string{
-						"sleep", "1000000",
+						"sh", "-c",
+						"echo testcanary > /data/canary && sleep 1000000",
 					},
 				},
 			},
@@ -491,6 +476,11 @@ func TestSnapshot_Create(t *testing.T) {
 			Name: "my-csi-app-2-restored",
 		},
 		Spec: v1.PodSpec{
+			// This init container verifies that the /data/canary file is present.
+			// If it is not, then the volume was not properly restored.
+			// waitForPod only waits for the pod to enter the running state, so will not
+			// detect any failures after that, so this has to be an InitContainer so that
+			// the pod never enters the running state if it fails.
 			InitContainers: []v1.Container{
 				{
 					Name:  "my-csi",

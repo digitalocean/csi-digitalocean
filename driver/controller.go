@@ -161,8 +161,8 @@ func (d *Driver) CreateVolume(ctx context.Context, req *csi.CreateVolumeRequest)
 	if contentSource != nil {
 		snapshot := contentSource.GetSnapshot()
 		if snapshot != nil {
-			ll.Info("using snapshot as volume source")
-			volumeReq.SnapshotID = snapshot.GetId()
+			ll.WithField("snapshot_id", snapshot.GetSnapshotId()).Info("using snapshot as volume source")
+			volumeReq.SnapshotID = snapshot.GetSnapshotId()
 		}
 	}
 
