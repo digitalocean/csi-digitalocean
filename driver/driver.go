@@ -42,6 +42,10 @@ const (
 )
 
 var (
+	// doVolTagEnv describes an environmental var. If present, the controller
+	// will apply the specified Digital Ocean tag to volumes during create/attach.
+	doVolTagEnv = "DIGITALOCEAN_TAG_VOLUMES"
+
 	gitTreeState = "not a git tree"
 	commit       string
 	version      string
@@ -57,6 +61,7 @@ type Driver struct {
 	endpoint string
 	nodeId   string
 	region   string
+	doVolTag string
 
 	srv     *grpc.Server
 	log     *logrus.Entry
@@ -67,6 +72,7 @@ type Driver struct {
 	droplets       godo.DropletsService
 	snapshots      godo.SnapshotsService
 	account        godo.AccountService
+	tags           godo.TagsService
 
 	// ready defines whether the driver is ready to function. This value will
 	// be used by the `Identity` service via the `Probe()` method.
@@ -106,6 +112,7 @@ func NewDriver(ep, token, url string) (*Driver, error) {
 	})
 
 	return &Driver{
+		doVolTag: os.Getenv(doVolTagEnv),
 		endpoint: ep,
 		nodeId:   nodeId,
 		region:   region,
@@ -117,6 +124,7 @@ func NewDriver(ep, token, url string) (*Driver, error) {
 		droplets:       doClient.Droplets,
 		snapshots:      doClient.Snapshots,
 		account:        doClient.Account,
+		tags:           doClient.Tags,
 	}, nil
 }
 

@@ -59,6 +59,10 @@ const (
 
 	// createdByDO is used to tag volumes that are created by this CSI plugin
 	createdByDO = "Created by DigitalOcean CSI driver"
+
+	// doAPITimeout sets the timeout we will use when communicating with the
+	// Digital Ocean API. NOTE: some queries inherit the context timeout
+	doAPITimeout = 10 * time.Second
 )
 
 var (
@@ -147,6 +151,10 @@ func (d *Driver) CreateVolume(ctx context.Context, req *csi.CreateVolumeRequest)
 		Name:          volumeName,
 		Description:   createdByDO,
 		SizeGigaBytes: size / GB,
+	}
+
+	if d.doVolTag != "" {
+		volumeReq.Tags = append(volumeReq.Tags, d.doVolTag)
 	}
 
 	ll.Info("checking volume limit")
@@ -252,6 +260,8 @@ func (d *Driver) ControllerPublishVolume(ctx context.Context, req *csi.Controlle
 		}
 		return nil, err
 	}
+
+	d.tagVolume(ctx, vol)
 
 	// check if droplet exist before trying to attach the volume to the droplet
 	_, resp, err = d.droplets.Get(ctx, dropletID)
@@ -962,4 +972,47 @@ func validateCapabilities(caps []*csi.VolumeCapability) bool {
 	}
 
 	return supported
+}
+
+func (d *Driver) tagVolume(ctx context.Context, vol *godo.Volume) error {
+	for _, tag := range vol.Tags {
+		if tag == d.doVolTag {
+			return nil
+		}
+	}
+
+	tagReq := &godo.TagResourcesRequest{
+		Resources: []godo.Resource{
+			godo.Resource{
+				ID:   vol.ID,
+				Type: godo.VolumeResourceType,
+			},
+		},
+	}
+
+	ctx, cancel := context.WithTimeout(ctx, doAPITimeout)
+	resp, err := d.tags.TagResources(ctx, d.doVolTag, tagReq)
+	cancel()
+
+	if resp != nil && resp.StatusCode == http.StatusNotFound {
+		// If the tag doesn't exist, create it and retry.
+		err = d.createTag(ctx)
+		if err != nil {
+			return err
+		}
+		ctx, cancel = context.WithTimeout(ctx, doAPITimeout)
+		resp, err = d.tags.TagResources(ctx, d.doVolTag, tagReq)
+		cancel()
+	}
+
+	return err
+}
+
+func (d *Driver) createTag(ctx context.Context) error {
+	ctx, cancel := context.WithTimeout(ctx, doAPITimeout)
+	defer cancel()
+	_, _, err := d.tags.Create(ctx, &godo.TagCreateRequest{
+		Name: d.doVolTag,
+	})
+	return err
 }
