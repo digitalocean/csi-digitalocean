@@ -4,7 +4,7 @@ require (
 	github.com/container-storage-interface/spec v1.0.0
 	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/digitalocean/go-metadata v0.0.0-20180111002115-15bd36e5f6f7
-	github.com/digitalocean/godo v1.4.2
+	github.com/digitalocean/godo v1.8.0
 	github.com/ghodss/yaml v1.0.0 // indirect
 	github.com/gogo/protobuf v1.1.1 // indirect
 	github.com/golang/glog v0.0.0-20160126235308-23def4e6c14b // indirect
@@ -29,7 +29,6 @@ require (
 	github.com/sirupsen/logrus v1.0.5
 	github.com/spf13/pflag v1.0.2 // indirect
 	github.com/stretchr/testify v1.2.2 // indirect
-	github.com/tent/http-link-go v0.0.0-20130702225549-ac974c61c2f9 // indirect
 	golang.org/x/crypto v0.0.0-20180411161317-d6449816ce06 // indirect
 	golang.org/x/net v0.0.0-20180406214816-61147c48b25b // indirect
 	golang.org/x/oauth2 v0.0.0-20180402223937-921ae394b943
@@ -48,6 +47,5 @@ require (
 	k8s.io/apimachinery v0.0.0-20181116115711-1b0702fe2927
 	k8s.io/client-go v9.0.0+incompatible
 	k8s.io/klog v0.1.0 // indirect
-	launchpad.net/gocheck v0.0.0-20140225173054-000000000087 // indirect
 	sigs.k8s.io/yaml v1.1.0 // indirect
 )
