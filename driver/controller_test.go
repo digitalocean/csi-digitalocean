@@ -76,7 +76,7 @@ func TestTagger(t *testing.T) {
 				exists:           tc.tagExists,
 			}
 			driver := &Driver{
-				doVolTag: tag,
+				doTag: tag,
 				tags:     tagService,
 			}
 

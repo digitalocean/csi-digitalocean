@@ -42,10 +42,6 @@ const (
 )
 
 var (
-	// doVolTagEnv describes an environmental var. If present, the controller
-	// will apply the specified Digital Ocean tag to volumes during create/attach.
-	doVolTagEnv = "DIGITALOCEAN_TAG_VOLUMES"
-
 	gitTreeState = "not a git tree"
 	commit       string
 	version      string
@@ -61,7 +57,7 @@ type Driver struct {
 	endpoint string
 	nodeId   string
 	region   string
-	doVolTag string
+	doTag    string
 
 	srv     *grpc.Server
 	log     *logrus.Entry
@@ -83,7 +79,7 @@ type Driver struct {
 // NewDriver returns a CSI plugin that contains the necessary gRPC
 // interfaces to interact with Kubernetes over unix domain sockets for
 // managaing DigitalOcean Block Storage
-func NewDriver(ep, token, url string) (*Driver, error) {
+func NewDriver(ep, token, url, doTag string) (*Driver, error) {
 	tokenSource := oauth2.StaticTokenSource(&oauth2.Token{
 		AccessToken: token,
 	})
@@ -112,7 +108,7 @@ func NewDriver(ep, token, url string) (*Driver, error) {
 	})
 
 	return &Driver{
-		doVolTag: os.Getenv(doVolTagEnv),
+		doTag:    doTag,
 		endpoint: ep,
 		nodeId:   nodeId,
 		region:   region,

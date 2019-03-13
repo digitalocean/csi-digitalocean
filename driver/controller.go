@@ -153,8 +153,8 @@ func (d *Driver) CreateVolume(ctx context.Context, req *csi.CreateVolumeRequest)
 		SizeGigaBytes: size / GB,
 	}
 
-	if d.doVolTag != "" {
-		volumeReq.Tags = append(volumeReq.Tags, d.doVolTag)
+	if d.doTag != "" {
+		volumeReq.Tags = append(volumeReq.Tags, d.doTag)
 	}
 
 	ll.Info("checking volume limit")
@@ -261,7 +261,11 @@ func (d *Driver) ControllerPublishVolume(ctx context.Context, req *csi.Controlle
 		return nil, err
 	}
 
-	d.tagVolume(ctx, vol)
+	err = d.tagVolume(ctx, vol)
+	if err != nil {
+		ll.Errorf("error tagging volume: %s", err)
+		return nil, status.Errorf(codes.Internal, "failed to tag volume")
+	}
 
 	// check if droplet exist before trying to attach the volume to the droplet
 	_, resp, err = d.droplets.Get(ctx, dropletID)
@@ -974,9 +978,9 @@ func validateCapabilities(caps []*csi.VolumeCapability) bool {
 	return supported
 }
 
-func (d *Driver) tagVolume(ctx context.Context, vol *godo.Volume) error {
+func (d *Driver) tagVolume(parentCtx context.Context, vol *godo.Volume) error {
 	for _, tag := range vol.Tags {
-		if tag == d.doVolTag {
+		if tag == d.doTag {
 			return nil
 		}
 	}
@@ -990,29 +994,29 @@ func (d *Driver) tagVolume(ctx context.Context, vol *godo.Volume) error {
 		},
 	}
 
-	ctx, cancel := context.WithTimeout(ctx, doAPITimeout)
-	resp, err := d.tags.TagResources(ctx, d.doVolTag, tagReq)
-	cancel()
+	ctx, cancel := context.WithTimeout(parentCtx, doAPITimeout)
+	defer cancel()
+	resp, err := d.tags.TagResources(ctx, d.doTag, tagReq)
 
-	if resp != nil && resp.StatusCode == http.StatusNotFound {
-		// If the tag doesn't exist, create it and retry.
-		err = d.createTag(ctx)
-		if err != nil {
-			return err
-		}
-		ctx, cancel = context.WithTimeout(ctx, doAPITimeout)
-		resp, err = d.tags.TagResources(ctx, d.doVolTag, tagReq)
-		cancel()
+	if resp == nil || resp.StatusCode != http.StatusNotFound {
+		// either success or irrecoverable failure
+		return err
 	}
 
-	return err
-}
-
-func (d *Driver) createTag(ctx context.Context) error {
-	ctx, cancel := context.WithTimeout(ctx, doAPITimeout)
+	// godo.TagsService returns 404 if the tag has not yet been
+	// created, if that happens we need to create the tag
+	// and then retry tagging the volume resource.
+	ctx, cancel = context.WithTimeout(parentCtx, doAPITimeout)
 	defer cancel()
-	_, _, err := d.tags.Create(ctx, &godo.TagCreateRequest{
-		Name: d.doVolTag,
+	_, _, err = d.tags.Create(parentCtx, &godo.TagCreateRequest{
+		Name: d.doTag,
 	})
+	if err != nil {
+		return err
+	}
+
+	ctx, cancel = context.WithTimeout(parentCtx, doAPITimeout)
+	defer cancel()
+	_, err = d.tags.TagResources(ctx, d.doTag, tagReq)
 	return err
 }

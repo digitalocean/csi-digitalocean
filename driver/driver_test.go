@@ -59,7 +59,7 @@ func TestDriverSuite(t *testing.T) {
 	}
 
 	nodeID := 987654
-	doVolTag := "k8s:cluster-id"
+	doTag := "k8s:cluster-id"
 	volumes := make(map[string]*godo.Volume, 0)
 	snapshots := make(map[string]*godo.Snapshot, 0)
 	droplets := map[int]*godo.Droplet{
@@ -71,7 +71,7 @@ func TestDriverSuite(t *testing.T) {
 	driver := &Driver{
 		endpoint: endpoint,
 		nodeId:   strconv.Itoa(nodeID),
-		doVolTag: doVolTag,
+		doTag: doTag,
 		region:   "nyc3",
 		mounter:  &fakeMounter{},
 		log:      logrus.New().WithField("test_enabed", true),
