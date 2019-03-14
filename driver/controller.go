@@ -261,10 +261,12 @@ func (d *Driver) ControllerPublishVolume(ctx context.Context, req *csi.Controlle
 		return nil, err
 	}
 
-	err = d.tagVolume(ctx, vol)
-	if err != nil {
-		ll.Errorf("error tagging volume: %s", err)
-		return nil, status.Errorf(codes.Internal, "failed to tag volume")
+	if d.doTag != "" {
+		err = d.tagVolume(ctx, vol)
+		if err != nil {
+			ll.Errorf("error tagging volume: %s", err)
+			return nil, status.Errorf(codes.Internal, "failed to tag volume")
+		}
 	}
 
 	// check if droplet exist before trying to attach the volume to the droplet
@@ -997,7 +999,6 @@ func (d *Driver) tagVolume(parentCtx context.Context, vol *godo.Volume) error {
 	ctx, cancel := context.WithTimeout(parentCtx, doAPITimeout)
 	defer cancel()
 	resp, err := d.tags.TagResources(ctx, d.doTag, tagReq)
-
 	if resp == nil || resp.StatusCode != http.StatusNotFound {
 		// either success or irrecoverable failure
 		return err
