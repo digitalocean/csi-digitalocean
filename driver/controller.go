@@ -58,6 +58,10 @@ const (
 
 	// createdByDO is used to tag volumes that are created by this CSI plugin
 	createdByDO = "Created by DigitalOcean CSI driver"
+
+	// doAPITimeout sets the timeout we will use when communicating with the
+	// Digital Ocean API. NOTE: some queries inherit the context timeout
+	doAPITimeout = 10 * time.Second
 )
 
 var (
@@ -146,6 +150,10 @@ func (d *Driver) CreateVolume(ctx context.Context, req *csi.CreateVolumeRequest)
 		Name:          volumeName,
 		Description:   createdByDO,
 		SizeGigaBytes: size / GB,
+	}
+
+	if d.doTag != "" {
+		volumeReq.Tags = append(volumeReq.Tags, d.doTag)
 	}
 
 	ll.Info("checking volume limit")
@@ -250,6 +258,14 @@ func (d *Driver) ControllerPublishVolume(ctx context.Context, req *csi.Controlle
 			return nil, status.Errorf(codes.NotFound, "volume %q not found", req.VolumeId)
 		}
 		return nil, err
+	}
+
+	if d.doTag != "" {
+		err = d.tagVolume(ctx, vol)
+		if err != nil {
+			ll.Errorf("error tagging volume: %s", err)
+			return nil, status.Errorf(codes.Internal, "failed to tag volume")
+		}
 	}
 
 	// check if droplet exist before trying to attach the volume to the droplet
@@ -969,4 +985,46 @@ func validateCapabilities(caps []*csi.VolumeCapability) bool {
 	}
 
 	return supported
+}
+
+func (d *Driver) tagVolume(parentCtx context.Context, vol *godo.Volume) error {
+	for _, tag := range vol.Tags {
+		if tag == d.doTag {
+			return nil
+		}
+	}
+
+	tagReq := &godo.TagResourcesRequest{
+		Resources: []godo.Resource{
+			godo.Resource{
+				ID:   vol.ID,
+				Type: godo.VolumeResourceType,
+			},
+		},
+	}
+
+	ctx, cancel := context.WithTimeout(parentCtx, doAPITimeout)
+	defer cancel()
+	resp, err := d.tags.TagResources(ctx, d.doTag, tagReq)
+	if resp == nil || resp.StatusCode != http.StatusNotFound {
+		// either success or irrecoverable failure
+		return err
+	}
+
+	// godo.TagsService returns 404 if the tag has not yet been
+	// created, if that happens we need to create the tag
+	// and then retry tagging the volume resource.
+	ctx, cancel = context.WithTimeout(parentCtx, doAPITimeout)
+	defer cancel()
+	_, _, err = d.tags.Create(parentCtx, &godo.TagCreateRequest{
+		Name: d.doTag,
+	})
+	if err != nil {
+		return err
+	}
+
+	ctx, cancel = context.WithTimeout(parentCtx, doAPITimeout)
+	defer cancel()
+	_, err = d.tags.TagResources(ctx, d.doTag, tagReq)
+	return err
 }
