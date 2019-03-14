@@ -57,6 +57,7 @@ type Driver struct {
 	endpoint string
 	nodeId   string
 	region   string
+	doTag    string
 
 	srv     *grpc.Server
 	log     *logrus.Entry
@@ -67,6 +68,7 @@ type Driver struct {
 	droplets       godo.DropletsService
 	snapshots      godo.SnapshotsService
 	account        godo.AccountService
+	tags           godo.TagsService
 
 	// ready defines whether the driver is ready to function. This value will
 	// be used by the `Identity` service via the `Probe()` method.
@@ -77,7 +79,7 @@ type Driver struct {
 // NewDriver returns a CSI plugin that contains the necessary gRPC
 // interfaces to interact with Kubernetes over unix domain sockets for
 // managaing DigitalOcean Block Storage
-func NewDriver(ep, token, url string) (*Driver, error) {
+func NewDriver(ep, token, url, doTag string) (*Driver, error) {
 	tokenSource := oauth2.StaticTokenSource(&oauth2.Token{
 		AccessToken: token,
 	})
@@ -106,6 +108,7 @@ func NewDriver(ep, token, url string) (*Driver, error) {
 	})
 
 	return &Driver{
+		doTag:    doTag,
 		endpoint: ep,
 		nodeId:   nodeId,
 		region:   region,
@@ -117,6 +120,7 @@ func NewDriver(ep, token, url string) (*Driver, error) {
 		droplets:       doClient.Droplets,
 		snapshots:      doClient.Snapshots,
 		account:        doClient.Account,
+		tags:           doClient.Tags,
 	}, nil
 }
 
