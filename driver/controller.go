@@ -156,6 +156,15 @@ func (d *Driver) CreateVolume(ctx context.Context, req *csi.CreateVolumeRequest)
 		volumeReq.Tags = append(volumeReq.Tags, d.doTag)
 	}
 
+	contentSource := req.GetVolumeContentSource()
+	if contentSource != nil {
+		snapshot := contentSource.GetSnapshot()
+		if snapshot != nil {
+			ll.WithField("snapshot_id", snapshot.GetId()).Info("using snapshot as volume source")
+			volumeReq.SnapshotID = snapshot.GetId()
+		}
+	}
+
 	ll.Info("checking volume limit")
 	if err := d.checkLimit(ctx); err != nil {
 		return nil, err
