@@ -2,7 +2,7 @@
 A Container Storage Interface ([CSI](https://github.com/container-storage-interface/spec)) Driver for DigitalOcean Block Storage. The CSI plugin allows you to use DigitalOcean Block Storage with your preferred Container Orchestrator.
 
 The DigitalOcean CSI plugin is mostly tested on Kubernetes. Theoretically it
-should also work on other Container Orchestrator's, such as Mesos or
+should also work on other Container Orchestrators, such as Mesos or
 Cloud Foundry. Feel free to test it on other CO's and give us a feedback.
 
 ## Releases
