@@ -4,7 +4,7 @@ require (
 	github.com/container-storage-interface/spec v1.0.0
 	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/digitalocean/go-metadata v0.0.0-20180111002115-15bd36e5f6f7
-	github.com/digitalocean/godo v1.8.0
+	github.com/digitalocean/godo v1.13.0
 	github.com/ghodss/yaml v1.0.0 // indirect
 	github.com/gogo/protobuf v1.1.1 // indirect
 	github.com/golang/glog v0.0.0-20160126235308-23def4e6c14b // indirect
