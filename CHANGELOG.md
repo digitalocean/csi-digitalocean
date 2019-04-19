@@ -6,6 +6,12 @@
   [[GH-129]](https://github.com/digitalocean/csi-digitalocean/pull/129)
 * Goreportcard fixes (typos, exported variables, etc..)
   [[GH-121]](https://github.com/digitalocean/csi-digitalocean/pull/121)
+* Rename the cluster role bindings for the `node-driver-registrar` to be
+  consistent with the other role bindings.
+  [[GH-118]](https://github.com/digitalocean/csi-digitalocean/pull/118)
+* Remove the `--token` flag for the `csi-do-node` driver. Drivers running on
+  the node don't need the token anymore.
+  [[GH-118]](https://github.com/digitalocean/csi-digitalocean/pull/118)
 
 ## v1.0.0 - 2018.12.19
 
