@@ -4,6 +4,8 @@
   [[GH-130]](https://github.com/digitalocean/csi-digitalocean/pull/130)
 * Fix support for volume snapshots by setting snapshot id on volume creation
   [[GH-129]](https://github.com/digitalocean/csi-digitalocean/pull/129)
+* Goreportcard fixes (typos, exported variables, etc..)
+  [[GH-121]](https://github.com/digitalocean/csi-digitalocean/pull/121)
 
 ## v1.0.0 - 2018.12.19
 
