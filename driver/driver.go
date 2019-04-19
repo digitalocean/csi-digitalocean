@@ -58,6 +58,7 @@ type Driver struct {
 	nodeId   string
 	region   string
 	doTag    string
+	hasToken bool
 
 	srv     *grpc.Server
 	log     *logrus.Entry
@@ -114,6 +115,7 @@ func NewDriver(ep, token, url, doTag string) (*Driver, error) {
 		region:   region,
 		mounter:  newMounter(log),
 		log:      log,
+		hasToken: token != "",
 
 		storage:        doClient.Storage,
 		storageActions: doClient.StorageActions,
@@ -163,9 +165,12 @@ func (d *Driver) Run() error {
 	}
 
 	// warn the user, it'll not propagate to the user but at least we see if
-	// something is wrong in the logs
-	if err := d.checkLimit(context.Background()); err != nil {
-		d.log.WithError(err).Warn("CSI plugin will not function correctly, please resolve volume limit")
+	// something is wrong in the logs. Only check if the driver is running with
+	// a token (i.e: controller)
+	if d.hasToken {
+		if err := d.checkLimit(context.Background()); err != nil {
+			d.log.WithError(err).Warn("CSI plugin will not function correctly, please resolve volume limit")
+		}
 	}
 
 	d.srv = grpc.NewServer(grpc.UnaryInterceptor(errHandler))
