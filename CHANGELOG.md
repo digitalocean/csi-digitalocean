@@ -12,6 +12,9 @@
 * Remove the `--token` flag for the `csi-do-node` driver. Drivers running on
   the node don't need the token anymore.
   [[GH-118]](https://github.com/digitalocean/csi-digitalocean/pull/118)
+* Don't check the volume limits on the worker nodes (worker nodes are not able
+  to talk to DigitalOcean API)
+  [[GH-142]](https://github.com/digitalocean/csi-digitalocean/pull/142)
 
 ## v1.0.0 - 2018.12.19
 
