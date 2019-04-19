@@ -63,7 +63,7 @@ func TestDriverSuite(t *testing.T) {
 	volumes := make(map[string]*godo.Volume, 0)
 	snapshots := make(map[string]*godo.Snapshot, 0)
 	droplets := map[int]*godo.Droplet{
-		nodeID: &godo.Droplet{
+		nodeID: {
 			ID: nodeID,
 		},
 	}
