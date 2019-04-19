@@ -4,8 +4,6 @@ github.com/davecgh/go-spew v1.1.1 h1:vj9j/u1bqnvCEfJOwUhtlOARqs3+rkHYY13jYWTU97c
 github.com/davecgh/go-spew v1.1.1/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
 github.com/digitalocean/go-metadata v0.0.0-20180111002115-15bd36e5f6f7 h1:ESwakcvVdp1uaY19Bt8e3OHLqpqh1hS6tDRgAIa8m78=
 github.com/digitalocean/go-metadata v0.0.0-20180111002115-15bd36e5f6f7/go.mod h1:lNrzMwI4fx6xfzieyLEpYIJPLWjT/Sak4G/hIzGTEL4=
-github.com/digitalocean/godo v1.8.0 h1:UnosidNT03zuOgObn7zA3DiObx0QbmLlfcpswpLqT3c=
-github.com/digitalocean/godo v1.8.0/go.mod h1:h6faOIcZ8lWIwNQ+DN7b3CgX4Kwby5T+nbpNqkUIozU=
 github.com/digitalocean/godo v1.13.0 h1:+0rQUl0AkTmhKDeqP8Y1Z60cJzhC/1jPI6jWpWnLUr8=
 github.com/digitalocean/godo v1.13.0/go.mod h1:h6faOIcZ8lWIwNQ+DN7b3CgX4Kwby5T+nbpNqkUIozU=
 github.com/ghodss/yaml v1.0.0 h1:wQHKEahhL6wmXdzwWG11gIVCkOv05bNOh+Rxn0yngAk=
