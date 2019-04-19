@@ -32,11 +32,11 @@ import (
 )
 
 const (
-	_  = iota
-	KB = 1 << (10 * iota)
-	MB
-	GB
-	TB
+	_   = iota
+	kiB = 1 << (10 * iota)
+	miB
+	giB
+	tiB
 )
 
 const (
@@ -46,15 +46,15 @@ const (
 
 	// minimumVolumeSizeInBytes is used to validate that the user is not trying
 	// to create a volume that is smaller than what we support
-	minimumVolumeSizeInBytes int64 = 1 * GB
+	minimumVolumeSizeInBytes int64 = 1 * giB
 
 	// maximumVolumeSizeInBytes is used to validate that the user is not trying
 	// to create a volume that is larger than what we support
-	maximumVolumeSizeInBytes int64 = 16 * TB
+	maximumVolumeSizeInBytes int64 = 16 * tiB
 
 	// defaultVolumeSizeInBytes is used when the user did not provide a size or
 	// the size they provided did not satisfy our requirements
-	defaultVolumeSizeInBytes int64 = 16 * GB
+	defaultVolumeSizeInBytes int64 = 16 * giB
 
 	// createdByDO is used to tag volumes that are created by this CSI plugin
 	createdByDO = "Created by DigitalOcean CSI driver"
@@ -110,7 +110,7 @@ func (d *Driver) CreateVolume(ctx context.Context, req *csi.CreateVolumeRequest)
 
 	ll := d.log.WithFields(logrus.Fields{
 		"volume_name":             volumeName,
-		"storage_size_giga_bytes": size / GB,
+		"storage_size_giga_bytes": size / giB,
 		"method":                  "create_volume",
 		"volume_capabilities":     req.VolumeCapabilities,
 	})
@@ -132,7 +132,7 @@ func (d *Driver) CreateVolume(ctx context.Context, req *csi.CreateVolumeRequest)
 		}
 		vol := volumes[0]
 
-		if vol.SizeGigaBytes*GB != size {
+		if vol.SizeGigaBytes*giB != size {
 			return nil, status.Error(codes.AlreadyExists, fmt.Sprintf("invalid option requested size: %d", size))
 		}
 
@@ -140,7 +140,7 @@ func (d *Driver) CreateVolume(ctx context.Context, req *csi.CreateVolumeRequest)
 		return &csi.CreateVolumeResponse{
 			Volume: &csi.Volume{
 				Id:            vol.ID,
-				CapacityBytes: vol.SizeGigaBytes * GB,
+				CapacityBytes: vol.SizeGigaBytes * giB,
 			},
 		}, nil
 	}
@@ -149,7 +149,7 @@ func (d *Driver) CreateVolume(ctx context.Context, req *csi.CreateVolumeRequest)
 		Region:        d.region,
 		Name:          volumeName,
 		Description:   createdByDO,
-		SizeGigaBytes: size / GB,
+		SizeGigaBytes: size / giB,
 	}
 
 	if d.doTag != "" {
@@ -541,7 +541,7 @@ func (d *Driver) ListVolumes(ctx context.Context, req *csi.ListVolumesRequest) (
 		entries = append(entries, &csi.ListVolumesResponse_Entry{
 			Volume: &csi.Volume{
 				Id:            vol.ID,
-				CapacityBytes: vol.SizeGigaBytes * GB,
+				CapacityBytes: vol.SizeGigaBytes * giB,
 			},
 		})
 	}
@@ -675,7 +675,7 @@ func (d *Driver) CreateSnapshot(ctx context.Context, req *csi.CreateSnapshotRequ
 	}, nil
 }
 
-// DeleteSnapshost will be called by the CO to delete a snapshot.
+// DeleteSnapshot will be called by the CO to delete a snapshot.
 func (d *Driver) DeleteSnapshot(ctx context.Context, req *csi.DeleteSnapshotRequest) (*csi.DeleteSnapshotResponse, error) {
 	ll := d.log.WithFields(logrus.Fields{
 		"req_snapshot_id": req.GetSnapshotId(),
@@ -859,17 +859,17 @@ func formatBytes(inputBytes int64) string {
 	unit := ""
 
 	switch {
-	case inputBytes >= TB:
-		output = output / TB
+	case inputBytes >= tiB:
+		output = output / tiB
 		unit = "Ti"
-	case inputBytes >= GB:
-		output = output / GB
+	case inputBytes >= giB:
+		output = output / giB
 		unit = "Gi"
-	case inputBytes >= MB:
-		output = output / MB
+	case inputBytes >= miB:
+		output = output / miB
 		unit = "Mi"
-	case inputBytes >= KB:
-		output = output / KB
+	case inputBytes >= kiB:
+		output = output / kiB
 		unit = "Ki"
 	case inputBytes == 0:
 		return "0"
@@ -912,7 +912,7 @@ func (d *Driver) waitAction(ctx context.Context, volumeId string, actionId int) 
 				continue
 			}
 		case <-ctx.Done():
-			return fmt.Errorf("timeout occured waiting for storage action of volume: %q", volumeId)
+			return fmt.Errorf("timeout occurred waiting for storage action of volume: %q", volumeId)
 		}
 	}
 }
@@ -964,7 +964,7 @@ func toCSISnapshot(snap *godo.Snapshot) (*csi.Snapshot, error) {
 	return &csi.Snapshot{
 		Id:             snap.ID,
 		SourceVolumeId: snap.ResourceID,
-		SizeBytes:      int64(snap.SizeGigaBytes) * GB,
+		SizeBytes:      int64(snap.SizeGigaBytes) * giB,
 		CreatedAt:      createdAt.UTC().UnixNano(),
 		Status: &csi.SnapshotStatus{
 			Type: csi.SnapshotStatus_READY,
