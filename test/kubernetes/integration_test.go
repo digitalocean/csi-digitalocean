@@ -566,6 +566,9 @@ func setup() error {
 			Name: namespace,
 		},
 	})
+	if err != nil {
+		return err
+	}
 
 	snapClient, err = snapclientset.NewForConfig(config)
 	if err != nil {

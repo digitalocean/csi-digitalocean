@@ -139,14 +139,13 @@ func (d *Driver) Run() error {
 	// CSI plugins talk only over UNIX sockets currently
 	if u.Scheme != "unix" {
 		return fmt.Errorf("currently only unix domain sockets are supported, have: %s", u.Scheme)
-	} else {
-		// remove the socket if it's already there. This can happen if we
-		// deploy a new version and the socket was created from the old running
-		// plugin.
-		d.log.WithField("socket", addr).Info("removing socket")
-		if err := os.Remove(addr); err != nil && !os.IsNotExist(err) {
-			return fmt.Errorf("failed to remove unix domain socket file %s, error: %s", addr, err)
-		}
+	}
+	// remove the socket if it's already there. This can happen if we
+	// deploy a new version and the socket was created from the old running
+	// plugin.
+	d.log.WithField("socket", addr).Info("removing socket")
+	if err := os.Remove(addr); err != nil && !os.IsNotExist(err) {
+		return fmt.Errorf("failed to remove unix domain socket file %s, error: %s", addr, err)
 	}
 
 	listener, err := net.Listen(u.Scheme, addr)
@@ -192,6 +191,7 @@ func (d *Driver) Stop() {
 // When building any packages that import version, pass the build/install cmd
 // ldflags like so:
 //   go build -ldflags "-X github.com/digitalocean/csi-digitalocean/driver.version=0.0.1"
+
 // GetVersion returns the current release version, as inserted at build time.
 func GetVersion() string {
 	return version
