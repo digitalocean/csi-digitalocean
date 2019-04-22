@@ -26,6 +26,7 @@ package driver
 
 import (
 	"context"
+	"errors"
 	"path/filepath"
 
 	"github.com/container-storage-interface/spec/lib/go/csi"
@@ -318,6 +319,10 @@ func (d *Driver) NodeGetVolumeStats(ctx context.Context, req *csi.NodeGetVolumeS
 		Info("node get volume stats called")
 
 	return nil, status.Error(codes.Unimplemented, "")
+}
+
+func (d *Driver) NodeExpandVolume(ctx context.Context, req *csi.NodeExpandVolumeRequest) (*csi.NodeExpandVolumeResponse, error) {
+	return nil, errors.New("not implemented yet")
 }
 
 // getDiskSource returns the absolute path of the attached volume for the given

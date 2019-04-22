@@ -790,6 +790,10 @@ func (d *Driver) ListSnapshots(ctx context.Context, req *csi.ListSnapshotsReques
 	return listResp, nil
 }
 
+func (d *Driver) ControllerExpandVolume(ctx context.Context, req *csi.ControllerExpandVolumeRequest) (*csi.ControllerExpandVolumeResponse, error) {
+	return nil, errors.New("not implemented yet")
+}
+
 // extractStorage extracts the storage size in bytes from the given capacity
 // range. If the capacity range is not satisfied it returns the default volume
 // size. If the capacity range is below or above supported sizes, it returns an
