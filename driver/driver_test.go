@@ -330,8 +330,17 @@ func (f *fakeSnapshotsDriver) ListDroplet(context.Context, *godo.ListOptions) ([
 	panic("not implemented")
 }
 
-func (f *fakeSnapshotsDriver) Get(context.Context, string) (*godo.Snapshot, *godo.Response, error) {
-	panic("not implemented")
+func (f *fakeSnapshotsDriver) Get(ctx context.Context, id string) (*godo.Snapshot, *godo.Response, error) {
+	resp := godoResponse()
+	snap, ok := f.snapshots[id]
+	if !ok {
+		resp.Response = &http.Response{
+			StatusCode: http.StatusNotFound,
+		}
+		return nil, resp, errors.New("snapshot not found")
+	}
+
+	return snap, resp, nil
 }
 
 func (f *fakeSnapshotsDriver) Delete(context.Context, string) (*godo.Response, error) {

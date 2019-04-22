@@ -18,6 +18,7 @@ package driver
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"net/http"
 	"strconv"
@@ -158,12 +159,19 @@ func (d *Driver) CreateVolume(ctx context.Context, req *csi.CreateVolumeRequest)
 	}
 
 	contentSource := req.GetVolumeContentSource()
-	if contentSource != nil {
-		snapshot := contentSource.GetSnapshot()
-		if snapshot != nil {
-			ll.WithField("snapshot_id", snapshot.GetSnapshotId()).Info("using snapshot as volume source")
-			volumeReq.SnapshotID = snapshot.GetSnapshotId()
+	if contentSource != nil && contentSource.GetSnapshot() != nil {
+		snapshotID := contentSource.GetSnapshot().GetSnapshotId()
+
+		// check if the snapshot exist before we continue
+		_, resp, err := d.snapshots.Get(ctx, snapshotID)
+		if err != nil {
+			if resp != nil && resp.StatusCode == http.StatusNotFound {
+				return nil, status.Errorf(codes.NotFound, "snapshot %q not found", snapshotID)
+			}
 		}
+
+		ll.WithField("snapshot_id", snapshotID).Info("using snapshot as volume source")
+		volumeReq.SnapshotID = snapshotID
 	}
 
 	ll.Info("checking volume limit")
