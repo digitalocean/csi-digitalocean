@@ -358,6 +358,24 @@ func TestSnapshot_Create(t *testing.T) {
 			Name: "my-csi-app-2",
 		},
 		Spec: v1.PodSpec{
+			// Write the data in an InitContainer so that we can guarantee
+			// it's been written before we reach running in the main container.
+			InitContainers: []v1.Container{
+				{
+					Name:  "my-csi",
+					Image: "busybox",
+					VolumeMounts: []v1.VolumeMount{
+						{
+							MountPath: "/data",
+							Name:      volumeName,
+						},
+					},
+					Command: []string{
+						"sh", "-c",
+						"echo testcanary > /data/canary && sync",
+					},
+				},
+			},
 			Containers: []v1.Container{
 				{
 					Name:  "my-csi-app",
@@ -370,7 +388,7 @@ func TestSnapshot_Create(t *testing.T) {
 					},
 					Command: []string{
 						"sh", "-c",
-						"echo testcanary > /data/canary && sleep 1000000",
+						"sleep 1000000",
 					},
 				},
 			},
