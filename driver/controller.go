@@ -484,7 +484,7 @@ func (d *Driver) ListVolumes(ctx context.Context, req *csi.ListVolumesRequest) (
 	if req.StartingToken != "" {
 		page, err = strconv.Atoi(req.StartingToken)
 		if err != nil {
-			return nil, err
+			return nil, status.Errorf(codes.Aborted, "starting_token is invalid: %s", err)
 		}
 	}
 
