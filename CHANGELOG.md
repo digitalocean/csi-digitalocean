@@ -1,5 +1,7 @@
 ## unreleased
 
+## v1.1.0 - 2019.04.22
+
 * Add tagging support for Volumes via the new `--do-tag` flag
   [[GH-130]](https://github.com/digitalocean/csi-digitalocean/pull/130)
 * Fix support for volume snapshots by setting snapshot id on volume creation
