@@ -1,5 +1,33 @@
 # Change Log
 
+## [v1.13.0] - 2019-04-19
+
+- #213 Add tagging support for volume snapshots - @jcodybaker
+
+## [v1.12.0] - 2019-04-18
+
+- #224 Add maintenance window support for Kubernetes- @fatih
+
+## [v1.11.1] - 2019-04-04
+
+- #222 Fix Create Database Pools json fields - @sunny-b
+
+## [v1.11.0] - 2019-04-03
+
+- #220 roll out vpc functionality - @jheimann
+
+## [v1.10.1] - 2019-03-27
+
+- #219 Fix Database Pools json field - @sunny-b
+
+## [v1.10.0] - 2019-03-20
+
+- #215 Add support for Databases - @mikejholly
+
+## [v1.9.0] - 2019-03-18
+
+- #214 add support for enable_proxy_protocol. - @mregmi
+
 ## [v1.8.0] - 2019-03-13
 
 - #210 Expose tags on storage volume create/list/get. - @jcodybaker
