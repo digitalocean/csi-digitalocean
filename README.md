@@ -194,7 +194,7 @@ Dependencies are managed via [Go modules](https://github.com/golang/go/wiki/Modu
 To release a new version bump first the version:
 
 ```
-$ make bump-version
+$ make NEW_VERSION=v1.0.0 bump-version
 ```
 
 Make sure everything looks good. Create a new branch with all changes:
