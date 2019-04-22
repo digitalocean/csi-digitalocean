@@ -19,7 +19,6 @@ package driver
 import (
 	"context"
 	"errors"
-	"io/ioutil"
 	"math/rand"
 	"net/http"
 	"os"
@@ -71,7 +70,7 @@ func TestDriverSuite(t *testing.T) {
 	driver := &Driver{
 		endpoint: endpoint,
 		nodeId:   strconv.Itoa(nodeID),
-		doTag: doTag,
+		doTag:    doTag,
 		region:   "nyc3",
 		mounter:  &fakeMounter{},
 		log:      logrus.New().WithField("test_enabed", true),
@@ -97,22 +96,8 @@ func TestDriverSuite(t *testing.T) {
 
 	go driver.Run()
 
-	mntDir, err := ioutil.TempDir("", "mnt")
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer os.RemoveAll(mntDir)
-
-	mntStageDir, err := ioutil.TempDir("", "mnt-stage")
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer os.RemoveAll(mntStageDir)
-
 	cfg := &sanity.Config{
-		StagingPath: mntStageDir,
-		TargetPath:  mntDir,
-		Address:     endpoint,
+		Address: endpoint,
 	}
 
 	sanity.Test(t, cfg)
