@@ -36,19 +36,19 @@ bumped following the rules below:
   </thead>
   <tbody>
     <tr>
-      <td>v0.1.0 - v0.2.x</td>
+      <td>v0.1.x - v0.2.x</td>
       <td>yes</td>
       <td>no</td>
       <td>no</td>
     </tr>
     <tr>
-      <td>v0.3.0 - v0.4.x</td>
+      <td>v0.3.x - v0.4.x</td>
       <td>no</td>
       <td>yes</td>
       <td>no</td>
     </tr>
     <tr>
-      <td>v1.0.0 - v1.0.x</td>
+      <td>v1.0.x - v1.0.x</td>
       <td>no</td>
       <td>no</td>
       <td>yes</td>
@@ -226,7 +226,7 @@ Dependencies are managed via [Go modules](https://github.com/golang/go/wiki/Modu
 To release a new version bump first the version:
 
 ```
-$ make bump-version
+$ make NEW_VERSION=v1.0.0 bump-version
 ```
 
 Make sure everything looks good. Create a new branch with all changes:
