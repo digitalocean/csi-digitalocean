@@ -631,11 +631,16 @@ func (d *Driver) CreateSnapshot(ctx context.Context, req *csi.CreateSnapshotRequ
 		}
 	}
 
-	snap, resp, err := d.storage.CreateSnapshot(ctx, &godo.SnapshotCreateRequest{
+	snapReq := &godo.SnapshotCreateRequest{
 		VolumeID:    req.GetSourceVolumeId(),
 		Name:        req.GetName(),
 		Description: createdByDO,
-	})
+	}
+	if d.doTag != "" {
+		snapReq.Tags = append(snapReq.Tags, d.doTag)
+	}
+
+	snap, resp, err := d.storage.CreateSnapshot(ctx, snapReq)
 	if err != nil {
 		if resp != nil && resp.StatusCode == http.StatusConflict {
 			// 409 is returned when we try to snapshot a volume with the same
