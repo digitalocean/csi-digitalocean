@@ -513,6 +513,10 @@ func (d *Driver) ListVolumes(ctx context.Context, req *csi.ListVolumesRequest) (
 
 		volumes = append(volumes, vols...)
 
+		if page > len(volumes) {
+			return nil, status.Error(codes.Aborted, "starting_token is is greater than total number of vols")
+		}
+
 		if resp.Links == nil || resp.Links.IsLastPage() {
 			if resp.Links != nil {
 				page, err := resp.Links.CurrentPage()

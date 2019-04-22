@@ -97,7 +97,9 @@ func TestDriverSuite(t *testing.T) {
 	go driver.Run()
 
 	cfg := &sanity.Config{
-		Address: endpoint,
+		TargetPath:  os.TempDir() + "/csi-target",
+		StagingPath: os.TempDir() + "/csi-staging",
+		Address:     endpoint,
 	}
 
 	sanity.Test(t, cfg)
