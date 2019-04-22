@@ -123,6 +123,16 @@ func (f *fakeStorageDriver) ListVolumes(ctx context.Context, param *godo.ListVol
 		volumes = append(volumes, *vol)
 	}
 
+	if param != nil && param.ListOptions != nil && param.ListOptions.PerPage != 0 {
+		perPage := param.ListOptions.PerPage
+		vols := volumes[:perPage]
+		for _, vol := range vols {
+			delete(f.volumes, vol.ID)
+		}
+
+		return vols, godoResponse(), nil
+	}
+
 	if param.Name != "" {
 		var filtered []godo.Volume
 		for _, vol := range volumes {
