@@ -17,6 +17,8 @@
   [[GH-142]](https://github.com/digitalocean/csi-digitalocean/pull/142)
 * Update `godo` (DigitalOcean API package) version to v1.13.0
   [[GH-143]](https://github.com/digitalocean/csi-digitalocean/pull/143)
+* Fix race in snapshot integration test.
+  [[GH-146]](https://github.com/digitalocean/csi-digitalocean/pull/146)
 
 ## v1.0.0 - 2018.12.19
 
