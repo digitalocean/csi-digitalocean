@@ -145,9 +145,8 @@ spec:
             - name: socket-dir
               mountPath: /var/lib/csi/sockets/pluginproxy/
         - name: csi-snapshotter
-          image: quay.io/k8scsi/csi-snapshotter:v1.0.1
+          image: quay.io/k8scsi/csi-snapshotter:v1.1.0
           args:
-            - "--connection-timeout=15s"
             - "--csi-address=$(ADDRESS)"
           env:
             - name: ADDRESS
