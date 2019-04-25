@@ -35,6 +35,8 @@ const (
 	// provisioned volumes. 10GB by default, can be overridden by
 	// setting Config.TestVolumeSize.
 	DefTestVolumeSize int64 = 10 * 1024 * 1024 * 1024
+
+	MaxNameLength int = 128
 )
 
 func TestVolumeSize(sc *SanityContext) int64 {
@@ -437,6 +439,56 @@ var _ = DescribeSanity("Controller Service", func(sc *SanityContext) {
 				context.Background(),
 				&csi.DeleteVolumeRequest{
 					VolumeId:                vol1.GetVolume().GetId(),
+					ControllerDeleteSecrets: sc.Secrets.DeleteVolumeSecret,
+				},
+			)
+			Expect(err).NotTo(HaveOccurred())
+			cl.UnregisterVolume(name)
+		})
+
+		It("should not fail when creating volume with maximum-length name", func() {
+
+			nameBytes := make([]byte, MaxNameLength)
+			for i := 0; i < MaxNameLength; i++ {
+				nameBytes[i] = 'a'
+			}
+			name := string(nameBytes)
+			By("creating a volume")
+			size := TestVolumeSize(sc)
+
+			vol, err := c.CreateVolume(
+				context.Background(),
+				&csi.CreateVolumeRequest{
+					Name: name,
+					VolumeCapabilities: []*csi.VolumeCapability{
+						{
+							AccessType: &csi.VolumeCapability_Mount{
+								Mount: &csi.VolumeCapability_MountVolume{},
+							},
+							AccessMode: &csi.VolumeCapability_AccessMode{
+								Mode: csi.VolumeCapability_AccessMode_SINGLE_NODE_WRITER,
+							},
+						},
+					},
+					CapacityRange: &csi.CapacityRange{
+						RequiredBytes: size,
+					},
+					ControllerCreateSecrets: sc.Secrets.CreateVolumeSecret,
+				},
+			)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(vol).NotTo(BeNil())
+			Expect(vol.GetVolume()).NotTo(BeNil())
+			Expect(vol.GetVolume().GetId()).NotTo(BeEmpty())
+			cl.RegisterVolume(name, VolumeInfo{VolumeID: vol.GetVolume().GetId()})
+			Expect(vol.GetVolume().GetCapacityBytes()).To(BeNumerically(">=", size))
+
+			By("cleaning up deleting the volume")
+
+			_, err = c.DeleteVolume(
+				context.Background(),
+				&csi.DeleteVolumeRequest{
+					VolumeId:                vol.GetVolume().GetId(),
 					ControllerDeleteSecrets: sc.Secrets.DeleteVolumeSecret,
 				},
 			)
@@ -1202,46 +1254,6 @@ var _ = DescribeSanity("ListSnapshots [Controller Server]", func(sc *SanityConte
 		Expect(snapshots.GetEntries()).To(BeEmpty())
 	})
 
-	It("should fail when an invalid starting_token is passed", func() {
-		vols, err := c.ListSnapshots(
-			context.Background(),
-			&csi.ListSnapshotsRequest{
-				StartingToken: "invalid-token",
-			},
-		)
-		Expect(err).To(HaveOccurred())
-		Expect(vols).To(BeNil())
-
-		serverError, ok := status.FromError(err)
-		Expect(ok).To(BeTrue())
-		Expect(serverError.Code()).To(Equal(codes.Aborted))
-	})
-
-	It("should fail when the starting_token is greater than total number of snapshots", func() {
-		// Get total number of snapshots.
-		snapshots, err := c.ListSnapshots(
-			context.Background(),
-			&csi.ListSnapshotsRequest{})
-		Expect(err).NotTo(HaveOccurred())
-		Expect(snapshots).NotTo(BeNil())
-
-		totalSnapshots := len(snapshots.GetEntries())
-
-		// Send starting_token that is greater than the total number of snapshots.
-		snapshots, err = c.ListSnapshots(
-			context.Background(),
-			&csi.ListSnapshotsRequest{
-				StartingToken: strconv.Itoa(totalSnapshots + 5),
-			},
-		)
-		Expect(err).To(HaveOccurred())
-		Expect(snapshots).To(BeNil())
-
-		serverError, ok := status.FromError(err)
-		Expect(ok).To(BeTrue())
-		Expect(serverError.Code()).To(Equal(codes.Aborted))
-	})
-
 	It("check the presence of new snapshots in the snapshot list", func() {
 		// List Snapshots before creating new snapshots.
 		snapshots, err := c.ListSnapshots(
@@ -1349,7 +1361,6 @@ var _ = DescribeSanity("ListSnapshots [Controller Server]", func(sc *SanityConte
 
 		nextToken := snapshots.GetNextToken()
 
-		Expect(nextToken).To(Equal(strconv.Itoa(maxEntries)))
 		Expect(len(snapshots.GetEntries())).To(Equal(maxEntries))
 
 		// Request list snapshots with starting_token and no max entries.
@@ -1546,6 +1557,42 @@ var _ = DescribeSanity("CreateSnapshot [Controller Server]", func(sc *SanityCont
 		serverError, ok := status.FromError(err)
 		Expect(ok).To(BeTrue())
 		Expect(serverError.Code()).To(Equal(codes.AlreadyExists))
+
+		By("cleaning up deleting the snapshot")
+		delSnapReq := MakeDeleteSnapshotReq(sc, snap1.GetSnapshot().GetId())
+		_, err = c.DeleteSnapshot(context.Background(), delSnapReq)
+		Expect(err).NotTo(HaveOccurred())
+
+		By("cleaning up deleting the volume")
+		delVolReq := MakeDeleteVolumeReq(sc, volume.GetVolume().GetId())
+		_, err = c.DeleteVolume(context.Background(), delVolReq)
+		Expect(err).NotTo(HaveOccurred())
+	})
+
+	It("should not fail when creating snapshot with maximum-length name", func() {
+
+		By("creating a volume")
+		volReq := MakeCreateVolumeReq(sc, "CreateSnapshot-volume-3")
+		volume, err := c.CreateVolume(context.Background(), volReq)
+		Expect(err).NotTo(HaveOccurred())
+
+		nameBytes := make([]byte, MaxNameLength)
+		for i := 0; i < MaxNameLength; i++ {
+			nameBytes[i] = 'a'
+		}
+		name := string(nameBytes)
+
+		By("creating a snapshot")
+		snapReq1 := MakeCreateSnapshotReq(sc, name, volume.GetVolume().GetId(), nil)
+		snap1, err := c.CreateSnapshot(context.Background(), snapReq1)
+		Expect(err).NotTo(HaveOccurred())
+		Expect(snap1).NotTo(BeNil())
+		verifySnapshotInfo(snap1.GetSnapshot())
+
+		snap2, err := c.CreateSnapshot(context.Background(), snapReq1)
+		Expect(err).NotTo(HaveOccurred())
+		Expect(snap2).NotTo(BeNil())
+		verifySnapshotInfo(snap2.GetSnapshot())
 
 		By("cleaning up deleting the snapshot")
 		delSnapReq := MakeDeleteSnapshotReq(sc, snap1.GetSnapshot().GetId())

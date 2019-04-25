@@ -60,6 +60,8 @@ type SanityContext struct {
 	Config  *Config
 	Conn    *grpc.ClientConn
 	Secrets *CSISecrets
+
+	connAddress string
 }
 
 // Test will test the CSI driver at the specified address by
@@ -92,9 +94,17 @@ func (sc *SanityContext) setup() {
 		sc.Secrets = &CSISecrets{}
 	}
 
-	By("connecting to CSI driver")
-	sc.Conn, err = utils.Connect(sc.Config.Address)
-	Expect(err).NotTo(HaveOccurred())
+	// It is possible that a test sets sc.Config.Address
+	// dynamically (and differently!) in a BeforeEach, so only
+	// reuse the connection if the address is still the same.
+	if sc.Conn == nil || sc.connAddress != sc.Config.Address {
+		By("connecting to CSI driver")
+		sc.Conn, err = utils.Connect(sc.Config.Address)
+		Expect(err).NotTo(HaveOccurred())
+		sc.connAddress = sc.Config.Address
+	} else {
+		By(fmt.Sprintf("reusing connection to CSI driver at %s", sc.connAddress))
+	}
 
 	By("creating mount and staging directories")
 	err = createMountTargetLocation(sc.Config.TargetPath)
@@ -106,10 +116,16 @@ func (sc *SanityContext) setup() {
 }
 
 func (sc *SanityContext) teardown() {
-	if sc.Conn != nil {
-		sc.Conn.Close()
-		sc.Conn = nil
-	}
+	// We intentionally do not close the connection to the CSI
+	// driver here because the large amount of connection attempts
+	// caused test failures
+	// (https://github.com/kubernetes-csi/csi-test/issues/101). We
+	// could fix this with retries
+	// (https://github.com/kubernetes-csi/csi-test/pull/97) but
+	// that requires more discussion, so instead we just connect
+	// once per process instead of once per test case. This was
+	// also said to be faster
+	// (https://github.com/kubernetes-csi/csi-test/pull/98).
 }
 
 func createMountTargetLocation(targetPath string) error {
