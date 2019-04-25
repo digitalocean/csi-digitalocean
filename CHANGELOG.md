@@ -1,5 +1,27 @@
 ## unreleased
 
+* Cherry-pick: Add tagging support for Volumes via the new `--do-tag` flag
+  [[GH-130]](https://github.com/digitalocean/csi-digitalocean/pull/130)
+* Cherry-pick: Fix support for volume snapshots by setting snapshot id on volume creation
+  [[GH-129]](https://github.com/digitalocean/csi-digitalocean/pull/129)
+* Cherry-pick: Goreportcard fixes (typos, exported variables, etc..)
+  [[GH-121]](https://github.com/digitalocean/csi-digitalocean/pull/121)
+* Cherry-pick: Rename the cluster role bindings for the `node-driver-registrar` to be
+  consistent with the other role bindings.
+  [[GH-118]](https://github.com/digitalocean/csi-digitalocean/pull/118)
+* Cherry-pick: Remove the `--token` flag for the `csi-do-node` driver. Drivers running on
+  the node don't need the token anymore.
+  [[GH-118]](https://github.com/digitalocean/csi-digitalocean/pull/118)
+* Cherry-pick: Don't check the volume limits on the worker nodes (worker nodes are not able
+  to talk to DigitalOcean API)
+  [[GH-142]](https://github.com/digitalocean/csi-digitalocean/pull/142)
+* Cherry-pick: Update `godo` (DigitalOcean API package) version to v1.13.0
+  [[GH-143]](https://github.com/digitalocean/csi-digitalocean/pull/143)
+* Cherry-pick: Fix race in snapshot integration test.
+  [[GH-146]](https://github.com/digitalocean/csi-digitalocean/pull/146)
+* Cherry-pick: Add tagging support for Volume snapshots via the new `--do-tag` flag
+  [[GH-145]](https://github.com/digitalocean/csi-digitalocean/pull/145)
+
 ## v0.4.0 - 2018.11.26
 
 * Add CSI Snapshots functionality
