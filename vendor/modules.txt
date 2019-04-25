@@ -4,7 +4,7 @@ github.com/container-storage-interface/spec/lib/go/csi/v0
 github.com/davecgh/go-spew/spew
 # github.com/digitalocean/go-metadata v0.0.0-20180111002115-15bd36e5f6f7
 github.com/digitalocean/go-metadata
-# github.com/digitalocean/godo v1.4.2
+# github.com/digitalocean/godo v1.13.0
 github.com/digitalocean/godo
 # github.com/gogo/protobuf v1.1.1
 github.com/gogo/protobuf/proto
@@ -38,7 +38,7 @@ github.com/hashicorp/golang-lru/simplelru
 github.com/imdario/mergo
 # github.com/json-iterator/go v1.1.5
 github.com/json-iterator/go
-# github.com/kubernetes-csi/csi-test v0.3.0-2
+# github.com/kubernetes-csi/csi-test v0.3.0-4
 github.com/kubernetes-csi/csi-test/pkg/sanity
 github.com/kubernetes-csi/csi-test/utils
 # github.com/kubernetes-csi/external-snapshotter v0.4.1
@@ -88,8 +88,6 @@ github.com/peterbourgon/diskv
 github.com/sirupsen/logrus
 # github.com/spf13/pflag v1.0.2
 github.com/spf13/pflag
-# github.com/tent/http-link-go v0.0.0-20130702225549-ac974c61c2f9
-github.com/tent/http-link-go
 # golang.org/x/crypto v0.0.0-20180411161317-d6449816ce06
 golang.org/x/crypto/ssh/terminal
 # golang.org/x/net v0.0.0-20180406214816-61147c48b25b

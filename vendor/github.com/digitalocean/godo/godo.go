@@ -14,11 +14,10 @@ import (
 	"time"
 
 	"github.com/google/go-querystring/query"
-	headerLink "github.com/tent/http-link-go"
 )
 
 const (
-	libraryVersion = "1.4.2"
+	libraryVersion = "1.13.0"
 	defaultBaseURL = "https://api.digitalocean.com/"
 	userAgent      = "godo/" + libraryVersion
 	mediaType      = "application/json"
@@ -64,6 +63,10 @@ type Client struct {
 	LoadBalancers     LoadBalancersService
 	Certificates      CertificatesService
 	Firewalls         FirewallsService
+	Projects          ProjectsService
+	Kubernetes        KubernetesService
+	Databases         DatabasesService
+	VPCs              VPCsService
 
 	// Optional function called after every successful request made to the DO APIs
 	onRequestCompleted RequestCompletionCallback
@@ -159,23 +162,27 @@ func NewClient(httpClient *http.Client) *Client {
 	c.Account = &AccountServiceOp{client: c}
 	c.Actions = &ActionsServiceOp{client: c}
 	c.CDNs = &CDNServiceOp{client: c}
+	c.Certificates = &CertificatesServiceOp{client: c}
 	c.Domains = &DomainsServiceOp{client: c}
 	c.Droplets = &DropletsServiceOp{client: c}
 	c.DropletActions = &DropletActionsServiceOp{client: c}
+	c.Firewalls = &FirewallsServiceOp{client: c}
 	c.FloatingIPs = &FloatingIPsServiceOp{client: c}
 	c.FloatingIPActions = &FloatingIPActionsServiceOp{client: c}
 	c.Images = &ImagesServiceOp{client: c}
 	c.ImageActions = &ImageActionsServiceOp{client: c}
 	c.Keys = &KeysServiceOp{client: c}
+	c.LoadBalancers = &LoadBalancersServiceOp{client: c}
+	c.Projects = &ProjectsServiceOp{client: c}
 	c.Regions = &RegionsServiceOp{client: c}
-	c.Snapshots = &SnapshotsServiceOp{client: c}
 	c.Sizes = &SizesServiceOp{client: c}
+	c.Snapshots = &SnapshotsServiceOp{client: c}
 	c.Storage = &StorageServiceOp{client: c}
 	c.StorageActions = &StorageActionsServiceOp{client: c}
 	c.Tags = &TagsServiceOp{client: c}
-	c.LoadBalancers = &LoadBalancersServiceOp{client: c}
-	c.Certificates = &CertificatesServiceOp{client: c}
-	c.Firewalls = &FirewallsServiceOp{client: c}
+	c.Kubernetes = &KubernetesServiceOp{client: c}
+	c.Databases = &DatabasesServiceOp{client: c}
+	c.VPCs = &VPCsServiceOp{client: c}
 
 	return c
 }
@@ -257,25 +264,6 @@ func newResponse(r *http.Response) *Response {
 	response.populateRate()
 
 	return &response
-}
-
-func (r *Response) links() (map[string]headerLink.Link, error) {
-	if linkText, ok := r.Response.Header["Link"]; ok {
-		links, err := headerLink.Parse(linkText[0])
-
-		if err != nil {
-			return nil, err
-		}
-
-		linkMap := map[string]headerLink.Link{}
-		for _, link := range links {
-			linkMap[link.Rel] = link
-		}
-
-		return linkMap, nil
-	}
-
-	return map[string]headerLink.Link{}, nil
 }
 
 // populateRate parses the rate related headers and populates the response Rate.

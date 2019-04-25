@@ -53,10 +53,15 @@ type Volume struct {
 	CreatedAt       time.Time `json:"created_at"`
 	FilesystemType  string    `json:"filesystem_type"`
 	FilesystemLabel string    `json:"filesystem_label"`
+	Tags            []string  `json:"tags"`
 }
 
 func (f Volume) String() string {
 	return Stringify(f)
+}
+
+func (f Volume) URN() string {
+	return ToURN("Volume", f.ID)
 }
 
 type storageVolumesRoot struct {
@@ -72,13 +77,14 @@ type storageVolumeRoot struct {
 // VolumeCreateRequest represents a request to create a block store
 // volume.
 type VolumeCreateRequest struct {
-	Region          string `json:"region"`
-	Name            string `json:"name"`
-	Description     string `json:"description"`
-	SizeGigaBytes   int64  `json:"size_gigabytes"`
-	SnapshotID      string `json:"snapshot_id"`
-	FilesystemType  string `json:"filesystem_type"`
-	FilesystemLabel string `json:"filesystem_label"`
+	Region          string   `json:"region"`
+	Name            string   `json:"name"`
+	Description     string   `json:"description"`
+	SizeGigaBytes   int64    `json:"size_gigabytes"`
+	SnapshotID      string   `json:"snapshot_id"`
+	FilesystemType  string   `json:"filesystem_type"`
+	FilesystemLabel string   `json:"filesystem_label"`
+	Tags            []string `json:"tags"`
 }
 
 // ListVolumes lists all storage volumes.
@@ -169,9 +175,10 @@ func (svc *StorageServiceOp) DeleteVolume(ctx context.Context, id string) (*Resp
 // SnapshotCreateRequest represents a request to create a block store
 // volume.
 type SnapshotCreateRequest struct {
-	VolumeID    string `json:"volume_id"`
-	Name        string `json:"name"`
-	Description string `json:"description"`
+	VolumeID    string   `json:"volume_id"`
+	Name        string   `json:"name"`
+	Description string   `json:"description"`
+	Tags        []string `json:"tags"`
 }
 
 // ListSnapshots lists all snapshots related to a storage volume.
