@@ -1,5 +1,7 @@
 ## unreleased
 
+## v0.4.1 - 2019.04.26
+
 * Cherry-pick: Add tagging support for Volumes via the new `--do-tag` flag
   [[GH-130]](https://github.com/digitalocean/csi-digitalocean/pull/130)
 * Cherry-pick: Fix support for volume snapshots by setting snapshot id on volume creation
