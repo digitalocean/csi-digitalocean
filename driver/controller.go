@@ -161,6 +161,9 @@ func (d *Driver) CreateVolume(ctx context.Context, req *csi.CreateVolumeRequest)
 	contentSource := req.GetVolumeContentSource()
 	if contentSource != nil && contentSource.GetSnapshot() != nil {
 		snapshotID := contentSource.GetSnapshot().GetSnapshotId()
+		if snapshotID == "" {
+			return nil, status.Error(codes.InvalidArgument, "snapshot ID is empty")
+		}
 
 		// check if the snapshot exist before we continue
 		_, resp, err := d.snapshots.Get(ctx, snapshotID)
