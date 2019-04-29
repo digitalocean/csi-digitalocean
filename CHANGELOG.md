@@ -1,5 +1,35 @@
 ## unreleased
 
+## v1.1.0 - 2019.04.29
+
+**IMPORTANT**: This release is only compatible with Kubernetes **`v1.14.+`**
+
+* Update CSI Spec to `v1.1.0`. This includes many new changes, make sure 
+  to read the Github PR for more information
+  [[GH-144]](https://github.com/digitalocean/csi-digitalocean/pull/144)
+* Update csi-test library to `v2.0.0`. 
+  [[GH-144]](https://github.com/digitalocean/csi-digitalocean/pull/144)
+* Updated sidecars to the following versions:
+  [[GH-144]](https://github.com/digitalocean/csi-digitalocean/pull/144)
+
+```
+quay.io/k8scsi/csi-provisioner:v1.1.0
+quay.io/k8scsi/csi-attacher:v1.1.1
+quay.io/k8scsi/csi-snapshotter:v1.1.0
+quay.io/k8scsi/csi-node-driver-registrar:v1.1.0
+```
+
+* Deprecated `cluster-driver-registrar` sidecar. The `CSIDriver` CRD is now
+  part of Kubernetes since `v1.14.0`
+  [[GH-144]](https://github.com/digitalocean/csi-digitalocean/pull/144)
+* Added a new custom `CSIDriver` with the name `dobs.csi.digitalocean.com`
+  [[GH-144]](https://github.com/digitalocean/csi-digitalocean/pull/144)
+* Fix checking volume snapshot existency before proceeding creating a snapshot
+  based volume
+  [[GH-144]](https://github.com/digitalocean/csi-digitalocean/pull/144)
+* Return proper error messages for unimplemented CSI methods
+  [[GH-154]](https://github.com/digitalocean/csi-digitalocean/pull/154)
+
 ## v1.0.1 - 2019.04.25
 
 * Add tagging support for Volumes via the new `--do-tag` flag
