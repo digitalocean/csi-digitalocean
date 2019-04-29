@@ -18,6 +18,7 @@ package driver
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"net/http"
 	"strconv"
@@ -158,12 +159,22 @@ func (d *Driver) CreateVolume(ctx context.Context, req *csi.CreateVolumeRequest)
 	}
 
 	contentSource := req.GetVolumeContentSource()
-	if contentSource != nil {
-		snapshot := contentSource.GetSnapshot()
-		if snapshot != nil {
-			ll.WithField("snapshot_id", snapshot.GetSnapshotId()).Info("using snapshot as volume source")
-			volumeReq.SnapshotID = snapshot.GetSnapshotId()
+	if contentSource != nil && contentSource.GetSnapshot() != nil {
+		snapshotID := contentSource.GetSnapshot().GetSnapshotId()
+		if snapshotID == "" {
+			return nil, status.Error(codes.InvalidArgument, "snapshot ID is empty")
 		}
+
+		// check if the snapshot exist before we continue
+		_, resp, err := d.snapshots.Get(ctx, snapshotID)
+		if err != nil {
+			if resp != nil && resp.StatusCode == http.StatusNotFound {
+				return nil, status.Errorf(codes.NotFound, "snapshot %q not found", snapshotID)
+			}
+		}
+
+		ll.WithField("snapshot_id", snapshotID).Info("using snapshot as volume source")
+		volumeReq.SnapshotID = snapshotID
 	}
 
 	ll.Info("checking volume limit")
@@ -476,7 +487,7 @@ func (d *Driver) ListVolumes(ctx context.Context, req *csi.ListVolumesRequest) (
 	if req.StartingToken != "" {
 		page, err = strconv.Atoi(req.StartingToken)
 		if err != nil {
-			return nil, err
+			return nil, status.Errorf(codes.Aborted, "starting_token is invalid: %s", err)
 		}
 	}
 
@@ -504,6 +515,15 @@ func (d *Driver) ListVolumes(ctx context.Context, req *csi.ListVolumesRequest) (
 		}
 
 		volumes = append(volumes, vols...)
+
+		if page > len(volumes) {
+			return nil, status.Error(codes.Aborted, "starting_token is is greater than total number of vols")
+		}
+
+		if len(volumes) == int(req.MaxEntries) {
+			lastPage = int(req.MaxEntries)
+			break
+		}
 
 		if resp.Links == nil || resp.Links.IsLastPage() {
 			if resp.Links != nil {
@@ -788,6 +808,10 @@ func (d *Driver) ListSnapshots(ctx context.Context, req *csi.ListSnapshotsReques
 
 	ll.WithField("response", listResp).Info("snapshots listed")
 	return listResp, nil
+}
+
+func (d *Driver) ControllerExpandVolume(ctx context.Context, req *csi.ControllerExpandVolumeRequest) (*csi.ControllerExpandVolumeResponse, error) {
+	return nil, errors.New("not implemented yet")
 }
 
 // extractStorage extracts the storage size in bytes from the given capacity

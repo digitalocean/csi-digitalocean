@@ -19,7 +19,6 @@ package driver
 import (
 	"context"
 	"errors"
-	"io/ioutil"
 	"math/rand"
 	"net/http"
 	"os"
@@ -71,7 +70,7 @@ func TestDriverSuite(t *testing.T) {
 	driver := &Driver{
 		endpoint: endpoint,
 		nodeId:   strconv.Itoa(nodeID),
-		doTag: doTag,
+		doTag:    doTag,
 		region:   "nyc3",
 		mounter:  &fakeMounter{},
 		log:      logrus.New().WithField("test_enabed", true),
@@ -97,21 +96,9 @@ func TestDriverSuite(t *testing.T) {
 
 	go driver.Run()
 
-	mntDir, err := ioutil.TempDir("", "mnt")
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer os.RemoveAll(mntDir)
-
-	mntStageDir, err := ioutil.TempDir("", "mnt-stage")
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer os.RemoveAll(mntStageDir)
-
 	cfg := &sanity.Config{
-		StagingPath: mntStageDir,
-		TargetPath:  mntDir,
+		TargetPath:  os.TempDir() + "/csi-target",
+		StagingPath: os.TempDir() + "/csi-staging",
 		Address:     endpoint,
 	}
 
@@ -134,6 +121,16 @@ func (f *fakeStorageDriver) ListVolumes(ctx context.Context, param *godo.ListVol
 
 	for _, vol := range f.volumes {
 		volumes = append(volumes, *vol)
+	}
+
+	if param != nil && param.ListOptions != nil && param.ListOptions.PerPage != 0 {
+		perPage := param.ListOptions.PerPage
+		vols := volumes[:perPage]
+		for _, vol := range vols {
+			delete(f.volumes, vol.ID)
+		}
+
+		return vols, godoResponse(), nil
 	}
 
 	if param.Name != "" {
@@ -345,8 +342,17 @@ func (f *fakeSnapshotsDriver) ListDroplet(context.Context, *godo.ListOptions) ([
 	panic("not implemented")
 }
 
-func (f *fakeSnapshotsDriver) Get(context.Context, string) (*godo.Snapshot, *godo.Response, error) {
-	panic("not implemented")
+func (f *fakeSnapshotsDriver) Get(ctx context.Context, id string) (*godo.Snapshot, *godo.Response, error) {
+	resp := godoResponse()
+	snap, ok := f.snapshots[id]
+	if !ok {
+		resp.Response = &http.Response{
+			StatusCode: http.StatusNotFound,
+		}
+		return nil, resp, errors.New("snapshot not found")
+	}
+
+	return snap, resp, nil
 }
 
 func (f *fakeSnapshotsDriver) Delete(context.Context, string) (*godo.Response, error) {
