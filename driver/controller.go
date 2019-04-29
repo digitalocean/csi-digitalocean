@@ -18,7 +18,6 @@ package driver
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"net/http"
 	"strconv"
@@ -811,7 +810,10 @@ func (d *Driver) ListSnapshots(ctx context.Context, req *csi.ListSnapshotsReques
 }
 
 func (d *Driver) ControllerExpandVolume(ctx context.Context, req *csi.ControllerExpandVolumeRequest) (*csi.ControllerExpandVolumeResponse, error) {
-	return nil, errors.New("not implemented yet")
+	d.log.WithField("method", "controller_expand_volume").
+		Info("controller expand volume called")
+
+	return nil, status.Error(codes.Unimplemented, "")
 }
 
 // extractStorage extracts the storage size in bytes from the given capacity
