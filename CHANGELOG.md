@@ -1,5 +1,7 @@
 ## unreleased
 
+* Set a custom user agent for the godo client. [[GH-156](https://github.com/digitalocean/csi-digitalocean/pull/156)]
+
 ## v1.1.0 - 2019.04.29
 
 **IMPORTANT**: This release is only compatible with Kubernetes **`v1.14.+`**
