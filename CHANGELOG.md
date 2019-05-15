@@ -1,5 +1,8 @@
 ## unreleased
 
+* Set a custom user agent for the godo client.
+  [[GH-156]](https://github.com/digitalocean/csi-digitalocean/pull/156)
+
 ## v0.2.1 - 2019.01.09
 
 * Backported "use publish info for storing and accessing the volume name"
