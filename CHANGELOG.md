@@ -1,6 +1,7 @@
 ## unreleased
 
 * Set a custom user agent for the godo client. [[GH-156](https://github.com/digitalocean/csi-digitalocean/pull/156)]
+* Include `xfsprogs` in the base Docker image so that XFS can be used
 
 ## v1.1.0 - 2019.04.29
 
