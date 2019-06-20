@@ -11,6 +11,7 @@ LDFLAGS ?= -X github.com/digitalocean/csi-digitalocean/driver.version=${VERSION}
 PKG ?= github.com/digitalocean/csi-digitalocean/cmd/do-csi-plugin
 
 VERSION ?= $(shell cat VERSION)
+DOCKER_REPO ?= digitalocean/do-csi-plugin
 
 all: test
 
@@ -33,7 +34,7 @@ bump-version:
 .PHONY: compile
 compile:
 	@echo "==> Building the project"
-	@env CGO_ENABLED=0 GOOS=${OS} GOARCH=amd64 go build -o cmd/do-csi-plugin/${NAME} -ldflags "$(LDFLAGS)" ${PKG} 
+	@docker run --rm -it -e GOOS=${OS} -e GOARCH=amd64 -v ${PWD}/:/app -w /app golang:1.12-alpine sh -c 'apk add git && go build -o cmd/do-csi-plugin/${NAME} -ldflags "$(LDFLAGS)" ${PKG}'
 
 
 .PHONY: test
@@ -51,16 +52,16 @@ test-integration:
 .PHONY: build
 build:
 	@echo "==> Building the docker image"
-	@docker build -t digitalocean/do-csi-plugin:$(VERSION) cmd/do-csi-plugin -f cmd/do-csi-plugin/Dockerfile
+	@docker build -t $(DOCKER_REPO):$(VERSION) cmd/do-csi-plugin -f cmd/do-csi-plugin/Dockerfile
 
 .PHONY: push
 push:
 ifeq ($(shell [[ $(BRANCH) != "master" && $(VERSION) != "dev" ]] && echo true ),true)
 	@echo "ERROR: Publishing image with a SEMVER version '$(VERSION)' is only allowed from master"
 else
-	@echo "==> Publishing digitalocean/do-csi-plugin:$(VERSION)"
-	@docker push digitalocean/do-csi-plugin:$(VERSION)
-	@echo "==> Your image is now available at digitalocean/do-csi-plugin:$(VERSION)"
+	@echo "==> Publishing $(DOCKER_REPO):$(VERSION)"
+	@docker push $(DOCKER_REPO):$(VERSION)
+	@echo "==> Your image is now available at $(DOCKER_REPO):$(VERSION)"
 endif
 
 .PHONY: clean
