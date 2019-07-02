@@ -58,7 +58,7 @@ bumped following the rules below:
       <td>no</td>
     </tr>
     <tr>
-      <td>v1.1.1 - v1.1.x</td>
+      <td>v1.1.0 - v1.1.x</td>
       <td>no</td>
       <td>no</td>
       <td>no</td>
