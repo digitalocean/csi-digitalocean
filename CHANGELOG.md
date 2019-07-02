@@ -1,5 +1,8 @@
 ## unreleased
 
+* Cherry-pick: Set a custom user agent for the godo client.
+  [[GH-156]](https://github.com/digitalocean/csi-digitalocean/pull/156)
+
 ## v1.0.1 - 2019.04.25
 
 * Add tagging support for Volumes via the new `--do-tag` flag
