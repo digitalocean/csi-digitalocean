@@ -8,7 +8,7 @@ Cloud Foundry. Feel free to test it on other CO's and give us a feedback.
 ## Releases
 
 The DigitalOcean CSI plugin follows [semantic versioning](https://semver.org/).
-The current version is: **`v1.1.0`**. The project is still
+The current version is: **`v1.1.1`**. The project is still
 under active development and may not be production ready. The plugin will be
 bumped following the rules below:
 
@@ -58,7 +58,7 @@ bumped following the rules below:
       <td>no</td>
     </tr>
     <tr>
-      <td>v1.1.0 - v1.1.x</td>
+      <td>v1.1.1 - v1.1.x</td>
       <td>no</td>
       <td>no</td>
       <td>no</td>
@@ -119,10 +119,10 @@ digitalocean          Opaque                                1         18h
 
 Before you continue, be sure to checkout to a [tagged
 release](https://github.com/digitalocean/csi-digitalocean/releases). Always use the [latest stable version](https://github.com/digitalocean/csi-digitalocean/releases/latest) 
-For example, to use the latest stable version (`v1.1.0`) you can execute the following command:
+For example, to use the latest stable version (`v1.1.1`) you can execute the following command:
 
 ```
-$ kubectl apply -f https://raw.githubusercontent.com/digitalocean/csi-digitalocean/master/deploy/kubernetes/releases/csi-digitalocean-v1.1.0.yaml
+$ kubectl apply -f https://raw.githubusercontent.com/digitalocean/csi-digitalocean/master/deploy/kubernetes/releases/csi-digitalocean-v1.1.1.yaml
 ```
 
 This file will be always updated to point to the latest stable release. If you
@@ -238,7 +238,7 @@ Dependencies are managed via [Go modules](https://github.com/golang/go/wiki/Modu
 To release a new version bump first the version:
 
 ```
-$ make NEW_VERSION=v1.1.0 bump-version
+$ make NEW_VERSION=v1.1.1 bump-version
 ```
 
 Make sure everything looks good. Create a new branch with all changes:
@@ -251,15 +251,15 @@ $ git push origin
 
 After it's merged to master, [create a new Github
 release](https://github.com/digitalocean/csi-digitalocean/releases/new) from
-master with the version `v1.1.0` and then publish a new docker build:
+master with the version `v1.1.1` and then publish a new docker build:
 
 ```
 $ git checkout master
 $ make publish
 ```
 
-This will create a binary with version `v1.1.0` and docker image pushed to
-`digitalocean/do-csi-plugin:v1.1.0`
+This will create a binary with version `v1.1.1` and docker image pushed to
+`digitalocean/do-csi-plugin:v1.1.1`
 
 ## Contributing
 
