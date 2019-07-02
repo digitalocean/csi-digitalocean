@@ -97,6 +97,11 @@ func NewDriver(ep, token, url, doTag string) (*Driver, error) {
 	opts := []godo.ClientOpt{}
 	opts = append(opts, godo.SetBaseURL(url))
 
+	if version == "" {
+		version = "dev"
+	}
+	opts = append(opts, godo.SetUserAgent("csi-digitalocean/"+version))
+
 	doClient, err := godo.New(oauthClient, opts...)
 	if err != nil {
 		return nil, fmt.Errorf("couldn't initialize DigitalOcean client: %s", err)
