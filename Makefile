@@ -18,7 +18,7 @@ all: test
 publish: compile build push clean
 
 .PHONY: bump-version
-bump-version: 
+bump-version:
 	@[ "${NEW_VERSION}" ] || ( echo "NEW_VERSION must be set (ex. make NEW_VERSION=v1.x.x bump-version)"; exit 1 )
 	@(echo ${NEW_VERSION} | grep -E "^v") || ( echo "NEW_VERSION must be a semver ('v' prefix is required)"; exit 1 )
 	@echo "Bumping VERSION from $(VERSION) to $(NEW_VERSION)"
@@ -27,9 +27,8 @@ bump-version:
 	@sed -i'' -e 's/${VERSION}/${NEW_VERSION}/g' deploy/kubernetes/releases/csi-digitalocean-${NEW_VERSION}.yaml
 	@sed -i'' -e 's/${VERSION}/${NEW_VERSION}/g' README.md
 	$(eval NEW_DATE = $(shell date +%Y.%m.%d))
-	@sed -i'' -e 's/## unreleased/## ${NEW_VERSION} - ${NEW_DATE}/g' CHANGELOG.md 
+	@sed -i'' -e 's/## unreleased/## ${NEW_VERSION} - ${NEW_DATE}/g' CHANGELOG.md
 	@ echo '## unreleased\n' | cat - CHANGELOG.md > temp && mv temp CHANGELOG.md
-	@rm README.md-e CHANGELOG.md-e deploy/kubernetes/releases/csi-digitalocean-${NEW_VERSION}.yaml-e
 
 .PHONY: compile
 compile:
