@@ -19,7 +19,7 @@ all: test
 publish: clean compile build push
 
 .PHONY: bump-version
-bump-version: 
+bump-version:
 	@go get -u github.com/jessfraz/junk/sembump # update sembump tool
 	$(eval NEW_VERSION = $(shell sembump --kind $(BUMP) $(VERSION)))
 	@echo "Bumping VERSION from $(VERSION) to $(NEW_VERSION)"
@@ -28,14 +28,13 @@ bump-version:
 	@sed -i'' -e 's/${VERSION}/${NEW_VERSION}/g' deploy/kubernetes/releases/csi-digitalocean-${NEW_VERSION}.yaml
 	@sed -i'' -e 's/${VERSION}/${NEW_VERSION}/g' README.md
 	$(eval NEW_DATE = $(shell date +%Y.%m.%d))
-	@sed -i'' -e 's/## unreleased/## ${NEW_VERSION} - ${NEW_DATE}/g' CHANGELOG.md 
+	@sed -i'' -e 's/## unreleased/## ${NEW_VERSION} - ${NEW_DATE}/g' CHANGELOG.md
 	@ echo '## unreleased\n' | cat - CHANGELOG.md > temp && mv temp CHANGELOG.md
-	@rm README.md-e CHANGELOG.md-e deploy/kubernetes/releases/csi-digitalocean-${NEW_VERSION}.yaml-e
 
 .PHONY: compile
 compile:
 	@echo "==> Building the project"
-	@env CGO_ENABLED=0 GOOS=${OS} GOARCH=amd64 go build -o cmd/do-csi-plugin/${NAME} -ldflags "$(LDFLAGS)" ${PKG} 
+	@env CGO_ENABLED=0 GOOS=${OS} GOARCH=amd64 go build -o cmd/do-csi-plugin/${NAME} -ldflags "$(LDFLAGS)" ${PKG}
 
 
 .PHONY: test
@@ -51,7 +50,7 @@ build:
 
 .PHONY: push
 push:
-ifeq ($(shell [[ $(BRANCH) != "master" && $(VERSION) != "dev" ]] && echo true ),true)
+ifeq ($(shell [[ $(BRANCH) != "release-0.2.0" && $(VERSION) != "dev" ]] && echo true ),true)
 	@echo "ERROR: Publishing image with a SEMVER version '$(VERSION)' is only allowed from master"
 else
 	@echo "==> Publishing digitalocean/do-csi-plugin:$(VERSION)"
