@@ -54,7 +54,7 @@ build:
 
 .PHONY: push
 push:
-ifeq ($(shell [[ $(BRANCH) != "master" && $(VERSION) != "dev" ]] && echo true ),true)
+ifeq ($(shell [[ $(BRANCH) != "release-0.4" && $(VERSION) != "dev" ]] && echo true ),true)
 	@echo "ERROR: Publishing image with a SEMVER version '$(VERSION)' is only allowed from master"
 else
 	@echo "==> Publishing digitalocean/do-csi-plugin:$(VERSION)"
