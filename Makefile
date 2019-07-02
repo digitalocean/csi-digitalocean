@@ -29,7 +29,7 @@ bump-version:
 	@sed -i'' -e 's/${VERSION}/${NEW_VERSION}/g' README.md
 	$(eval NEW_DATE = $(shell date +%Y.%m.%d))
 	@sed -i'' -e 's/## unreleased/## ${NEW_VERSION} - ${NEW_DATE}/g' CHANGELOG.md
-	@ echo '## unreleased\n' | cat - CHANGELOG.md > temp && mv temp CHANGELOG.md
+	@ echo "## unreleased\n" | cat - CHANGELOG.md > temp && mv temp CHANGELOG.md
 
 .PHONY: compile
 compile:
