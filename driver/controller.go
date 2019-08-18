@@ -292,7 +292,7 @@ func (d *Driver) ControllerPublishVolume(ctx context.Context, req *csi.Controlle
 	_, resp, err = d.droplets.Get(ctx, dropletID)
 	if err != nil {
 		if resp != nil && resp.StatusCode == http.StatusNotFound {
-			return nil, status.Errorf(codes.NotFound, "droplet %q not found", dropletID)
+			return nil, status.Errorf(codes.NotFound, "droplet %d not found", dropletID)
 		}
 		return nil, err
 	}
@@ -313,7 +313,7 @@ func (d *Driver) ControllerPublishVolume(ctx context.Context, req *csi.Controlle
 	// droplet is attached to a different node, return an error
 	if attachedID != 0 {
 		return nil, status.Errorf(codes.FailedPrecondition,
-			"volume %q is attached to the wrong droplet (%q), detach the volume to fix it",
+			"volume %q is attached to the wrong droplet (%d), detach the volume to fix it",
 			req.VolumeId, attachedID)
 	}
 
@@ -397,7 +397,7 @@ func (d *Driver) ControllerUnpublishVolume(ctx context.Context, req *csi.Control
 	_, resp, err = d.droplets.Get(ctx, dropletID)
 	if err != nil {
 		if resp != nil && resp.StatusCode == http.StatusNotFound {
-			return nil, status.Errorf(codes.NotFound, "droplet %q not found", dropletID)
+			return nil, status.Errorf(codes.NotFound, "droplet %d not found", dropletID)
 		}
 		return nil, err
 	}
