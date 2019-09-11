@@ -69,6 +69,7 @@ func TestDriverSuite(t *testing.T) {
 	}
 
 	driver := &Driver{
+		name:     DefaultDriverName,
 		endpoint: endpoint,
 		nodeId:   strconv.Itoa(nodeID),
 		doTag: doTag,

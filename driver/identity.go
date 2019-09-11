@@ -27,7 +27,7 @@ import (
 // GetPluginInfo returns metadata of the plugin
 func (d *Driver) GetPluginInfo(ctx context.Context, req *csi.GetPluginInfoRequest) (*csi.GetPluginInfoResponse, error) {
 	resp := &csi.GetPluginInfoResponse{
-		Name:          DriverName,
+		Name:          d.name,
 		VendorVersion: version,
 	}
 
