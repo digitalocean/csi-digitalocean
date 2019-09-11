@@ -41,10 +41,6 @@ const (
 )
 
 const (
-	// PublishInfoVolumeName is used to pass the volume name from
-	// `ControllerPublishVolume` to `NodeStageVolume or `NodePublishVolume`
-	PublishInfoVolumeName = DriverName + "/volume-name"
-
 	// minimumVolumeSizeInBytes is used to validate that the user is not trying
 	// to create a volume that is smaller than what we support
 	minimumVolumeSizeInBytes int64 = 1 * giB
@@ -294,7 +290,7 @@ func (d *Driver) ControllerPublishVolume(ctx context.Context, req *csi.Controlle
 			ll.Info("volume is already attached")
 			return &csi.ControllerPublishVolumeResponse{
 				PublishContext: map[string]string{
-					PublishInfoVolumeName: vol.Name,
+					d.publishInfoVolumeName: vol.Name,
 				},
 			}, nil
 		}
@@ -318,7 +314,7 @@ func (d *Driver) ControllerPublishVolume(ctx context.Context, req *csi.Controlle
 				}).Warn("assuming volume is attached already")
 				return &csi.ControllerPublishVolumeResponse{
 					PublishContext: map[string]string{
-						PublishInfoVolumeName: vol.Name,
+						d.publishInfoVolumeName: vol.Name,
 					},
 				}, nil
 			}
@@ -346,7 +342,7 @@ func (d *Driver) ControllerPublishVolume(ctx context.Context, req *csi.Controlle
 	ll.Info("volume is attached")
 	return &csi.ControllerPublishVolumeResponse{
 		PublishContext: map[string]string{
-			PublishInfoVolumeName: vol.Name,
+			d.publishInfoVolumeName: vol.Name,
 		},
 	}, nil
 }
