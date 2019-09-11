@@ -27,11 +27,12 @@ import (
 
 func main() {
 	var (
-		endpoint = flag.String("endpoint", "unix:///var/lib/kubelet/plugins/"+driver.DriverName+"/csi.sock", "CSI endpoint")
-		token    = flag.String("token", "", "DigitalOcean access token")
-		url      = flag.String("url", "https://api.digitalocean.com/", "DigitalOcean API URL")
-		doTag    = flag.String("do-tag", "", "Tag DigitalOcean volumes on Create/Attach")
-		version  = flag.Bool("version", false, "Print the version and exit.")
+		endpoint   = flag.String("endpoint", "unix:///var/lib/kubelet/plugins/"+driver.DefaultDriverName+"/csi.sock", "CSI endpoint")
+		token      = flag.String("token", "", "DigitalOcean access token")
+		url        = flag.String("url", "https://api.digitalocean.com/", "DigitalOcean API URL")
+		doTag      = flag.String("do-tag", "", "Tag DigitalOcean volumes on Create/Attach")
+		driverName = flag.String("driver-name", driver.DefaultDriverName, "Name for the driver")
+		version    = flag.Bool("version", false, "Print the version and exit.")
 	)
 	flag.Parse()
 
@@ -40,7 +41,7 @@ func main() {
 		os.Exit(0)
 	}
 
-	drv, err := driver.NewDriver(*endpoint, *token, *url, *doTag)
+	drv, err := driver.NewDriver(*endpoint, *token, *url, *doTag, *driverName)
 	if err != nil {
 		log.Fatalln(err)
 	}

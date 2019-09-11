@@ -36,9 +36,9 @@ import (
 )
 
 const (
-	// DriverName defines the name that is used in Kubernetes and the CSI
+	// DefaultDriverName defines the name that is used in Kubernetes and the CSI
 	// system for the canonical, official name of this plugin
-	DriverName = "dobs.csi.digitalocean.com"
+	DefaultDriverName = "dobs.csi.digitalocean.com"
 )
 
 var (
@@ -54,6 +54,11 @@ var (
 //   csi.NodeServer
 //
 type Driver struct {
+	name string
+	// publishInfoVolumeName is used to pass the volume name from
+	// `ControllerPublishVolume` to `NodeStageVolume or `NodePublishVolume`
+	publishInfoVolumeName string
+
 	endpoint     string
 	nodeId       string
 	region       string
@@ -80,7 +85,11 @@ type Driver struct {
 // NewDriver returns a CSI plugin that contains the necessary gRPC
 // interfaces to interact with Kubernetes over unix domain sockets for
 // managaing DigitalOcean Block Storage
-func NewDriver(ep, token, url, doTag string) (*Driver, error) {
+func NewDriver(ep, token, url, doTag, driverName string) (*Driver, error) {
+	if driverName == "" {
+		driverName = DefaultDriverName
+	}
+
 	tokenSource := oauth2.StaticTokenSource(&oauth2.Token{
 		AccessToken: token,
 	})
@@ -114,6 +123,9 @@ func NewDriver(ep, token, url, doTag string) (*Driver, error) {
 	})
 
 	return &Driver{
+		name:                  driverName,
+		publishInfoVolumeName: driverName + "/volume-name",
+
 		doTag:    doTag,
 		endpoint: ep,
 		nodeId:   nodeId,
