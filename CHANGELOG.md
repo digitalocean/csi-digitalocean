@@ -1,4 +1,10 @@
-## unreleased\n
+## unreleased
+
+## v1.0.3 - 2019.09.17
+
+* Allow for custom driver names, to help with upgrades from Kubernetes 1.11
+  [[GH-180](https://github.com/digitalocean/csi-digitalocean/pull/180)]
+
 ## v1.0.2 - 2019.07.02
 
 * Cherry-pick: Set a custom user agent for the godo client.
