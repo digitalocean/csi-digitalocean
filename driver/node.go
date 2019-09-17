@@ -49,8 +49,8 @@ var (
 	// (com.digitalocean.csi.dobs) or the modern driver name
 	// (dobs.csi.digitalocean.com).
 	annsNoFormatVolume = []string{
-		"dobs.csi.digitalocean.com/no-format",
-		"com.digitalocean.csi.dobs/no-format",
+		"dobs.csi.digitalocean.com/noformat",
+		"com.digitalocean.csi.dobs/noformat",
 	}
 )
 
