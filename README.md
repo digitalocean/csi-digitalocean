@@ -191,6 +191,20 @@ $ kubectl exec -ti my-csi-app /bin/sh
 hello-world
 ```
 
+## Upgrading
+
+When upgrading to a new Kubernetes minor version, you should upgrade the CSI
+driver to match. See the table above for which driver version is used with each
+Kubernetes version.
+
+Special consideration is necessary when upgrading from Kubernetes 1.11 or
+earlier, which uses CSI driver version 0.2 or earlier. In these early releases,
+the driver name was `com.digitalocean.csi.dobs`, while in all subsequent
+releases it is `dobs.csi.digitalocean.com`. When upgrading, use the commandline
+flag `--driver-name` to force the new driver to use the old name. Failing to do
+so will cause any existing PVs to be unusable since the new driver will not
+manage them and the old driver is no longer running.
+
 ## Development
 
 Requirements:
