@@ -40,11 +40,18 @@ const (
 
 	// See: https://www.digitalocean.com/docs/volumes/overview/#limits
 	maxVolumesPerNode = 7
+)
 
+var (
 	// This annotation is added to a PV to indicate that the volume should be
 	// not formatted. Useful for cases if the user wants to reuse an existing
-	// volume.
-	annNoFormatVolume = DriverName + "/noformat"
+	// volume. We support using either the legacy driver name
+	// (com.digitalocean.csi.dobs) or the modern driver name
+	// (dobs.csi.digitalocean.com).
+	annsNoFormatVolume = []string{
+		"dobs.csi.digitalocean.com/noformat",
+		"com.digitalocean.csi.dobs/noformat",
+	}
 )
 
 // NodeStageVolume mounts the volume to a staging path on the node. This is
@@ -66,7 +73,7 @@ func (d *Driver) NodeStageVolume(ctx context.Context, req *csi.NodeStageVolumeRe
 	}
 
 	volumeName := ""
-	if volName, ok := req.GetPublishInfo()[PublishInfoVolumeName]; !ok {
+	if volName, ok := req.GetPublishInfo()[d.publishInfoVolumeName]; !ok {
 		return nil, status.Error(codes.InvalidArgument, "Could not find the volume by name")
 	} else {
 		volumeName = volName
@@ -94,8 +101,16 @@ func (d *Driver) NodeStageVolume(ctx context.Context, req *csi.NodeStageVolumeRe
 		"method":              "node_stage_volume",
 	})
 
-	_, ok := req.VolumeAttributes[annNoFormatVolume]
-	if !ok {
+	var noFormat bool
+	for _, ann := range annsNoFormatVolume {
+		_, noFormat = req.VolumeAttributes[ann]
+		if noFormat {
+			break
+		}
+	}
+	if noFormat {
+		ll.Info("skipping formatting the source device")
+	} else {
 		formatted, err := d.mounter.IsFormatted(source)
 		if err != nil {
 			return nil, err
@@ -110,8 +125,6 @@ func (d *Driver) NodeStageVolume(ctx context.Context, req *csi.NodeStageVolumeRe
 			ll.Info("source device is already formatted")
 		}
 
-	} else {
-		ll.Info("skipping formatting the source device")
 	}
 
 	ll.Info("mounting the volume for staging")
