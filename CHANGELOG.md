@@ -1,5 +1,14 @@
 ## unreleased
 
+## v1.1.2 - 2019.09.17
+
+* Improve error messages for incorrectly attached volumes
+  [[GH-176](https://github.com/digitalocean/csi-digitalocean/pull/176)]
+  [[GH-177](https://github.com/digitalocean/csi-digitalocean/pull/177)]
+* Allow for custom driver names, to help with upgrades from Kubernetes 1.11
+  [[GH-179](https://github.com/digitalocean/csi-digitalocean/pull/179)]
+  [[GH-182](https://github.com/digitalocean/csi-digitalocean/pull/182)]
+
 ## v1.1.1 - 2019.07.02
 
 * Set a custom user agent for the godo client. [[GH-156](https://github.com/digitalocean/csi-digitalocean/pull/156)]
