@@ -35,7 +35,6 @@ compile:
 	@echo "==> Building the project"
 	@docker run --rm -it -e GOOS=${OS} -e GOARCH=amd64 -v ${PWD}/:/app -w /app golang:1.12-alpine sh -c 'apk add git && go build -o cmd/do-csi-plugin/${NAME} -ldflags "$(LDFLAGS)" ${PKG}'
 
-
 .PHONY: test
 test:
 	@echo "==> Testing all packages"
@@ -43,10 +42,8 @@ test:
 
 .PHONY: test-integration
 test-integration:
-
 	@echo "==> Started integration tests"
-	@env go test -v -tags integration ./test/...
-
+	@env go test -count 1 -v -tags integration ./test/...
 
 .PHONY: build
 build:
