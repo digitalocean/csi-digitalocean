@@ -55,13 +55,14 @@ build:
 
 .PHONY: push
 push:
-ifeq ($(shell [[ $(BRANCH) != "master" && $(VERSION) != "dev" ]] && echo true ),true)
-	@echo "ERROR: Publishing image with a SEMVER version '$(VERSION)' is only allowed from master"
-else
+ifneq ($(BRANCH),master)
+  ifneq ($(VERSION),dev)
+	$(error "Only the `dev` tag can be published from non-master branches")
+  endif
+endif
 	@echo "==> Publishing $(DOCKER_REPO):$(VERSION)"
 	@docker push $(DOCKER_REPO):$(VERSION)
 	@echo "==> Your image is now available at $(DOCKER_REPO):$(VERSION)"
-endif
 
 .PHONY: clean
 clean:
