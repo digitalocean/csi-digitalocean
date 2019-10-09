@@ -13,7 +13,7 @@ import (
 	snapclientset "github.com/kubernetes-csi/external-snapshotter/pkg/client/clientset/versioned"
 
 	appsv1 "k8s.io/api/apps/v1"
-	"k8s.io/api/core/v1"
+	v1 "k8s.io/api/core/v1"
 	kubeerrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -33,6 +33,14 @@ const (
 var (
 	client     kubernetes.Interface
 	snapClient snapclientset.Interface
+	// testStorageClass defines the storage class to test. By default it's our
+	// default storage class name, do-block-storage, but can be set to a
+	// different value via the TEST_STORAGE_CLASS environment variable.
+	testStorageClass = "do-block-storage"
+	// skipCleanup can be set to true via the SKIP_CLEANUP environment variable
+	// to have all resources left behind on test failure. This is useful for
+	// investigating failures.
+	skipCleanup = false
 )
 
 func TestMain(m *testing.M) {
@@ -108,7 +116,7 @@ func TestPod_Single_Volume(t *testing.T) {
 					v1.ResourceStorage: resource.MustParse("5Gi"),
 				},
 			},
-			StorageClassName: strPtr("do-block-storage"),
+			StorageClassName: strPtr(testStorageClass),
 		},
 	}
 
@@ -202,7 +210,7 @@ func TestDeployment_Single_Volume(t *testing.T) {
 					v1.ResourceStorage: resource.MustParse("5Gi"),
 				},
 			},
-			StorageClassName: strPtr("do-block-storage"),
+			StorageClassName: strPtr(testStorageClass),
 		},
 	}
 
@@ -311,7 +319,7 @@ func TestPod_Multi_Volume(t *testing.T) {
 					v1.ResourceStorage: resource.MustParse("5Gi"),
 				},
 			},
-			StorageClassName: strPtr("do-block-storage"),
+			StorageClassName: strPtr(testStorageClass),
 		},
 	}
 	_, err = client.CoreV1().PersistentVolumeClaims(namespace).Create(pvc1)
@@ -333,7 +341,7 @@ func TestPod_Multi_Volume(t *testing.T) {
 					v1.ResourceStorage: resource.MustParse("5Gi"),
 				},
 			},
-			StorageClassName: strPtr("do-block-storage"),
+			StorageClassName: strPtr(testStorageClass),
 		},
 	}
 	_, err = client.CoreV1().PersistentVolumeClaims(namespace).Create(pvc2)
@@ -424,7 +432,7 @@ func TestSnapshot_Create(t *testing.T) {
 					v1.ResourceStorage: resource.MustParse("5Gi"),
 				},
 			},
-			StorageClassName: strPtr("do-block-storage"),
+			StorageClassName: strPtr(testStorageClass),
 		},
 	}
 
@@ -449,6 +457,7 @@ func TestSnapshot_Create(t *testing.T) {
 				Name: pvcName,
 				Kind: "PersistentVolumeClaim",
 			},
+			VolumeSnapshotClassName: strPtr(testStorageClass),
 		},
 	}
 
@@ -474,7 +483,7 @@ func TestSnapshot_Create(t *testing.T) {
 					v1.ResourceStorage: resource.MustParse("5Gi"),
 				},
 			},
-			StorageClassName: strPtr("do-block-storage"),
+			StorageClassName: strPtr(testStorageClass),
 			DataSource: &v1.TypedLocalObjectReference{
 				APIGroup: &apiGroup,
 				Kind:     "VolumeSnapshot",
@@ -558,6 +567,16 @@ func TestSnapshot_Create(t *testing.T) {
 }
 
 func setup() error {
+	// Default storage class is "do-block-storage" but we can override it via an
+	// environment variable.
+	if storageClass := os.Getenv("TEST_STORAGE_CLASS"); storageClass != "" {
+		testStorageClass = storageClass
+	}
+
+	if skip := os.Getenv("SKIP_CLEANUP"); skip != "" && skip != "false" {
+		skipCleanup = true
+	}
+
 	// if you want to change the loading rules (which files in which order),
 	// you can do so here
 	loadingRules := clientcmd.NewDefaultClientConfigLoadingRules()
@@ -597,6 +616,10 @@ func setup() error {
 }
 
 func teardown() error {
+	if skipCleanup {
+		return nil
+	}
+
 	// delete all test resources
 	err := client.CoreV1().Namespaces().Delete(namespace, nil)
 	if err != nil && !(kubeerrors.IsNotFound(err) || kubeerrors.IsAlreadyExists(err)) {

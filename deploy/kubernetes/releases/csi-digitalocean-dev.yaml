@@ -179,6 +179,11 @@ spec:
               value: unix:///var/lib/csi/sockets/pluginproxy/csi.sock
             - name: DIGITALOCEAN_API_URL
               value: https://api.digitalocean.com/
+            - name: DIGITALOCEAN_ACCESS_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: digitalocean
+                  key: access-token
           imagePullPolicy: "Always"
           volumeMounts:
             - name: socket-dir
@@ -387,11 +392,6 @@ spec:
               value: unix:///csi/csi.sock
             - name: DIGITALOCEAN_API_URL
               value: https://api.digitalocean.com/
-            - name: DIGITALOCEAN_ACCESS_TOKEN
-              valueFrom:
-                secretKeyRef:
-                  name: digitalocean
-                  key: access-token
           imagePullPolicy: "Always"
           securityContext:
             privileged: true
