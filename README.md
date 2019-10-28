@@ -221,7 +221,7 @@ manage them and the old driver is no longer running.
 
 Requirements:
 
-* Go: min `v1.11.x`
+* Go: min `v1.13.x`
 
 After making your changes, run the unit tests: 
 
