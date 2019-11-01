@@ -334,7 +334,7 @@ func (d *Driver) ControllerPublishVolume(ctx context.Context, req *csi.Controlle
 				ll.WithFields(logrus.Fields{
 					"error": err,
 					"resp":  resp,
-				}).Warn("droplet is not able to detach the volume")
+				}).Warn("droplet is not able to attach the volume")
 				// sending an abort makes sure the csi-attacher retries with the next backoff tick
 				return nil, status.Errorf(codes.Aborted, "volume %q couldn't be attached. droplet %d is in process of another action",
 					req.VolumeId, dropletID)
