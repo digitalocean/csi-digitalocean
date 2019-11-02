@@ -73,8 +73,10 @@ func TestDriverSuite(t *testing.T) {
 		nodeId:   strconv.Itoa(nodeID),
 		doTag:    doTag,
 		region:   "nyc3",
-		mounter:  &fakeMounter{},
-		log:      logrus.New().WithField("test_enabed", true),
+		mounter: &fakeMounter{
+			mounted: map[string]string{},
+		},
+		log: logrus.New().WithField("test_enabed", true),
 
 		storage: &fakeStorageDriver{
 			volumes:   volumes,
@@ -360,17 +362,21 @@ func (f *fakeSnapshotsDriver) Delete(context.Context, string) (*godo.Response, e
 	panic("not implemented")
 }
 
-type fakeMounter struct{}
+type fakeMounter struct {
+	mounted map[string]string
+}
 
 func (f *fakeMounter) Format(source string, fsType string) error {
 	return nil
 }
 
 func (f *fakeMounter) Mount(source string, target string, fsType string, options ...string) error {
+	f.mounted[target] = source
 	return nil
 }
 
 func (f *fakeMounter) Unmount(target string) error {
+	delete(f.mounted, target)
 	return nil
 }
 
@@ -378,7 +384,20 @@ func (f *fakeMounter) IsFormatted(source string) (bool, error) {
 	return true, nil
 }
 func (f *fakeMounter) IsMounted(target string) (bool, error) {
-	return true, nil
+	_, ok := f.mounted[target]
+	return ok, nil
+}
+
+func (f *fakeMounter) GetStatistics(volumePath string) (volumeStatistics, error) {
+	return volumeStatistics{
+		availableBytes: 3 * giB,
+		totalBytes:     10 * giB,
+		usedBytes:      7 * giB,
+
+		availableInodes: 3000,
+		totalInodes:     10000,
+		usedInodes:      7000,
+	}, nil
 }
 
 func godoResponse() *godo.Response {

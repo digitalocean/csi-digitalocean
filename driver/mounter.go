@@ -25,6 +25,7 @@ import (
 	"strings"
 
 	"github.com/sirupsen/logrus"
+	"golang.org/x/sys/unix"
 )
 
 type findmntResponse struct {
@@ -38,7 +39,14 @@ type fileSystem struct {
 	Options     string `json:"options"`
 }
 
+type volumeStatistics struct {
+	availableBytes, totalBytes, usedBytes    int64
+	availableInodes, totalInodes, usedInodes int64
+}
+
 // Mounter is responsible for formatting and mounting volumes
+// TODO(timoreimann): find a more suitable name since the interface encompasses
+// more than just mounting functionality by now.
 type Mounter interface {
 	// Format formats the source with the given filesystem type
 	Format(source, fsType string) error
@@ -57,6 +65,10 @@ type Mounter interface {
 	// propagated). It returns true if it's mounted. An error is returned in
 	// case of system errors or if it's mounted incorrectly.
 	IsMounted(target string) (bool, error)
+
+	// GetStatistics returns capacity-related volume statistics for the given
+	// volume path.
+	GetStatistics(volumePath string) (volumeStatistics, error)
 }
 
 // TODO(arslan): this is Linux only for now. Refactor this into a package with
@@ -271,4 +283,25 @@ func (m *mounter) IsMounted(target string) (bool, error) {
 	}
 
 	return targetFound, nil
+}
+
+func (m *mounter) GetStatistics(volumePath string) (volumeStatistics, error) {
+	var statfs unix.Statfs_t
+	// See http://man7.org/linux/man-pages/man2/statfs.2.html for details.
+	err := unix.Statfs(volumePath, &statfs)
+	if err != nil {
+		return volumeStatistics{}, err
+	}
+
+	volStats := volumeStatistics{
+		availableBytes: int64(statfs.Bavail) * int64(statfs.Bsize),
+		totalBytes:     int64(statfs.Blocks) * int64(statfs.Bsize),
+		usedBytes:      (int64(statfs.Blocks) - int64(statfs.Bfree)) * int64(statfs.Bsize),
+
+		availableInodes: int64(statfs.Ffree),
+		totalInodes:     int64(statfs.Files),
+		usedInodes:      int64(statfs.Files) - int64(statfs.Ffree),
+	}
+
+	return volStats, nil
 }

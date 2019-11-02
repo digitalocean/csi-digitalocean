@@ -1,5 +1,8 @@
 ## unreleased
 
+* Implement NodeGetVolumeStats RPC
+  [[GH-197](https://github.com/digitalocean/csi-digitalocean/pull/197)]
+
 ## v1.1.2 - 2019.09.17
 
 * Improve error messages for incorrectly attached volumes
