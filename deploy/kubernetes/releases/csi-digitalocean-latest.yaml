@@ -19,6 +19,7 @@
 # example usage: kubectl create -f <this_file>
 #
 
+# This file is only for development use. Do not use in production.
 
 # Install the CSI Driver. This simplifies driver discovery and enables us to
 # customize Kubernetes behavior
