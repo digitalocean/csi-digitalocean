@@ -32,7 +32,7 @@ require (
 	golang.org/x/crypto v0.0.0-20180411161317-d6449816ce06 // indirect
 	golang.org/x/net v0.0.0-20180406214816-61147c48b25b // indirect
 	golang.org/x/oauth2 v0.0.0-20180402223937-921ae394b943
-	golang.org/x/sync v0.0.0-20180314180146-1d60e4601c6f // indirect
+	golang.org/x/sync v0.0.0-20180314180146-1d60e4601c6f
 	golang.org/x/sys v0.0.0-20180406135729-3b87a42e500a // indirect
 	golang.org/x/text v0.3.0 // indirect
 	golang.org/x/time v0.0.0-20180412165947-fbb02b2291d2 // indirect
@@ -49,3 +49,5 @@ require (
 	k8s.io/klog v0.1.0 // indirect
 	sigs.k8s.io/yaml v1.1.0 // indirect
 )
+
+go 1.13
