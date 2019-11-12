@@ -260,6 +260,8 @@ func (f *fakeStorageActionsDriver) List(ctx context.Context, volumeID string, op
 }
 
 func (f *fakeStorageActionsDriver) Resize(ctx context.Context, volumeID string, sizeGigabytes int, regionSlug string) (*godo.Action, *godo.Response, error) {
+	volume := f.volumes[volumeID]
+	volume.SizeGigaBytes = int64(sizeGigabytes)
 	return nil, godoResponse(), nil
 }
 

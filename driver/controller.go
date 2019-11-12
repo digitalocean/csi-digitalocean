@@ -590,6 +590,7 @@ func (d *Driver) ControllerGetCapabilities(ctx context.Context, req *csi.Control
 		csi.ControllerServiceCapability_RPC_LIST_VOLUMES,
 		csi.ControllerServiceCapability_RPC_CREATE_DELETE_SNAPSHOT,
 		csi.ControllerServiceCapability_RPC_LIST_SNAPSHOTS,
+		csi.ControllerServiceCapability_RPC_EXPAND_VOLUME,
 	} {
 		caps = append(caps, newCap(cap))
 	}
@@ -806,11 +807,42 @@ func (d *Driver) ListSnapshots(ctx context.Context, req *csi.ListSnapshotsReques
 	return listResp, nil
 }
 
+// ControllerExpandVolume is called from the resizer to increase the volume size.
 func (d *Driver) ControllerExpandVolume(ctx context.Context, req *csi.ControllerExpandVolumeRequest) (*csi.ControllerExpandVolumeResponse, error) {
-	d.log.WithField("method", "controller_expand_volume").
-		Info("controller expand volume called")
+	ll := d.log.WithField("method", "controller_expand_volume")
+	ll.Info("controller expand volume called")
+	volID := req.GetVolumeId()
 
-	return nil, status.Error(codes.Unimplemented, "")
+	if len(volID) == 0 {
+		return nil, status.Error(codes.InvalidArgument, "ControllerExpandVolume volume ID missing in request")
+	}
+	volume, _, err := d.storage.GetVolume(ctx, volID)
+	if err != nil {
+		return nil, status.Errorf(codes.Internal, "ControllerExpandVolume could not retrieve existing volume: %v", err)
+	}
+	ll.Info("extracting storage from requested capacity range")
+	resizeBytes, err := extractStorage(req.GetCapacityRange())
+	if err != nil {
+		return nil, status.Errorf(codes.OutOfRange, "ControllerExpandVolume invalid capacity range: %v", err)
+	}
+	resizeGigaBytes := resizeBytes / giB
+
+	if resizeGigaBytes <= volume.SizeGigaBytes {
+		return nil, status.Errorf(codes.InvalidArgument, "ControllerExpandVolume new volume size (%v) must be greater than existing volume size (%v)", formatBytes(resizeBytes), formatBytes(volume.SizeGigaBytes*giB))
+	}
+
+	ll.WithField("new_volume_size", resizeGigaBytes).Info("attempting to resize volume")
+	action, _, err := d.storageActions.Resize(ctx, req.GetVolumeId(), int(resizeGigaBytes), d.region)
+	if err != nil {
+		return nil, status.Errorf(codes.Internal, "ControllerExpandVolume cannot resize volume %s: %s", req.GetVolumeId(), err.Error())
+	}
+	if action != nil {
+		if err := d.waitAction(ctx, req.VolumeId, action.ID); err != nil {
+			return nil, status.Errorf(codes.Internal, "ControllerExpandVolume storage action unsuccessful: %v", err)
+		}
+	}
+
+	return &csi.ControllerExpandVolumeResponse{CapacityBytes: resizeGigaBytes * giB, NodeExpansionRequired: true}, nil
 }
 
 // extractStorage extracts the storage size in bytes from the given capacity
