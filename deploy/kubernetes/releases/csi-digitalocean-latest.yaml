@@ -108,6 +108,7 @@ metadata:
   annotations:
     storageclass.kubernetes.io/is-default-class: "true"
 provisioner: dobs.csi.digitalocean.com
+allowVolumeExpansion: true
 
 ---
 
@@ -118,12 +119,15 @@ provisioner: dobs.csi.digitalocean.com
 ##############################################
 
 kind: StatefulSet
-apiVersion: apps/v1beta1
+apiVersion: apps/v1
 metadata:
   name: csi-do-controller
   namespace: kube-system
 spec:
   serviceName: "csi-do"
+  selector:
+    matchLabels:
+      app: csi-do-controller
   replicas: 1
   template:
     metadata:
@@ -166,6 +170,18 @@ spec:
             - name: ADDRESS
               value: /var/lib/csi/sockets/pluginproxy/csi.sock
           imagePullPolicy: IfNotPresent
+          volumeMounts:
+            - name: socket-dir
+              mountPath: /var/lib/csi/sockets/pluginproxy/
+        - name: csi-resizer
+          image: quay.io/k8scsi/csi-resizer:v0.3.0
+          args:
+            - "--v=5"
+            - "--csi-address=$(ADDRESS)"
+          env:
+            - name: ADDRESS
+              value: /var/lib/csi/sockets/pluginproxy/csi.sock
+          imagePullPolicy: "IfNotPresent"
           volumeMounts:
             - name: socket-dir
               mountPath: /var/lib/csi/sockets/pluginproxy/
@@ -334,6 +350,42 @@ roleRef:
 
 ---
 
+# Resizer must be able to work with PVCs, PVs, SCs.
+kind: ClusterRole
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  name: csi-do-resizer-role
+rules:
+  - apiGroups: [""]
+    resources: ["persistentvolumes"]
+    verbs: ["get", "list", "watch", "update", "patch"]
+  - apiGroups: [""]
+    resources: ["persistentvolumeclaims"]
+    verbs: ["get", "list", "watch"]
+  - apiGroups: [""]
+    resources: ["persistentvolumeclaims/status"]
+    verbs: ["update", "patch"]
+  - apiGroups: [""]
+    resources: ["events"]
+    verbs: ["list", "watch", "create", "update", "patch"]
+
+---
+
+kind: ClusterRoleBinding
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  name: csi-do-resizer-binding
+subjects:
+  - kind: ServiceAccount
+    name: csi-do-controller-sa
+    namespace: kube-system
+roleRef:
+  kind: ClusterRole
+  name: csi-do-resizer-role
+  apiGroup: rbac.authorization.k8s.io
+
+---
+
 ########################################
 ###########                 ############
 ###########   Node plugin   ############
@@ -341,7 +393,7 @@ roleRef:
 ########################################
 
 kind: DaemonSet
-apiVersion: apps/v1beta2
+apiVersion: apps/v1
 metadata:
   name: csi-do-node
   namespace: kube-system
