@@ -149,7 +149,7 @@ const (
 	DOMAIN_ALIAS_RID_REMOTE_DESKTOP_USERS           = 0x22b
 	DOMAIN_ALIAS_RID_NETWORK_CONFIGURATION_OPS      = 0x22c
 	DOMAIN_ALIAS_RID_INCOMING_FOREST_TRUST_BUILDERS = 0x22d
-	DOMAIN_ALIAS_RID_MONITORING_USERS               = 0X22e
+	DOMAIN_ALIAS_RID_MONITORING_USERS               = 0x22e
 	DOMAIN_ALIAS_RID_LOGGING_USERS                  = 0x22f
 	DOMAIN_ALIAS_RID_AUTHORIZATIONACCESS            = 0x230
 	DOMAIN_ALIAS_RID_TS_LICENSE_SERVERS             = 0x231
@@ -296,6 +296,7 @@ const (
 	TOKEN_ADJUST_PRIVILEGES
 	TOKEN_ADJUST_GROUPS
 	TOKEN_ADJUST_DEFAULT
+	TOKEN_ADJUST_SESSIONID
 
 	TOKEN_ALL_ACCESS = STANDARD_RIGHTS_REQUIRED |
 		TOKEN_ASSIGN_PRIMARY |
@@ -305,7 +306,8 @@ const (
 		TOKEN_QUERY_SOURCE |
 		TOKEN_ADJUST_PRIVILEGES |
 		TOKEN_ADJUST_GROUPS |
-		TOKEN_ADJUST_DEFAULT
+		TOKEN_ADJUST_DEFAULT |
+		TOKEN_ADJUST_SESSIONID
 	TOKEN_READ  = STANDARD_RIGHTS_READ | TOKEN_QUERY
 	TOKEN_WRITE = STANDARD_RIGHTS_WRITE |
 		TOKEN_ADJUST_PRIVILEGES |
@@ -370,6 +372,7 @@ type Tokengroups struct {
 //sys	OpenProcessToken(h Handle, access uint32, token *Token) (err error) = advapi32.OpenProcessToken
 //sys	GetTokenInformation(t Token, infoClass uint32, info *byte, infoLen uint32, returnedLen *uint32) (err error) = advapi32.GetTokenInformation
 //sys	GetUserProfileDirectory(t Token, dir *uint16, dirLen *uint32) (err error) = userenv.GetUserProfileDirectoryW
+//sys	getSystemDirectory(dir *uint16, dirLen uint32) (len uint32, err error) = kernel32.GetSystemDirectoryW
 
 // An access token contains the security information for a logon session.
 // The system creates an access token when a user logs on, and every
@@ -463,6 +466,23 @@ func (t Token) GetUserProfileDirectory() (string, error) {
 		if n <= uint32(len(b)) {
 			return "", e
 		}
+	}
+}
+
+// GetSystemDirectory retrieves path to current location of the system
+// directory, which is typically, though not always, C:\Windows\System32.
+func GetSystemDirectory() (string, error) {
+	n := uint32(MAX_PATH)
+	for {
+		b := make([]uint16, n)
+		l, e := getSystemDirectory(&b[0], n)
+		if e != nil {
+			return "", e
+		}
+		if l <= n {
+			return UTF16ToString(b[:l]), nil
+		}
+		n = l
 	}
 }
 
