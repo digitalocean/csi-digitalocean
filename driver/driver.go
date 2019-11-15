@@ -20,6 +20,7 @@ import (
 	"context"
 	"fmt"
 	"net"
+	"net/http"
 	"net/url"
 	"os"
 	"path"
@@ -32,6 +33,7 @@ import (
 	"github.com/digitalocean/godo"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/oauth2"
+	"golang.org/x/sync/errgroup"
 	"google.golang.org/grpc"
 )
 
@@ -39,6 +41,9 @@ const (
 	// DefaultDriverName defines the name that is used in Kubernetes and the CSI
 	// system for the canonical, official name of this plugin
 	DefaultDriverName = "dobs.csi.digitalocean.com"
+	// DefaultAddress is the default address that the csi plugin will serve its
+	// http handler on.
+	DefaultAddress = "127.0.0.1:12302"
 )
 
 var (
@@ -60,12 +65,14 @@ type Driver struct {
 	publishInfoVolumeName string
 
 	endpoint     string
+	address      string
 	nodeId       string
 	region       string
 	doTag        string
 	isController bool
 
 	srv     *grpc.Server
+	httpSrv http.Server
 	log     *logrus.Entry
 	mounter Mounter
 
@@ -76,6 +83,8 @@ type Driver struct {
 	account        godo.AccountService
 	tags           godo.TagsService
 
+	healthChecker *HealthChecker
+
 	// ready defines whether the driver is ready to function. This value will
 	// be used by the `Identity` service via the `Probe()` method.
 	readyMu sync.Mutex // protects ready
@@ -85,7 +94,7 @@ type Driver struct {
 // NewDriver returns a CSI plugin that contains the necessary gRPC
 // interfaces to interact with Kubernetes over unix domain sockets for
 // managaing DigitalOcean Block Storage
-func NewDriver(ep, token, url, doTag, driverName string) (*Driver, error) {
+func NewDriver(ep, token, url, doTag, driverName, address string) (*Driver, error) {
 	if driverName == "" {
 		driverName = DefaultDriverName
 	}
@@ -116,6 +125,8 @@ func NewDriver(ep, token, url, doTag, driverName string) (*Driver, error) {
 		return nil, fmt.Errorf("couldn't initialize DigitalOcean client: %s", err)
 	}
 
+	healthChecker := NewHealthChecker(&doHealthChecker{account: doClient.Account})
+
 	log := logrus.New().WithFields(logrus.Fields{
 		"region":  region,
 		"node_id": nodeId,
@@ -128,6 +139,7 @@ func NewDriver(ep, token, url, doTag, driverName string) (*Driver, error) {
 
 		doTag:    doTag,
 		endpoint: ep,
+		address:  address,
 		nodeId:   nodeId,
 		region:   region,
 		mounter:  newMounter(log),
@@ -142,6 +154,8 @@ func NewDriver(ep, token, url, doTag, driverName string) (*Driver, error) {
 		snapshots:      doClient.Snapshots,
 		account:        doClient.Account,
 		tags:           doClient.Tags,
+
+		healthChecker: healthChecker,
 	}, nil
 }
 
@@ -152,9 +166,9 @@ func (d *Driver) Run() error {
 		return fmt.Errorf("unable to parse address: %q", err)
 	}
 
-	addr := path.Join(u.Host, filepath.FromSlash(u.Path))
+	grpcAddr := path.Join(u.Host, filepath.FromSlash(u.Path))
 	if u.Host == "" {
-		addr = filepath.FromSlash(u.Path)
+		grpcAddr = filepath.FromSlash(u.Path)
 	}
 
 	// CSI plugins talk only over UNIX sockets currently
@@ -164,12 +178,12 @@ func (d *Driver) Run() error {
 	// remove the socket if it's already there. This can happen if we
 	// deploy a new version and the socket was created from the old running
 	// plugin.
-	d.log.WithField("socket", addr).Info("removing socket")
-	if err := os.Remove(addr); err != nil && !os.IsNotExist(err) {
-		return fmt.Errorf("failed to remove unix domain socket file %s, error: %s", addr, err)
+	d.log.WithField("socket", grpcAddr).Info("removing socket")
+	if err := os.Remove(grpcAddr); err != nil && !os.IsNotExist(err) {
+		return fmt.Errorf("failed to remove unix domain socket file %s, error: %s", grpcAddr, err)
 	}
 
-	listener, err := net.Listen(u.Scheme, addr)
+	grpcListener, err := net.Listen(u.Scheme, grpcAddr)
 	if err != nil {
 		return fmt.Errorf("failed to listen: %v", err)
 	}
@@ -197,9 +211,38 @@ func (d *Driver) Run() error {
 	csi.RegisterControllerServer(d.srv, d)
 	csi.RegisterNodeServer(d.srv, d)
 
+	httpListener, err := net.Listen("tcp", d.address)
+	if err != nil {
+		return fmt.Errorf("failed to listen: %v", err)
+	}
+	mux := http.NewServeMux()
+	mux.HandleFunc("/health", func(w http.ResponseWriter, r *http.Request) {
+		err := d.healthChecker.Check(r.Context())
+		if err != nil {
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+		w.WriteHeader(http.StatusOK)
+	})
+	d.httpSrv = http.Server{
+		Handler: mux,
+	}
+
 	d.ready = true // we're now ready to go!
-	d.log.WithField("addr", addr).Info("server started")
-	return d.srv.Serve(listener)
+	d.log.WithFields(logrus.Fields{
+		"grpc_addr": grpcAddr,
+		"http_addr": d.address,
+	}).Info("starting server")
+
+	var eg errgroup.Group
+	eg.Go(func() error {
+		return d.srv.Serve(grpcListener)
+	})
+	eg.Go(func() error {
+		return d.httpSrv.Serve(httpListener)
+	})
+
+	return eg.Wait()
 }
 
 // Stop stops the plugin
