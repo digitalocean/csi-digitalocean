@@ -1,9 +1,12 @@
 ## unreleased
 
+* Add health check endpoint
+  [[GH-214]](https://github.com/digitalocean/csi-digitalocean/pull/214)
+
 ## v0.4.3 - 2019.09.17
 
 * Allow for custom driver names, to help with upgrades from Kubernetes 1.11
-  [[GH-181](https://github.com/digitalocean/csi-digitalocean/pull/181)]
+  [[GH-181]](https://github.com/digitalocean/csi-digitalocean/pull/181)
 
 ## v0.4.2 - 2019.07.02
 
