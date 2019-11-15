@@ -14,10 +14,14 @@
 
 FROM alpine:3.7
 
+# e2fsprogs-extra is required for resize2fs used for the resize operation
+# blkid: block device identification tool from util-linux
 RUN apk add --no-cache ca-certificates \
                        e2fsprogs \
                        findmnt \
-                       xfsprogs
+                       xfsprogs \
+                       blkid \
+                       e2fsprogs-extra
 
 ADD do-csi-plugin /bin/
 

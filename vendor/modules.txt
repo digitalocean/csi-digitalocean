@@ -56,6 +56,8 @@ github.com/kubernetes-csi/external-snapshotter/pkg/apis/volumesnapshot/v1alpha1
 github.com/kubernetes-csi/external-snapshotter/pkg/client/clientset/versioned
 github.com/kubernetes-csi/external-snapshotter/pkg/client/clientset/versioned/scheme
 github.com/kubernetes-csi/external-snapshotter/pkg/client/clientset/versioned/typed/volumesnapshot/v1alpha1
+# github.com/magiconair/properties v1.8.1
+github.com/magiconair/properties/assert
 # github.com/modern-go/concurrent v0.0.0-20180306012644-bacd9c7ef1dd
 github.com/modern-go/concurrent
 # github.com/modern-go/reflect2 v1.0.1
@@ -335,9 +337,16 @@ k8s.io/client-go/util/keyutil
 k8s.io/client-go/util/retry
 # k8s.io/klog v0.4.0
 k8s.io/klog
+# k8s.io/kubernetes v1.16.2
+k8s.io/kubernetes/pkg/util/mount
+k8s.io/kubernetes/pkg/util/resizefs
 # k8s.io/utils v0.0.0-20190801114015-581e00157fb1
 k8s.io/utils/buffer
+k8s.io/utils/exec
 k8s.io/utils/integer
+k8s.io/utils/io
+k8s.io/utils/keymutex
+k8s.io/utils/path
 k8s.io/utils/trace
 # sigs.k8s.io/yaml v1.1.0
 sigs.k8s.io/yaml

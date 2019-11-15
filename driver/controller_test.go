@@ -205,8 +205,8 @@ func TestControllerExpandVolume(t *testing.T) {
 					RequiredBytes: 10 * giB,
 				},
 			},
-			resp: nil,
-			err:  status.Error(codes.InvalidArgument, "ControllerExpandVolume new volume size (10Gi) must be greater than existing volume size (16Gi)"),
+			resp: &csi.ControllerExpandVolumeResponse{CapacityBytes: defaultVolumeSizeInBytes, NodeExpansionRequired: true},
+			err:  nil,
 		},
 		{
 			name: "new volume size is equal to old volume size",
@@ -216,8 +216,8 @@ func TestControllerExpandVolume(t *testing.T) {
 					RequiredBytes: 16 * giB,
 				},
 			},
-			resp: nil,
-			err:  status.Error(codes.InvalidArgument, "ControllerExpandVolume new volume size (16Gi) must be greater than existing volume size (16Gi)"),
+			resp: &csi.ControllerExpandVolumeResponse{CapacityBytes: defaultVolumeSizeInBytes, NodeExpansionRequired: true},
+			err:  nil,
 		},
 	}
 	for _, tc := range tcs {

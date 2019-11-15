@@ -11,6 +11,7 @@ require (
 	github.com/imdario/mergo v0.3.6 // indirect
 	github.com/kubernetes-csi/csi-test v2.2.0+incompatible
 	github.com/kubernetes-csi/external-snapshotter v0.4.1
+	github.com/magiconair/properties v1.8.1
 	github.com/sirupsen/logrus v1.2.0
 	golang.org/x/oauth2 v0.0.0-20190604053449-0f29369cfe45
 	golang.org/x/sync v0.0.0-20190423024810-112230192c58
@@ -20,7 +21,7 @@ require (
 	k8s.io/api v0.0.0
 	k8s.io/apimachinery v0.0.0
 	k8s.io/client-go v0.0.0
-	k8s.io/kubernetes v1.16.2 // indirect
+	k8s.io/kubernetes v1.16.2
 )
 
 replace (
