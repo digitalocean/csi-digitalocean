@@ -18,9 +18,9 @@ bumped following the rules below:
 
 ## Features
 
-Below is a list of functionality implemented by the plugin. In general, [CSI features](https://kubernetes-csi.github.io/docs/features.html) implementing a specific aspect of the [specification](https://github.com/container-storage-interface/spec/blob/master/spec.md) are available on any DigitalOcean Kubernetes version for which beta support for the feature is provided.
+Below is a list of functionality implemented by the plugin. In general, [CSI features](https://kubernetes-csi.github.io/docs/features.html) implementing an aspect of the [specification](https://github.com/container-storage-interface/spec/blob/master/spec.md) are available on any DigitalOcean Kubernetes version for which beta support for the feature is provided.
 
-See also the [project examples](/examples/kubernetes) for applicable use cases.
+See also the [project examples](/examples/kubernetes) for use cases.
 
 ### Volume Expansion
 
