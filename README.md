@@ -15,6 +15,52 @@ rules below:
 * New features (such as CSI spec bumps with no breaking changes) will be released as a `MINOR` update.
 * Significant breaking changes makes a `MAJOR` update.
 
+## Features
+
+Below is a list of functionality implemented by the plugin. In general, [CSI features](https://kubernetes-csi.github.io/docs/features.html) implementing an aspect of the [specification](https://github.com/container-storage-interface/spec/blob/master/spec.md) are available on any DigitalOcean Kubernetes version for which beta support for the feature is provided.
+
+See also the [project examples](/examples/kubernetes) for use cases.
+
+### Volume Expansion
+
+Volumes can be expanded by updating the storage request value of the corresponding PVC:
+
+```yaml
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: csi-pvc
+  namespace: default
+spec:
+  [...]
+  resources:
+    requests:
+      # The field below can be increased.
+      storage: 10Gi
+      [...]
+```
+
+After successful expansion, the _status_ section of the PVC object will reflect the actual volume capacity.
+
+Important notes:
+
+* Volumes can only be increased in size, not decreased; attempts to do so will lead to an error.
+* Expanding a volume that is larger than the target size will have no effect. The PVC object status section will continue to represent the actual volume capacity.
+* Resizing volumes other than through the PVC object (e.g., the DigitalOcean cloud control panel) is not recommended as this can potentially cause conflicts. Additionally, size updates will not be reflected in the PVC object status section immediately, and the section will eventually show the actual volume capacity.
+
+### Volume Snapshots
+
+Snapshots can be created and restored through `VolumeSnapshot` objects.
+
+See also [the example](/examples/kubernetes/snapshot).
+
+### Volume Statistics
+
+Volume statistics are exposed through the CSI-conformant endpoints. Monitoring systems such as Prometheus can scrape metrics and provide insights into volume usage.
+
+### Volume Transfer
+
+Volumes can be transferred across clusters. The exact steps are outlined in [our example](/examples/kubernetes/pod-single-existing-volume).
 
 ## Installing to Kubernetes
 
@@ -81,7 +127,6 @@ with the CSI driver pre-installed and no further steps are required.
 * `--allow-privileged` flag must be set to true for both the API server and the kubelet
 * `--feature-gates=VolumeSnapshotDataSource=true,KubeletPluginsWatcher=true,CSINodeInfo=true,CSIDriverRegistry=true` feature gate flags must be set to true for both the API server and the kubelet
 * Mount Propagation needs to be enabled. If you use Docker, the Docker daemon of the cluster nodes must allow shared mounts.
-
 
 #### 1. Create a secret with your DigitalOcean API Access Token:
 
