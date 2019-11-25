@@ -41,13 +41,13 @@ spec:
       [...]
 ```
 
-After successful expansion, the _status_ section of the PVC object will reflect the actual capacity.
+After successful expansion, the _status_ section of the PVC object will reflect the actual volume capacity.
 
 Important notes:
 
 * Volumes can only be increased in size, not decreased; attempts to do so will lead to an error.
-* Expanding a volume that is larger than the target size will have no effect. The PVC object status section will continue to represent the actual size.
-* Resizing volumes other than through the PVC object (e.g., the DigitalOcean cloud control panel) is not recommended as this can potentially cause conflicts. Additionally, size updates will not be reflected in the PVC object status field immediately.
+* Expanding a volume that is larger than the target size will have no effect. The PVC object status section will continue to represent the actual volume capacity.
+* Resizing volumes other than through the PVC object (e.g., the DigitalOcean cloud control panel) is not recommended as this can potentially cause conflicts. Additionally, size updates will not be reflected in the PVC object status section immediately, and the section will eventually show the actual volume capacity.
 
 ### Volume Snapshots
 
