@@ -6,7 +6,12 @@ import (
 	"net/http"
 	"testing"
 
+	"github.com/container-storage-interface/spec/lib/go/csi"
 	"github.com/digitalocean/godo"
+	"github.com/magiconair/properties/assert"
+	"github.com/sirupsen/logrus"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 )
 
 func TestTagger(t *testing.T) {
@@ -77,7 +82,7 @@ func TestTagger(t *testing.T) {
 			}
 			driver := &Driver{
 				doTag: tag,
-				tags:     tagService,
+				tags:  tagService,
 			}
 
 			err := driver.tagVolume(context.Background(), tc.vol)
@@ -150,4 +155,99 @@ func (f *fakeTagsDriver) TagResources(ctx context.Context, tag string, req *godo
 
 func (*fakeTagsDriver) UntagResources(context.Context, string, *godo.UntagResourcesRequest) (*godo.Response, error) {
 	panic("not implemented")
+}
+
+func TestControllerExpandVolume(t *testing.T) {
+	tcs := []struct {
+		name string
+		req  *csi.ControllerExpandVolumeRequest
+		resp *csi.ControllerExpandVolumeResponse
+		err  error
+	}{
+		{
+			name: "request exceeds maximum supported size",
+			req: &csi.ControllerExpandVolumeRequest{
+				VolumeId: "volume-id",
+				CapacityRange: &csi.CapacityRange{
+					RequiredBytes: 20 * tiB,
+				},
+			},
+			resp: nil,
+			err:  status.Error(codes.OutOfRange, "ControllerExpandVolume invalid capacity range: required (20Ti) can not exceed maximum supported volume size (16Ti)"),
+		},
+		{
+			name: "requested size less than minimum supported size",
+			req: &csi.ControllerExpandVolumeRequest{
+				VolumeId: "volume-id",
+				CapacityRange: &csi.CapacityRange{
+					RequiredBytes: 0.5 * giB,
+				},
+			},
+			resp: nil,
+			err:  status.Error(codes.OutOfRange, "ControllerExpandVolume invalid capacity range: required (512Mi) can not be less than minimum supported volume size (1Gi)"),
+		},
+		{
+			name: "volume for corresponding volume id does not exist",
+			req: &csi.ControllerExpandVolumeRequest{
+				VolumeId: "non-existent-id",
+				CapacityRange: &csi.CapacityRange{
+					RequiredBytes: 20 * tiB,
+				},
+			},
+			resp: nil,
+			err:  status.Error(codes.Internal, "ControllerExpandVolume could not retrieve existing volume: volume not found"),
+		},
+		{
+			name: "new volume size is less than old volume size",
+			req: &csi.ControllerExpandVolumeRequest{
+				VolumeId: "volume-id",
+				CapacityRange: &csi.CapacityRange{
+					RequiredBytes: 10 * giB,
+				},
+			},
+			resp: &csi.ControllerExpandVolumeResponse{CapacityBytes: defaultVolumeSizeInBytes, NodeExpansionRequired: true},
+			err:  nil,
+		},
+		{
+			name: "new volume size is equal to old volume size",
+			req: &csi.ControllerExpandVolumeRequest{
+				VolumeId: "volume-id",
+				CapacityRange: &csi.CapacityRange{
+					RequiredBytes: 16 * giB,
+				},
+			},
+			resp: &csi.ControllerExpandVolumeResponse{CapacityBytes: defaultVolumeSizeInBytes, NodeExpansionRequired: true},
+			err:  nil,
+		},
+	}
+	for _, tc := range tcs {
+		t.Run(tc.name, func(t *testing.T) {
+			volume := &godo.Volume{
+				ID:            "volume-id",
+				SizeGigaBytes: (defaultVolumeSizeInBytes / giB),
+			}
+			driver := &Driver{
+				region: "foo",
+				storage: &fakeStorageDriver{
+					volumes: map[string]*godo.Volume{
+						"volume-id": volume,
+					},
+				},
+				storageActions: &fakeStorageActionsDriver{
+					volumes: map[string]*godo.Volume{
+						"volume-id": volume,
+					},
+				},
+				log: logrus.New().WithField("test_enabed", true),
+			}
+			resp, err := driver.ControllerExpandVolume(context.Background(), tc.req)
+			if err != nil {
+				assert.Equal(t, err, tc.err)
+			} else {
+				assert.Equal(t, tc.resp, resp)
+				assert.Equal(t, (volume.SizeGigaBytes * giB), resp.CapacityBytes)
+			}
+
+		})
+	}
 }

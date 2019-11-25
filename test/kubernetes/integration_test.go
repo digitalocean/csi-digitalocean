@@ -9,10 +9,10 @@ import (
 	"testing"
 	"time"
 
+	appsv1 "k8s.io/api/apps/v1"
 	"github.com/kubernetes-csi/external-snapshotter/pkg/apis/volumesnapshot/v1alpha1"
 	snapclientset "github.com/kubernetes-csi/external-snapshotter/pkg/client/clientset/versioned"
 
-	appsv1 "k8s.io/api/apps/v1"
 	v1 "k8s.io/api/core/v1"
 	kubeerrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/resource"
@@ -244,6 +244,124 @@ func TestDeployment_Single_Volume(t *testing.T) {
 	}
 
 	t.Log("Finished!")
+}
+
+func TestPersistentVolume_Resize(t *testing.T) {
+	volumeName := "my-do-volume"
+	claimName := "csi-pvc-resizer"
+
+	pod := &v1.Pod{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: "my-csi-app-resizer",
+		},
+		Spec: v1.PodSpec{
+			Containers: []v1.Container{
+				{
+					Name:  "my-csi-app",
+					Image: "busybox",
+					VolumeMounts: []v1.VolumeMount{
+						{
+							MountPath: "/data",
+							Name:      volumeName,
+						},
+					},
+					Command: []string{
+						"sleep",
+						"1000000",
+					},
+				},
+			},
+			Volumes: []v1.Volume{
+				{
+					Name: volumeName,
+					VolumeSource: v1.VolumeSource{
+						PersistentVolumeClaim: &v1.PersistentVolumeClaimVolumeSource{
+							ClaimName: claimName,
+						},
+					},
+				},
+			},
+		},
+	}
+
+	t.Log("Creating pod")
+	_, err := client.CoreV1().Pods(namespace).Create(pod)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	pvc := &v1.PersistentVolumeClaim{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: claimName,
+		},
+		Spec: v1.PersistentVolumeClaimSpec{
+			AccessModes: []v1.PersistentVolumeAccessMode{
+				v1.ReadWriteOnce,
+			},
+			Resources: v1.ResourceRequirements{
+				Requests: v1.ResourceList{
+					v1.ResourceStorage: resource.MustParse("5Gi"),
+				},
+			},
+			StorageClassName: strPtr(testStorageClass),
+		},
+	}
+
+	t.Log("Creating pvc")
+	_, err = client.CoreV1().PersistentVolumeClaims(namespace).Create(pvc)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	t.Logf("Waiting for pod %q to be running ...", pod.Name)
+	if err := waitForPod(client, pod.Name); err != nil {
+		t.Error(err)
+	}
+
+	createdPVC, err := client.CoreV1().PersistentVolumeClaims(namespace).Get(claimName, metav1.GetOptions{})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	pvName := createdPVC.Spec.VolumeName
+	pv, err := client.CoreV1().PersistentVolumes().Get(pvName, metav1.GetOptions{})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if pv.Spec.Capacity["storage"] != resource.MustParse("5Gi") {
+		t.Fatalf("initial volume size (%v) is not equal to requested volume size (%v)", pv.Spec.Capacity["storage"], resource.MustParse("5Gi"))
+	}
+
+	t.Log("Updating pvc to request more size")
+	createdPVC.Spec.Resources.Requests = v1.ResourceList{
+		v1.ResourceStorage: resource.MustParse("6Gi"),
+	}
+
+	updatedPVC, err := client.CoreV1().PersistentVolumeClaims(namespace).Update(createdPVC)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	t.Logf("Waiting for volume %q to be resized ...", pvName)
+	resizedPv, err := waitForVolumeCapacityChange(client, pvName, pv.Spec.Capacity);
+	if err != nil {
+		t.Error(err)
+	}
+
+	if resizedPv.Spec.Capacity["storage"] != resource.MustParse("6Gi") {
+		t.Fatalf("volume size (%v) is not equal to requested volume size (%v)", pv.Spec.Capacity["storage"], resource.MustParse("6Gi"))
+	}
+
+	t.Logf("Waiting for volume claim %q to be resized ...", claimName)
+	resizedPVC, err := waitForVolumeClaimCapacityChange(client, claimName, updatedPVC.Status.Capacity)
+	if err != nil {
+		t.Error(err)
+	}
+
+	if resizedPVC.Status.Capacity["storage"] != resource.MustParse("6Gi") {
+		t.Fatalf("claim capacity (%v) is not equal to requested capacity (%v)", resizedPVC.Status.Capacity["storage"], resource.MustParse("6Gi"))
+	}
 }
 
 func TestPod_Multi_Volume(t *testing.T) {
@@ -672,6 +790,89 @@ func waitForPod(client kubernetes.Interface, name string) error {
 
 	controller.Run(stopCh)
 	return err
+}
+
+// waitForVolumeCapacityChange waits for the given volume's capacity to be changed
+func waitForVolumeCapacityChange(client kubernetes.Interface, name string, resourceList v1.ResourceList) (*v1.PersistentVolume, error) {
+	var err error
+	var pv *v1.PersistentVolume
+	stopCh := make(chan struct{})
+
+	go func() {
+		select {
+		case <-time.After(time.Minute * 5):
+			err = errors.New("timing out waiting for pv capcity change")
+			close(stopCh)
+		case <-stopCh:
+		}
+	}()
+
+	watchlist := cache.NewListWatchFromClient(client.CoreV1().RESTClient(),
+		"persistentvolumes", v1.NamespaceAll, fields.Everything())
+	_, controller := cache.NewInformer(watchlist, &v1.PersistentVolume{}, time.Second*1,
+		cache.ResourceEventHandlerFuncs{
+			UpdateFunc: func(o, n interface{}) {
+				volume := n.(*v1.PersistentVolume)
+				if name != volume.Name {
+					return
+				}
+				if volume.Status.Phase == v1.VolumeFailed {
+					err = errors.New("Persistent volume status is Failed")
+					close(stopCh)
+					return
+				}
+
+				if volume.Status.Phase == v1.VolumeBound && volume.Spec.Capacity["storage"] != resourceList["storage"] {
+					pv = volume
+					close(stopCh)
+					return
+				}
+			},
+		})
+
+	controller.Run(stopCh)
+	return pv, err
+}
+
+// waitForVolumeClaimCapacityChange waits for the given volume claim's capacity to be changed
+func waitForVolumeClaimCapacityChange(client kubernetes.Interface, name string, resourceList v1.ResourceList) (*v1.PersistentVolumeClaim, error) {
+	var err error
+	var pvc *v1.PersistentVolumeClaim
+	stopCh := make(chan struct{})
+
+	go func() {
+		select {
+		case <-time.After(time.Minute * 5):
+			err = errors.New("timing out waiting for pvc capcity change")
+			close(stopCh)
+		case <-stopCh:
+		}
+	}()
+
+	watchlist := cache.NewListWatchFromClient(client.CoreV1().RESTClient(),
+		"persistentvolumeclaims", namespace, fields.Everything())
+	_, controller := cache.NewInformer(watchlist, &v1.PersistentVolumeClaim{}, time.Second*1,
+		cache.ResourceEventHandlerFuncs{
+			UpdateFunc: func(o, n interface{}) {
+				claim := n.(*v1.PersistentVolumeClaim)
+				if name != claim.Name {
+					return
+				}
+				if claim.Status.Phase == v1.ClaimLost {
+					err = errors.New("Persistent volume claim status is Lost")
+					close(stopCh)
+					return
+				}
+				if claim.Status.Phase == v1.ClaimBound && claim.Status.Capacity["storage"] != resourceList["storage"] {
+					pvc = claim
+					close(stopCh)
+					return
+				}
+			},
+		})
+
+	controller.Run(stopCh)
+	return pvc, err
 }
 
 // appSelector returns a selector that selects deployed applications with the
