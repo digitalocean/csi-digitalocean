@@ -8,9 +8,8 @@ Cloud Foundry. Feel free to test it on other CO's and give us a feedback.
 ## Releases
 
 The DigitalOcean CSI plugin follows [semantic versioning](https://semver.org/).
-The current version is: **`v1.1.2`**. The project is still
-under active development and may not be production ready. The plugin will be
-bumped following the rules below:
+The current version is: **`v1.1.2`**. The plugin will be bumped following the
+rules below:
 
 * Bug fixes will be released as a `PATCH` update.
 * New features (such as CSI spec bumps with no breaking changes) will be released as a `MINOR` update.
