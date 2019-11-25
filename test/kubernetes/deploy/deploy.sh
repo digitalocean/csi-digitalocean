@@ -29,8 +29,10 @@ fi
 
 # Create a secret containing the specified DO API token; this will be used by
 # the dev version of the CSI controller.
-echo "access-token=${DIGITALOCEAN_ACCESS_TOKEN}" | \
-    kubectl -n kube-system create secret generic digitalocean --from-env-file=/dev/stdin
+# Piping the dry-run YAML output to kubectl apply is a common trick to implement
+# upsert semantics with secrets specified imperatively.
+kubectl -n kube-system create secret generic digitalocean --from-literal="access-token=${DIGITALOCEAN_ACCESS_TOKEN}" --dry-run -o yaml |
+    kubectl apply -f -
 
 # Configure kustomize to use the specified dev image (default to the one created
 # by `VERSION=dev make publish`).
