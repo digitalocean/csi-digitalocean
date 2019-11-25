@@ -20,14 +20,16 @@ To test a development version on a DOKS cluster, do the following:
    from the root of the repository.
 
 3. Run `deploy.sh` from this directory, providing a DO API access token for your
-   account:
+   account (This requires [`kustomize`](https://github.com/kubernetes-sigs/kustomize) and `kubectl`):
+
    ```console
    $ DIGITALOCEAN_ACCESS_TOKEN=<token> ./deploy.sh
    Deploying a dev version of the CSI driver to context do-nyc1-csi-integration-test.
    Continue? (yes/no)
    yes
    ```
-   This requires [`kustomize`](https://github.com/kubernetes-sigs/kustomize) and `kubectl`.
+
+   (You can also pass `-y` or `--yes` as a parameter to `deploy.sh` to skip the prompt.)
 
 4. Run the integration tests from the repository root against the dev storage class:
    ```console
