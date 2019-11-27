@@ -3,16 +3,22 @@
 package integration
 
 import (
+	"context"
 	"errors"
+	"fmt"
 	"log"
 	"os"
+	"strconv"
+	"strings"
 	"testing"
 	"time"
 
-	appsv1 "k8s.io/api/apps/v1"
+	"github.com/digitalocean/godo"
 	"github.com/kubernetes-csi/external-snapshotter/pkg/apis/volumesnapshot/v1alpha1"
 	snapclientset "github.com/kubernetes-csi/external-snapshotter/pkg/client/clientset/versioned"
+	"golang.org/x/oauth2"
 
+	appsv1 "k8s.io/api/apps/v1"
 	v1 "k8s.io/api/core/v1"
 	kubeerrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/resource"
@@ -20,6 +26,7 @@ import (
 	"k8s.io/apimachinery/pkg/fields"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/selection"
+	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/tools/cache"
 	"k8s.io/client-go/tools/clientcmd"
@@ -33,6 +40,7 @@ const (
 var (
 	client     kubernetes.Interface
 	snapClient snapclientset.Interface
+	doClient   *godo.Client
 	// testStorageClass defines the storage class to test. By default it's our
 	// default storage class name, do-block-storage, but can be set to a
 	// different value via the TEST_STORAGE_CLASS environment variable.
@@ -41,6 +49,11 @@ var (
 	// to have all resources left behind on test failure. This is useful for
 	// investigating failures.
 	skipCleanup = false
+
+	tokenEnvVars = []string{
+		"CSI_DIGITALOCEAN_ACCESS_TOKEN",
+		"DIGITALOCEAN_ACCESS_TOKEN",
+	}
 )
 
 func TestMain(m *testing.M) {
@@ -127,7 +140,7 @@ func TestPod_Single_Volume(t *testing.T) {
 	}
 
 	t.Logf("Waiting pod %q to be running ...\n", pod.Name)
-	if err := waitForPod(client, pod.Name); err != nil {
+	if _, err := waitForPod(client, pod.Name); err != nil {
 		t.Error(err)
 	}
 
@@ -239,7 +252,7 @@ func TestDeployment_Single_Volume(t *testing.T) {
 	pod := pods.Items[0]
 
 	t.Logf("Waiting pod %q to be running ...\n", pod.Name)
-	if err := waitForPod(client, pod.Name); err != nil {
+	if _, err := waitForPod(client, pod.Name); err != nil {
 		t.Error(err)
 	}
 
@@ -314,7 +327,7 @@ func TestPersistentVolume_Resize(t *testing.T) {
 	}
 
 	t.Logf("Waiting for pod %q to be running ...", pod.Name)
-	if err := waitForPod(client, pod.Name); err != nil {
+	if _, err := waitForPod(client, pod.Name); err != nil {
 		t.Error(err)
 	}
 
@@ -344,7 +357,7 @@ func TestPersistentVolume_Resize(t *testing.T) {
 	}
 
 	t.Logf("Waiting for volume %q to be resized ...", pvName)
-	resizedPv, err := waitForVolumeCapacityChange(client, pvName, pv.Spec.Capacity);
+	resizedPv, err := waitForVolumeCapacityChange(client, pvName, pv.Spec.Capacity)
 	if err != nil {
 		t.Error(err)
 	}
@@ -468,7 +481,7 @@ func TestPod_Multi_Volume(t *testing.T) {
 	}
 
 	t.Logf("Waiting pod %q to be running ...\n", pod.Name)
-	if err := waitForPod(client, pod.Name); err != nil {
+	if _, err := waitForPod(client, pod.Name); err != nil {
 		t.Error(err)
 	}
 
@@ -561,7 +574,7 @@ func TestSnapshot_Create(t *testing.T) {
 	}
 
 	t.Logf("Waiting for pod %q to be running ...\n", pod.Name)
-	if err := waitForPod(client, pod.Name); err != nil {
+	if _, err := waitForPod(client, pod.Name); err != nil {
 		t.Error(err)
 	}
 
@@ -677,11 +690,191 @@ func TestSnapshot_Create(t *testing.T) {
 	}
 
 	t.Logf("Waiting pod %q to be running ...\n", restoredPod.Name)
-	if err := waitForPod(client, restoredPod.Name); err != nil {
+	if _, err := waitForPod(client, restoredPod.Name); err != nil {
 		t.Error(err)
 	}
 
 	t.Log("Finished!")
+}
+
+func TestUnpublishOnDetachedVolume(t *testing.T) {
+	volumeName := "my-do-volume"
+	claimName := "csi-pod-pvc"
+
+	pod := &v1.Pod{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: "my-csi-app",
+		},
+		Spec: v1.PodSpec{
+			Containers: []v1.Container{
+				{
+					Name:  "my-csi-app",
+					Image: "busybox",
+					VolumeMounts: []v1.VolumeMount{
+						{
+							MountPath: "/data",
+							Name:      volumeName,
+						},
+					},
+					Command: []string{
+						"sleep",
+						"1000000",
+					},
+				},
+			},
+			Volumes: []v1.Volume{
+				{
+					Name: volumeName,
+					VolumeSource: v1.VolumeSource{
+						PersistentVolumeClaim: &v1.PersistentVolumeClaimVolumeSource{
+							ClaimName: claimName,
+						},
+					},
+				},
+			},
+		},
+	}
+
+	t.Log("Creating pod")
+	_, err := client.CoreV1().Pods(namespace).Create(pod)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	pvc := &v1.PersistentVolumeClaim{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: claimName,
+		},
+		Spec: v1.PersistentVolumeClaimSpec{
+			AccessModes: []v1.PersistentVolumeAccessMode{
+				v1.ReadWriteOnce,
+			},
+			Resources: v1.ResourceRequirements{
+				Requests: v1.ResourceList{
+					v1.ResourceStorage: resource.MustParse("5Gi"),
+				},
+			},
+			StorageClassName: strPtr(testStorageClass),
+		},
+	}
+
+	t.Log("Creating pvc")
+	_, err = client.CoreV1().PersistentVolumeClaims(namespace).Create(pvc)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	t.Logf("Waiting for pod %q to be running", pod.Name)
+	pod, err = waitForPod(client, pod.Name)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	t.Log("Discovering droplet ID from pod")
+
+	// The chain of IDs we have to connect to get from the pod to the droplet ID
+	// is as following:
+	// 1. Fetch the PVC claim name from the pod.
+	// 2. Find the PV corresponding to the claim name and fetch its name as well
+	//    as the volume ID.
+	// 3. Find the VolumeAttachment corresponding to the PV name and fetch the
+	//    node name (i.e., the node that the volume is attached to).
+	// 4. Fetch the provider ID from the node object and extract the droplet ID
+	//    from it.
+
+	var pvcName string
+	for _, vol := range pod.Spec.Volumes {
+		if vol.PersistentVolumeClaim != nil {
+			pvcName = vol.PersistentVolumeClaim.ClaimName
+			break
+		}
+	}
+	if pvcName == "" {
+		t.Fatal("no persistent volume claim found on pod")
+	}
+
+	pvs, err := client.CoreV1().PersistentVolumes().List(metav1.ListOptions{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	var pvName, volumeID string
+	for _, pv := range pvs.Items {
+		if pv.Spec.ClaimRef.Name == pvcName {
+			pvName = pv.ObjectMeta.Name
+			volumeID = pv.Spec.CSI.VolumeHandle
+			break
+		}
+	}
+	if pvName == "" {
+		t.Fatalf("no persistent volume with claim reference %q found", pvcName)
+	}
+	if volumeID == "" {
+		t.Fatal("volume ID should have been discovered together with persist volume name")
+	}
+
+	vaList, err := client.StorageV1().VolumeAttachments().List(metav1.ListOptions{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	var attachedNodeName string
+	for _, va := range vaList.Items {
+		if va.Spec.Source.PersistentVolumeName != nil && *va.Spec.Source.PersistentVolumeName == pvName {
+			attachedNodeName = va.Spec.NodeName
+			break
+		}
+	}
+	if attachedNodeName == "" {
+		t.Fatalf("no volume attachment with persistent volume name %q found (number of volume attachments found: %d)", pvName, len(vaList.Items))
+	}
+
+	nodes, err := client.CoreV1().Nodes().List(metav1.ListOptions{})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	var dropletID int
+	for _, node := range nodes.Items {
+		if node.Name == attachedNodeName {
+			dropletIDStr := strings.TrimPrefix(node.Spec.ProviderID, "digitalocean://")
+			var err error
+			dropletID, err = strconv.Atoi(dropletIDStr)
+			if err != nil {
+				t.Fatalf("failed to convert integer part %s of provider ID %q to integer: %s", dropletIDStr, node.Spec.ProviderID, err)
+			}
+			break
+		}
+	}
+	if dropletID == 0 {
+		t.Fatalf("no node by name %q found", attachedNodeName)
+	}
+
+	t.Log("Detaching volume directly")
+	action, _, err := doClient.StorageActions.DetachByDropletID(context.Background(), volumeID, dropletID)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if action != nil {
+		err := wait.PollImmediate(5*time.Second, 2*time.Minute, wait.ConditionFunc(func() (bool, error) {
+			ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+			defer cancel()
+
+			action, _, err := doClient.StorageActions.Get(ctx, volumeID, action.ID)
+			if err != nil {
+				return false, err
+			}
+
+			return action.Status == godo.ActionCompleted, nil
+		}))
+		if err != nil {
+			t.Fatal(err)
+		}
+	}
+
+	err = client.CoreV1().Pods(namespace).Delete(pod.Name, &metav1.DeleteOptions{})
+	if err != nil {
+		t.Fatal(err)
+	}
 }
 
 func setup() error {
@@ -693,6 +886,33 @@ func setup() error {
 
 	if skip := os.Getenv("SKIP_CLEANUP"); skip != "" && skip != "false" {
 		skipCleanup = true
+	}
+
+	// Create godo client.
+	var doToken string
+	for _, tokenEnvVar := range tokenEnvVars {
+		if doToken = os.Getenv(tokenEnvVar); doToken != "" {
+			break
+		}
+	}
+
+	if doToken == "" {
+		return fmt.Errorf("DO API token must be provided in one of the following environment variables: %s", strings.Join(tokenEnvVars, ", "))
+	}
+
+	tokenSource := oauth2.StaticTokenSource(&oauth2.Token{
+		AccessToken: doToken,
+	})
+	oauthClient := oauth2.NewClient(context.Background(), tokenSource)
+
+	opts := []godo.ClientOpt{
+		godo.SetUserAgent("csi-digitalocean/integration-tests"),
+	}
+
+	var err error
+	doClient, err = godo.New(oauthClient, opts...)
+	if err != nil {
+		return fmt.Errorf("failed to create DigitalOcean client: %s", err)
 	}
 
 	// if you want to change the loading rules (which files in which order),
@@ -740,19 +960,36 @@ func teardown() error {
 
 	// delete all test resources
 	err := client.CoreV1().Namespaces().Delete(namespace, nil)
-	if err != nil && !(kubeerrors.IsNotFound(err) || kubeerrors.IsAlreadyExists(err)) {
+	if err != nil && !kubeerrors.IsNotFound(err) {
 		return err
 	}
 
-	return nil
+	// Wait for namespace delete to complete so that subsequent test runs fired
+	// off with little delay do not run into an error when the namespace still
+	// exists (i.e., deletion is still in progress).
+	return waitForNamespaceDelete(client, namespace)
 }
 
 func strPtr(s string) *string {
 	return &s
 }
 
+func waitForNamespaceDelete(client kubernetes.Interface, name string) error {
+	err := wait.PollImmediate(3*time.Second, 5*time.Minute, wait.ConditionFunc(func() (bool, error) {
+		_, err := client.CoreV1().Namespaces().Get(name, metav1.GetOptions{})
+		if kubeerrors.IsNotFound(err) {
+			return true, nil
+		}
+
+		return false, err
+	}))
+
+	return err
+}
+
 // waitForPod waits for the given pod name to be running
-func waitForPod(client kubernetes.Interface, name string) error {
+func waitForPod(client kubernetes.Interface, name string) (*v1.Pod, error) {
+	var resultPod *v1.Pod
 	var err error
 	stopCh := make(chan struct{})
 
@@ -782,6 +1019,7 @@ func waitForPod(client kubernetes.Interface, name string) error {
 				}
 
 				if pod.Status.Phase == v1.PodRunning {
+					resultPod = pod
 					close(stopCh)
 					return
 				}
@@ -789,7 +1027,7 @@ func waitForPod(client kubernetes.Interface, name string) error {
 		})
 
 	controller.Run(stopCh)
-	return err
+	return resultPod, err
 }
 
 // waitForVolumeCapacityChange waits for the given volume's capacity to be changed

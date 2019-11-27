@@ -1,5 +1,7 @@
 ## unreleased
 
+* Assume detached state on 404 during ControllerUnpublishVolume
+  [[GH-221]](https://github.com/digitalocean/csi-digitalocean/pull/221)
 * Implement NodeGetVolumeStats RPC
   [[GH-197]](https://github.com/digitalocean/csi-digitalocean/pull/197)
 * Add health check endpoint
