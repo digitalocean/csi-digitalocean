@@ -350,7 +350,7 @@ func (d *Driver) ControllerPublishVolume(ctx context.Context, req *csi.Controlle
 // ControllerUnpublishVolume deattaches the given volume from the node
 func (d *Driver) ControllerUnpublishVolume(ctx context.Context, req *csi.ControllerUnpublishVolumeRequest) (*csi.ControllerUnpublishVolumeResponse, error) {
 	if req.VolumeId == "" {
-		return nil, status.Error(codes.InvalidArgument, "ControllerPublishVolume Volume ID must be provided")
+		return nil, status.Error(codes.InvalidArgument, "ControllerUnpublishVolume Volume ID must be provided")
 	}
 
 	dropletID, err := strconv.Atoi(req.NodeId)
@@ -389,25 +389,36 @@ func (d *Driver) ControllerUnpublishVolume(ctx context.Context, req *csi.Control
 
 	action, resp, err := d.storageActions.DetachByDropletID(ctx, req.VolumeId, dropletID)
 	if err != nil {
-		if resp != nil && resp.StatusCode == http.StatusUnprocessableEntity {
-			if strings.Contains(err.Error(), "Attachment not found") {
+		if resp != nil {
+			if resp.StatusCode == http.StatusNotFound {
 				ll.WithFields(logrus.Fields{
 					"error": err,
 					"resp":  resp,
-				}).Warn("assuming volume is detached already")
+				}).Warn("volume is not attached to droplet")
 				return &csi.ControllerUnpublishVolumeResponse{}, nil
 			}
 
-			if strings.Contains(err.Error(), "Droplet already has a pending event") {
-				ll.WithFields(logrus.Fields{
-					"error": err,
-					"resp":  resp,
-				}).Warn("droplet is not able to detach the volume")
-				// sending an abort makes sure the csi-attacher retries with the next backoff tick
-				return nil, status.Errorf(codes.Aborted, "volume %q couldn't be detached. droplet %d is in process of another action",
-					req.VolumeId, dropletID)
+			if resp.StatusCode == http.StatusUnprocessableEntity {
+				if strings.Contains(err.Error(), "Attachment not found") {
+					ll.WithFields(logrus.Fields{
+						"error": err,
+						"resp":  resp,
+					}).Warn("assuming volume is detached already")
+					return &csi.ControllerUnpublishVolumeResponse{}, nil
+				}
+
+				if strings.Contains(err.Error(), "Droplet already has a pending event") {
+					ll.WithFields(logrus.Fields{
+						"error": err,
+						"resp":  resp,
+					}).Warn("droplet is not able to detach the volume")
+					// sending an abort makes sure the csi-attacher retries with the next backoff tick
+					return nil, status.Errorf(codes.Aborted, "volume %q couldn't be detached. droplet %d is in process of another action",
+						req.VolumeId, dropletID)
+				}
 			}
 		}
+
 		return nil, err
 	}
 
