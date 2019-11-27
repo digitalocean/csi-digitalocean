@@ -1,5 +1,8 @@
 ## unreleased
 
+* Assume detached state on 404 during ControllerUnpublishVolume
+  [[GH-221]](https://github.com/digitalocean/csi-digitalocean/pull/221)
+
 ## v1.1.2 - 2019.09.17
 
 * Improve error messages for incorrectly attached volumes
