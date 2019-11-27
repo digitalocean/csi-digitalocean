@@ -13,7 +13,7 @@ PKG ?= github.com/digitalocean/csi-digitalocean/cmd/do-csi-plugin
 VERSION ?= $(shell cat VERSION)
 DOCKER_REPO ?= digitalocean/do-csi-plugin
 
-all: test
+all: check-unused test
 
 publish: compile build push clean
 
@@ -35,6 +35,12 @@ bump-version:
 compile:
 	@echo "==> Building the project"
 	@docker run --rm -it -e GOOS=${OS} -e GOARCH=amd64 -v ${PWD}/:/app -w /app golang:1.13-alpine sh -c 'apk add git && go build -o cmd/do-csi-plugin/${NAME} -ldflags "$(LDFLAGS)" ${PKG}'
+
+.PHONY: check-unused
+check-unused:
+	@GO111MODULE=on go mod tidy
+	@GO111MODULE=on go mod vendor
+	@git diff --exit-code -- go.sum go.mod vendor/ || ( echo "there are uncommitted changes to the Go modules and/or vendor files -- please run 'make vendor' and commit the changes first"; exit 1 )
 
 .PHONY: test
 test:
@@ -63,6 +69,11 @@ endif
 	@echo "==> Publishing $(DOCKER_REPO):$(VERSION)"
 	@docker push $(DOCKER_REPO):$(VERSION)
 	@echo "==> Your image is now available at $(DOCKER_REPO):$(VERSION)"
+
+.PHONY: vendor
+vendor:
+	@GO111MODULE=on go mod tidy
+	@GO111MODULE=on go mod vendor
 
 .PHONY: clean
 clean:
