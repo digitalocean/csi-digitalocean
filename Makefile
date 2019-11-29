@@ -37,9 +37,7 @@ compile:
 	@docker run --rm -it -e GOOS=${OS} -e GOARCH=amd64 -v ${PWD}/:/app -w /app golang:1.13-alpine sh -c 'apk add git && go build -o cmd/do-csi-plugin/${NAME} -ldflags "$(LDFLAGS)" ${PKG}'
 
 .PHONY: check-unused
-check-unused:
-	@GO111MODULE=on go mod tidy
-	@GO111MODULE=on go mod vendor
+check-unused: vendor
 	@git diff --exit-code -- go.sum go.mod vendor/ || ( echo "there are uncommitted changes to the Go modules and/or vendor files -- please run 'make vendor' and commit the changes first"; exit 1 )
 
 .PHONY: test
