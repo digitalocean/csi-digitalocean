@@ -2,6 +2,12 @@
 
 set -euo pipefail
 
+YES=
+if [[ $# -gt 0 && ( $1 = '-y' || $1 = '--yes' ) ]]; then
+    YES=1
+fi
+readonly YES
+
 if ! command -v kustomize >/dev/null 2>&1; then
     echo 'kustomize not installed'
     echo 'get it from https://github.com/kubernetes-sigs/kustomize'
@@ -20,11 +26,13 @@ fi
 
 current_context=$(kubectl config current-context)
 echo "Deploying a dev version of the CSI driver to context ${current_context}."
-echo "Continue? (yes/no)"
-read -r yesno
-if [[ "${yesno}" != 'yes' ]]; then
-    echo 'Aborted'
-    exit 1
+if [[ -z "${YES}" ]]; then
+    echo "Continue? (yes/no)"
+    read -r yesno
+    if [[ "${yesno}" != 'yes' ]]; then
+        echo 'Aborted'
+        exit 1
+    fi
 fi
 
 # Create a secret containing the specified DO API token; this will be used by
