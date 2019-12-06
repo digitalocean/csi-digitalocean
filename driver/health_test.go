@@ -38,7 +38,10 @@ func TestDoHealthCheker_Check(t *testing.T) {
 	t.Run("healthy godo", func(t *testing.T) {
 		ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 			w.WriteHeader(http.StatusOK)
-			w.Write([]byte(`{"account":null}`))
+			_, err := w.Write([]byte(`{"account":null}`))
+			if err != nil {
+				t.Error(err)
+			}
 		}))
 		defer ts.Close()
 
