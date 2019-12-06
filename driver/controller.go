@@ -30,6 +30,8 @@ import (
 	"github.com/sirupsen/logrus"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
+
+	"k8s.io/apimachinery/pkg/util/sets"
 )
 
 const (
@@ -81,8 +83,8 @@ func (d *Driver) CreateVolume(ctx context.Context, req *csi.CreateVolumeRequest)
 		return nil, status.Error(codes.InvalidArgument, "CreateVolume Volume capabilities must be provided")
 	}
 
-	if !validateCapabilities(req.VolumeCapabilities) {
-		return nil, status.Error(codes.InvalidArgument, "invalid volume capabilities requested. Only SINGLE_NODE_WRITER is supported ('accessModes.ReadWriteOnce' on Kubernetes)")
+	if violations := validateCapabilities(req.VolumeCapabilities); len(violations) > 0 {
+		return nil, status.Error(codes.InvalidArgument, fmt.Sprintf("volume capabilities cannot be satisified: %s", strings.Join(violations, "; ")))
 	}
 
 	size, err := extractStorage(req.CapacityRange)
@@ -1037,33 +1039,20 @@ func toCSISnapshot(snap *godo.Snapshot) (*csi.Snapshot, error) {
 	}, nil
 }
 
-// validateCapabilities validates the requested capabilities. It returns false
-// if it doesn't satisfy the currently supported modes of DigitalOcean Block
-// Storage
-func validateCapabilities(caps []*csi.VolumeCapability) bool {
-	vcaps := []*csi.VolumeCapability_AccessMode{supportedAccessMode}
-
-	hasSupport := func(mode csi.VolumeCapability_AccessMode_Mode) bool {
-		for _, m := range vcaps {
-			if mode == m.Mode {
-				return true
-			}
-		}
-		return false
-	}
-
-	supported := false
+// validateCapabilities validates the requested capabilities. It returns a list
+// of violations which may be empty if no violatons were found.
+func validateCapabilities(caps []*csi.VolumeCapability) []string {
+	violations := sets.NewString()
 	for _, cap := range caps {
-		if hasSupport(cap.AccessMode.Mode) {
-			supported = true
-		} else {
-			// we need to make sure all capabilities are supported. Revert back
-			// in case we have a cap that is supported, but is invalidated now
-			supported = false
+		if cap.GetAccessMode().GetMode() != supportedAccessMode.GetMode() {
+			violations.Insert(fmt.Sprintf("unsupported access mode %s", cap.GetAccessMode().GetMode().String()))
+		}
+		if cap.GetMount() == nil {
+			violations.Insert("unsupported access type")
 		}
 	}
 
-	return supported
+	return violations.List()
 }
 
 func (d *Driver) tagVolume(parentCtx context.Context, vol *godo.Volume) error {
