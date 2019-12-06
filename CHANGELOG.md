@@ -1,5 +1,7 @@
 ## unreleased
 
+* Reject requests for block access type
+  [[GH-225]](https://github.com/digitalocean/csi-digitalocean/pull/225)
 * Assume detached state on 404 during ControllerUnpublishVolume
   [[GH-221]](https://github.com/digitalocean/csi-digitalocean/pull/221)
 * Implement NodeGetVolumeStats RPC
