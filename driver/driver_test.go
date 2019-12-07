@@ -35,21 +35,6 @@ func init() {
 	rand.Seed(time.Now().UnixNano())
 }
 
-type storageVolumeRoot struct {
-	Volume *godo.Volume `json:"volume"`
-	Links  *godo.Links  `json:"links,omitempty"`
-}
-
-type storageVolumesRoot struct {
-	Volumes []godo.Volume `json:"volumes"`
-	Links   *godo.Links   `json:"links"`
-}
-
-type dropletRoot struct {
-	Droplet *godo.Droplet `json:"droplet"`
-	Links   *godo.Links   `json:"links,omitempty"`
-}
-
 func TestDriverSuite(t *testing.T) {
 	socket := "/tmp/csi.sock"
 	endpoint := "unix://" + socket
@@ -59,8 +44,8 @@ func TestDriverSuite(t *testing.T) {
 
 	nodeID := 987654
 	doTag := "k8s:cluster-id"
-	volumes := make(map[string]*godo.Volume, 0)
-	snapshots := make(map[string]*godo.Snapshot, 0)
+	volumes := make(map[string]*godo.Volume)
+	snapshots := make(map[string]*godo.Snapshot)
 	droplets := map[int]*godo.Droplet{
 		nodeID: {
 			ID: nodeID,

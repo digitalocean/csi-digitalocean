@@ -1084,7 +1084,7 @@ func (d *Driver) tagVolume(parentCtx context.Context, vol *godo.Volume) error {
 	// and then retry tagging the volume resource.
 	ctx, cancel = context.WithTimeout(parentCtx, doAPITimeout)
 	defer cancel()
-	_, _, err = d.tags.Create(parentCtx, &godo.TagCreateRequest{
+	_, _, err = d.tags.Create(ctx, &godo.TagCreateRequest{
 		Name: d.doTag,
 	})
 	if err != nil {
