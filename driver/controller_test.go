@@ -5,6 +5,7 @@ import (
 	"errors"
 	"net/http"
 	"testing"
+	"time"
 
 	"github.com/container-storage-interface/spec/lib/go/csi"
 	"github.com/digitalocean/godo"
@@ -12,6 +13,8 @@ import (
 	"github.com/sirupsen/logrus"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
+
+	"k8s.io/apimachinery/pkg/util/wait"
 )
 
 func TestTagger(t *testing.T) {
@@ -248,6 +251,78 @@ func TestControllerExpandVolume(t *testing.T) {
 				assert.Equal(t, (volume.SizeGigaBytes * giB), resp.CapacityBytes)
 			}
 
+		})
+	}
+}
+
+type fakeStorageAction struct {
+	*fakeStorageActionsDriver
+	storageGetValsFunc func(invocation int) (*godo.Action, *godo.Response, error)
+	invocation         int
+}
+
+func (f *fakeStorageAction) Get(ctx context.Context, volumeID string, actionID int) (*godo.Action, *godo.Response, error) {
+	defer func() {
+		f.invocation++
+	}()
+	return f.storageGetValsFunc(f.invocation)
+}
+
+func TestWaitAction(t *testing.T) {
+	tests := []struct {
+		name               string
+		storageGetValsFunc func(invocation int) (*godo.Action, *godo.Response, error)
+		timeout            time.Duration
+		wantErr            error
+	}{
+		{
+			name: "timeout",
+			storageGetValsFunc: func(int) (*godo.Action, *godo.Response, error) {
+				return &godo.Action{
+					Status: godo.ActionInProgress,
+				}, nil, nil
+			},
+			timeout: 2 * time.Second,
+			wantErr: wait.ErrWaitTimeout,
+		},
+		{
+			name: "progressing to completion",
+			storageGetValsFunc: func(invocation int) (*godo.Action, *godo.Response, error) {
+				switch invocation {
+				case 0:
+					return nil, nil, errors.New("network disruption")
+				case 1:
+					return &godo.Action{
+						Status: godo.ActionInProgress,
+					}, &godo.Response{}, nil
+				default:
+					return &godo.Action{
+						Status: godo.ActionCompleted,
+					}, &godo.Response{}, nil
+				}
+			},
+			timeout: 5 * time.Second, // We need three 1-second ticks for the fake storage action to complete.
+			wantErr: nil,
+		},
+	}
+
+	for _, test := range tests {
+		test := test
+		t.Run(test.name, func(t *testing.T) {
+			t.Parallel()
+			d := Driver{
+				waitActionTimeout: test.timeout,
+				storageActions: &fakeStorageAction{
+					fakeStorageActionsDriver: &fakeStorageActionsDriver{},
+					storageGetValsFunc:       test.storageGetValsFunc,
+				},
+				log: logrus.New().WithField("test_enabed", true),
+			}
+
+			err := d.waitAction(context.Background(), "volumeID", 42)
+			if err != test.wantErr {
+				t.Errorf("got error %q, want %q", err, test.wantErr)
+			}
 		})
 	}
 }

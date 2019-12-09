@@ -32,6 +32,7 @@ import (
 	"google.golang.org/grpc/status"
 
 	"k8s.io/apimachinery/pkg/util/sets"
+	"k8s.io/apimachinery/pkg/util/wait"
 )
 
 const (
@@ -950,34 +951,35 @@ func (d *Driver) waitAction(ctx context.Context, volumeId string, actionId int) 
 		"action_id": actionId,
 	})
 
-	ctx, cancel := context.WithTimeout(ctx, time.Minute)
+	// This timeout should not strike given all sidecars use a timeout that is
+	// lower (which should always be the case). Using this as a fail-safe
+	// mechanism in case of a bug or misconfiguration.
+	ctx, cancel := context.WithTimeout(ctx, d.waitActionTimeout)
 	defer cancel()
 
-	// TODO(arslan): use backoff in the future
-	ticker := time.NewTicker(time.Second)
-	defer ticker.Stop()
-	for {
-		select {
-		case <-ticker.C:
-			action, _, err := d.storageActions.Get(ctx, volumeId, actionId)
-			if err != nil {
-				ll.WithError(err).Info("waiting for volume errored")
-				continue
-			}
-			ll.WithField("action_status", action.Status).Info("action received")
-
-			if action.Status == godo.ActionCompleted {
-				ll.Info("action completed")
-				return nil
+	err := wait.PollUntil(1*time.Second, wait.ConditionFunc(func() (done bool, err error) {
+		action, _, err := d.storageActions.Get(ctx, volumeId, actionId)
+		if err != nil {
+			ctxCanceled := ctx.Err() != nil
+			if !ctxCanceled {
+				ll.WithError(err).Info("getting action for volume")
+				return false, nil
 			}
 
-			if action.Status == godo.ActionInProgress {
-				continue
-			}
-		case <-ctx.Done():
-			return fmt.Errorf("timeout occurred waiting for storage action of volume: %q", volumeId)
+			return false, fmt.Errorf("failed to get action %d for volume %s: %s", actionId, volumeId, err)
 		}
-	}
+
+		ll.WithField("action_status", action.Status).Info("action received")
+
+		if action.Status == godo.ActionCompleted {
+			ll.Info("action completed")
+			return true, nil
+		}
+
+		return false, nil
+	}), ctx.Done())
+
+	return err
 }
 
 // checkLimit checks whether the user hit their volume limit to ensure.

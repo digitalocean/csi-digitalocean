@@ -53,11 +53,12 @@ func TestDriverSuite(t *testing.T) {
 	}
 
 	driver := &Driver{
-		name:     DefaultDriverName,
-		endpoint: endpoint,
-		nodeId:   strconv.Itoa(nodeID),
-		doTag:    doTag,
-		region:   "nyc3",
+		name:              DefaultDriverName,
+		endpoint:          endpoint,
+		nodeId:            strconv.Itoa(nodeID),
+		doTag:             doTag,
+		region:            "nyc3",
+		waitActionTimeout: defaultWaitActionTimeout,
 		mounter: &fakeMounter{
 			mounted: map[string]string{},
 		},
