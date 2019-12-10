@@ -101,11 +101,16 @@ func (f *fakeAccountDriver) Get(context.Context) (*godo.Account, *godo.Response,
 }
 
 type fakeStorageDriver struct {
-	volumes   map[string]*godo.Volume
-	snapshots map[string]*godo.Snapshot
+	volumes        map[string]*godo.Volume
+	snapshots      map[string]*godo.Snapshot
+	listVolumesErr error
 }
 
 func (f *fakeStorageDriver) ListVolumes(ctx context.Context, param *godo.ListVolumeParams) ([]godo.Volume, *godo.Response, error) {
+	if f.listVolumesErr != nil {
+		return nil, nil, f.listVolumesErr
+	}
+
 	var volumes []godo.Volume
 
 	for _, vol := range f.volumes {
@@ -313,7 +318,8 @@ func (f *fakeDropletsDriver) Neighbors(context.Context, int) ([]godo.Droplet, *g
 }
 
 type fakeSnapshotsDriver struct {
-	snapshots map[string]*godo.Snapshot
+	snapshots      map[string]*godo.Snapshot
+	getSnapshotErr error
 }
 
 func (f *fakeSnapshotsDriver) List(context.Context, *godo.ListOptions) ([]godo.Snapshot, *godo.Response, error) {
@@ -334,6 +340,10 @@ func (f *fakeSnapshotsDriver) ListDroplet(context.Context, *godo.ListOptions) ([
 }
 
 func (f *fakeSnapshotsDriver) Get(ctx context.Context, id string) (*godo.Snapshot, *godo.Response, error) {
+	if f.getSnapshotErr != nil {
+		return nil, nil, f.getSnapshotErr
+	}
+
 	resp := godoResponse()
 	snap, ok := f.snapshots[id]
 	if !ok {
