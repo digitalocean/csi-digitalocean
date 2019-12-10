@@ -146,7 +146,7 @@ Skip secret creation (section 1. in following deployment instructions) when usin
 **Requirements:**
 
 * `--allow-privileged` flag must be set to true for the API server
-* `--allow-privileged` flag must be set to true for the kubelet in Kubernetes 1.14 and below, and not be set otherwise
+* `--allow-privileged` flag must be set to true for the kubelet in Kubernetes 1.14 and below (flag does not exist in later releases)
 * `--feature-gates=KubeletPluginsWatcher=true,CSINodeInfo=true,CSIDriverRegistry=true` feature gate flags must be set to true for both the API server and the kubelet
 * Mount Propagation needs to be enabled. If you use Docker, the Docker daemon of the cluster nodes must allow shared mounts.
 
