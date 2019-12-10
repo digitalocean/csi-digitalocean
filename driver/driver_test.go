@@ -94,10 +94,14 @@ func TestDriverSuite(t *testing.T) {
 	sanity.Test(t, cfg)
 }
 
-type fakeAccountDriver struct{}
+type fakeAccountDriver struct {
+	volumeLimit int
+}
 
 func (f *fakeAccountDriver) Get(context.Context) (*godo.Account, *godo.Response, error) {
-	return &godo.Account{}, godoResponse(), nil
+	return &godo.Account{
+		VolumeLimit: f.volumeLimit,
+	}, godoResponse(), nil
 }
 
 type fakeStorageDriver struct {
@@ -119,7 +123,11 @@ func (f *fakeStorageDriver) ListVolumes(ctx context.Context, param *godo.ListVol
 
 	if param != nil && param.ListOptions != nil && param.ListOptions.PerPage != 0 {
 		perPage := param.ListOptions.PerPage
-		vols := volumes[:perPage]
+		chunkSize := perPage
+		if len(volumes) < perPage {
+			chunkSize = len(volumes)
+		}
+		vols := volumes[:chunkSize]
 		for _, vol := range vols {
 			delete(f.volumes, vol.ID)
 		}

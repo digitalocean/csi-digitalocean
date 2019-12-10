@@ -177,8 +177,14 @@ func (d *Driver) CreateVolume(ctx context.Context, req *csi.CreateVolumeRequest)
 	}
 
 	log.Info("checking volume limit")
-	if err := d.checkLimit(ctx); err != nil {
-		return nil, err
+	details, err := d.checkLimit(ctx)
+	if err != nil {
+		return nil, status.Errorf(codes.Internal, "failed to check volume limit: %s", err)
+	}
+	if details != nil {
+		return nil, status.Errorf(codes.ResourceExhausted,
+			"volume limit (%d) has been reached. Current number of volumes: %d. Please contact support.",
+			details.limit, details.numVolumes)
 	}
 
 	log.WithField("volume_req", volumeReq).Info("creating volume")
@@ -1012,41 +1018,64 @@ func (d *Driver) waitAction(ctx context.Context, log *logrus.Entry, volumeId str
 	return err
 }
 
-// checkLimit checks whether the user hit their volume limit to ensure.
-func (d *Driver) checkLimit(ctx context.Context) error {
+type limitDetails struct {
+	limit      int
+	numVolumes int
+}
+
+// checkLimit checks whether the user hit their account volume limit.
+func (d *Driver) checkLimit(ctx context.Context) (*limitDetails, error) {
 	// only one provisioner runs, we can make sure to prevent burst creation
 	d.readyMu.Lock()
 	defer d.readyMu.Unlock()
 
 	account, _, err := d.account.Get(ctx)
 	if err != nil {
-		return status.Errorf(codes.Internal,
-			"couldn't get account information to check volume limit: %s", err.Error())
+		return nil, fmt.Errorf("failed to get account information: %s", err)
 	}
 
 	// administrative accounts might have zero length limits, make sure to not check them
 	if account.VolumeLimit == 0 {
-		return nil //  hail to the king!
+		return nil, nil //  hail to the king!
 	}
 
-	// NOTE(arslan): the API returns the limit for *all* regions, so passing
-	// the region down as a parameter doesn't change the response.
-	// Nevertheless, this is something we should be aware of.
-	volumes, _, err := d.storage.ListVolumes(ctx, &godo.ListVolumeParams{
-		Region: d.region,
-	})
-	if err != nil {
-		return status.Errorf(codes.Internal,
-			"couldn't get fetch volume list to check volume limit: %s", err.Error())
+	opt := &godo.ListOptions{
+		Page:    1,
+		PerPage: 50,
+	}
+	var numVolumes int
+	for {
+		// The API returns the limit for *all* regions, so passing the region
+		// down as a parameter doesn't change the response. Nevertheless, this
+		// is something we should be aware of.
+		volumes, resp, err := d.storage.ListVolumes(ctx, &godo.ListVolumeParams{
+			Region:      d.region,
+			ListOptions: opt,
+		})
+		if err != nil {
+			return nil, fmt.Errorf("failed to list volumes at page %d: %s", opt.Page, err)
+		}
+
+		numVolumes += len(volumes)
+		if account.VolumeLimit <= numVolumes {
+			return &limitDetails{
+				limit:      account.VolumeLimit,
+				numVolumes: numVolumes,
+			}, nil
+		}
+
+		if resp.Links == nil || resp.Links.IsLastPage() {
+			break
+		}
+
+		page, err := resp.Links.CurrentPage()
+		if err != nil {
+			return nil, fmt.Errorf("failed to get current page: %s", err)
+		}
+		opt.Page = page + 1
 	}
 
-	if account.VolumeLimit <= len(volumes) {
-		return status.Errorf(codes.ResourceExhausted,
-			"volume limit (%d) has been reached. Current number of volumes: %d. Please contact support.",
-			account.VolumeLimit, len(volumes))
-	}
-
-	return nil
+	return nil, nil
 }
 
 // toCSISnapshot converts a DO Snapshot struct into a csi.Snapshot struct

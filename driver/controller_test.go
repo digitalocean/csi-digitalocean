@@ -5,11 +5,13 @@ import (
 	"errors"
 	"net/http"
 	"strings"
+	"strconv"
 	"testing"
 	"time"
 
 	"github.com/container-storage-interface/spec/lib/go/csi"
 	"github.com/digitalocean/godo"
+	"github.com/google/go-cmp/cmp"
 	"github.com/magiconair/properties/assert"
 	"github.com/sirupsen/logrus"
 	"google.golang.org/grpc/codes"
@@ -318,6 +320,65 @@ func TestCreateVolume(t *testing.T) {
 			}
 			if wantErr != nil && !strings.Contains(err.Error(), wantErr.Error()) {
 				t.Errorf("want error %q to include %q", err, wantErr)
+			}
+		})
+	}
+}
+
+func TestCheckLimit(t *testing.T) {
+	tests := []struct {
+		name        string
+		limit       int
+		numVolumes  int
+		wantErr     error
+		wantDetails *limitDetails
+	}{
+		{
+			name:       "limit insufficient",
+			limit:      25,
+			numVolumes: 30,
+			wantDetails: &limitDetails{
+				limit:      25,
+				numVolumes: 30,
+			},
+		},
+		{
+			name:        "limit sufficient",
+			limit:       100,
+			numVolumes:  25,
+			wantDetails: nil,
+		},
+		{
+			name:        "administrative account",
+			limit:       0,
+			numVolumes:  1000,
+			wantDetails: nil,
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			storage := &fakeStorageDriver{
+				volumes: map[string]*godo.Volume{},
+			}
+			for i := 0; i < test.numVolumes; i++ {
+				storage.volumes[strconv.Itoa(i)] = &godo.Volume{}
+			}
+
+			d := Driver{
+				account: &fakeAccountDriver{
+					volumeLimit: test.limit,
+				},
+				storage: storage,
+			}
+
+			gotDetails, err := d.checkLimit(context.Background())
+			if err != nil {
+				t.Fatalf("got error: %s", err)
+			}
+
+			if diff := cmp.Diff(gotDetails, test.wantDetails, cmp.AllowUnexported(limitDetails{})); diff != "" {
+				t.Errorf("details mismatch (-got +want):\n%s", diff)
 			}
 		})
 	}

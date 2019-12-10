@@ -205,8 +205,15 @@ func (d *Driver) Run() error {
 	// something is wrong in the logs. Only check if the driver is running with
 	// a token (i.e: controller)
 	if d.isController {
-		if err := d.checkLimit(context.Background()); err != nil {
-			d.log.WithError(err).Warn("CSI plugin will not function correctly, please resolve volume limit")
+		details, err := d.checkLimit(context.Background())
+		if err != nil {
+			return fmt.Errorf("failed to check volumes limits on startup: %s", err)
+		}
+		if details != nil {
+			d.log.WithFields(logrus.Fields{
+				"limit":       details.limit,
+				"num_volumes": details.numVolumes,
+			}).Warn("CSI plugin will not function correctly, please resolve volume limit")
 		}
 	}
 
