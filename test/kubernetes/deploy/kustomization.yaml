@@ -8,7 +8,7 @@ resources:
 - ../../../deploy/kubernetes/releases/csi-digitalocean-latest.yaml
 nameSuffix: -dev
 images:
-- name: do-csi-plugin
+- name: digitalocean/do-csi-plugin
   newName: digitalocean/do-csi-plugin
   newTag: dev
 patchesStrategicMerge:

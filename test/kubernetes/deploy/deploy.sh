@@ -47,7 +47,7 @@ kubectl -n kube-system create secret generic digitalocean --from-literal="access
 # Configure kustomize to use the specified dev image (default to the one created
 # by `VERSION=dev make publish`).
 : "${DEV_IMAGE:=$DEFAULT_PLUGIN_IMAGE}"
-kustomize edit set image do-csi-plugin="${DEV_IMAGE}"
+kustomize edit set image digitalocean/do-csi-plugin="${DEV_IMAGE}"
 # Undo any image updates done to kustomization.yaml to prevent git pollution.
 # shellcheck disable=SC2064
 trap "kustomize edit set image do-csi-plugin=$DEFAULT_PLUGIN_IMAGE" EXIT
