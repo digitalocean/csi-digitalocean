@@ -27,6 +27,7 @@ import (
 	"path/filepath"
 	"strconv"
 	"sync"
+	"time"
 
 	"github.com/container-storage-interface/spec/lib/go/csi"
 	metadata "github.com/digitalocean/go-metadata"
@@ -43,7 +44,8 @@ const (
 	DefaultDriverName = "dobs.csi.digitalocean.com"
 	// DefaultAddress is the default address that the csi plugin will serve its
 	// http handler on.
-	DefaultAddress = "127.0.0.1:12302"
+	DefaultAddress           = "127.0.0.1:12302"
+	defaultWaitActionTimeout = 1 * time.Minute
 )
 
 var (
@@ -64,12 +66,13 @@ type Driver struct {
 	// `ControllerPublishVolume` to `NodeStageVolume or `NodePublishVolume`
 	publishInfoVolumeName string
 
-	endpoint     string
-	address      string
-	nodeId       string
-	region       string
-	doTag        string
-	isController bool
+	endpoint          string
+	address           string
+	nodeId            string
+	region            string
+	doTag             string
+	isController      bool
+	waitActionTimeout time.Duration
 
 	srv     *grpc.Server
 	httpSrv http.Server
@@ -146,7 +149,8 @@ func NewDriver(ep, token, url, doTag, driverName, address string) (*Driver, erro
 		log:      log,
 		// for now we're assuming only the controller has a non-empty token. In
 		// the future we should pass an explicit flag to the driver.
-		isController: token != "",
+		isController:      token != "",
+		waitActionTimeout: defaultWaitActionTimeout,
 
 		storage:        doClient.Storage,
 		storageActions: doClient.StorageActions,
