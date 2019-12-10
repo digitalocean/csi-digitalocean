@@ -654,9 +654,11 @@ func (d *Driver) CreateSnapshot(ctx context.Context, req *csi.CreateSnapshotRequ
 					"couldn't convert DO snapshot to CSI snapshot: %s", err.Error())
 			}
 
-			return &csi.CreateSnapshotResponse{
+			snapResp := &csi.CreateSnapshotResponse{
 				Snapshot: s,
-			}, nil
+			}
+			ll.WithField("response", snapResp).Info("existing snapshot found")
+			return snapResp, nil
 		}
 	}
 
@@ -690,9 +692,11 @@ func (d *Driver) CreateSnapshot(ctx context.Context, req *csi.CreateSnapshotRequ
 			"couldn't convert DO snapshot to CSI snapshot: %s", err.Error())
 	}
 
-	return &csi.CreateSnapshotResponse{
+	snapResp := &csi.CreateSnapshotResponse{
 		Snapshot: s,
-	}, nil
+	}
+	ll.WithField("response", resp).Info("snapshot created")
+	return snapResp, nil
 }
 
 // DeleteSnapshot will be called by the CO to delete a snapshot.
