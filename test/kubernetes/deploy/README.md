@@ -56,6 +56,3 @@ $ DOCKER_REPO=<my-image-repository> VERSION=dev make publish
 
 You can then follow the instructions above, setting the `DEV_IMAGE` environment
 variable to your own image location when invoking `deploy.sh`.
-
-Note that testing an image from another location will cause `kustomization.yaml`
-to be updated. Please do not commit these changes.
