@@ -6,6 +6,8 @@
   [[GH-241]](https://github.com/digitalocean/csi-digitalocean/pull/241)
 * Check all snapshots for existence
   [[GH-240]](https://github.com/digitalocean/csi-digitalocean/pull/240)
+* Update sidecars
+  [[GH-238]](https://github.com/digitalocean/csi-digitalocean/pull/238)
 * Support checkLimit for multiple pages
   [[GH-235]](https://github.com/digitalocean/csi-digitalocean/pull/235)
 * Return error when fetching the snapshot fails

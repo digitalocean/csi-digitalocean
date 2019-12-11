@@ -208,6 +208,19 @@ func (d *Driver) CreateVolume(ctx context.Context, req *csi.CreateVolumeRequest)
 		},
 	}
 
+	// external-provisioner expects a content source to be returned if the PVC
+	// specified a data source, which corresponds to us having received a
+	// content source field in the CreateVolume request.
+	if volumeReq.SnapshotID != "" {
+		resp.Volume.ContentSource = &csi.VolumeContentSource{
+			Type: &csi.VolumeContentSource_Snapshot{
+				Snapshot: &csi.VolumeContentSource_SnapshotSource{
+					SnapshotId: volumeReq.SnapshotID,
+				},
+			},
+		}
+	}
+
 	log.WithField("response", resp).Info("volume was created")
 	return resp, nil
 }
@@ -399,11 +412,12 @@ func (d *Driver) ControllerUnpublishVolume(ctx context.Context, req *csi.Control
 		return nil, err
 	}
 
-	// check if droplet exist before trying to detach the volume from the droplet
+	// check if droplet exists before trying to detach the volume from the droplet
 	_, resp, err = d.droplets.Get(ctx, dropletID)
 	if err != nil {
 		if resp != nil && resp.StatusCode == http.StatusNotFound {
-			return nil, status.Errorf(codes.NotFound, "droplet %d does not exist", dropletID)
+			// volumes cannot be attached to deleted droplets
+			return &csi.ControllerUnpublishVolumeResponse{}, nil
 		}
 		return nil, err
 	}

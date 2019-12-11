@@ -139,7 +139,7 @@ spec:
       serviceAccount: csi-do-controller-sa
       containers:
         - name: csi-provisioner
-          image: quay.io/k8scsi/csi-provisioner:v1.1.0
+          image: quay.io/k8scsi/csi-provisioner:v1.4.0
           args:
             - "--csi-address=$(ADDRESS)"
             - "--v=5"
@@ -151,7 +151,7 @@ spec:
             - name: socket-dir
               mountPath: /var/lib/csi/sockets/pluginproxy/
         - name: csi-attacher
-          image: quay.io/k8scsi/csi-attacher:v1.1.1
+          image: quay.io/k8scsi/csi-attacher:v2.0.0
           args:
             - "--v=5"
             - "--csi-address=$(ADDRESS)"
@@ -275,7 +275,7 @@ metadata:
 rules:
   - apiGroups: [""]
     resources: ["persistentvolumes"]
-    verbs: ["get", "list", "watch", "update"]
+    verbs: ["get", "list", "watch", "update", "patch"]
   - apiGroups: [""]
     resources: ["nodes"]
     verbs: ["get", "list", "watch"]
@@ -284,7 +284,7 @@ rules:
     verbs: ["get", "list", "watch"]
   - apiGroups: ["storage.k8s.io"]
     resources: ["volumeattachments"]
-    verbs: ["get", "list", "watch", "update"]
+    verbs: ["get", "list", "watch", "update", "patch"]
 
 ---
 kind: ClusterRoleBinding
