@@ -50,7 +50,7 @@ kubectl -n kube-system create secret generic digitalocean --from-literal="access
 kustomize edit set image digitalocean/do-csi-plugin="${DEV_IMAGE}"
 # Undo any image updates done to kustomization.yaml to prevent git pollution.
 # shellcheck disable=SC2064
-trap "kustomize edit set image do-csi-plugin=$DEFAULT_PLUGIN_IMAGE" EXIT
+trap "kustomize edit set image digitalocean/do-csi-plugin=$DEFAULT_PLUGIN_IMAGE" EXIT
 
 # Apply the customization to the dev manifest, and apply it to the cluster.
 kustomize build . --load_restrictor none | kubectl apply -f -
