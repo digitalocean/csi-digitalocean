@@ -1,5 +1,7 @@
 ## unreleased
 
+* Use WARN log level for non-critical failures to get an action
+  [[GH-241]](https://github.com/digitalocean/csi-digitalocean/pull/241)
 * Reject requests for block access type
   [[GH-225]](https://github.com/digitalocean/csi-digitalocean/pull/225)
 * Assume detached state on 404 during ControllerUnpublishVolume

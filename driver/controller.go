@@ -966,7 +966,7 @@ func (d *Driver) waitAction(ctx context.Context, volumeId string, actionId int) 
 		if err != nil {
 			ctxCanceled := ctx.Err() != nil
 			if !ctxCanceled {
-				ll.WithError(err).Info("getting action for volume")
+				ll.WithError(err).Warn("getting action for volume")
 				return false, nil
 			}
 
