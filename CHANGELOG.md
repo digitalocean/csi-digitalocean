@@ -6,6 +6,8 @@
   [[GH-243]](https://github.com/digitalocean/csi-digitalocean/pull/243)
 * Use WARN log level for non-critical failures to get an action
   [[GH-241]](https://github.com/digitalocean/csi-digitalocean/pull/241)
+* Check all snapshots for existence
+  [[GH-240]](https://github.com/digitalocean/csi-digitalocean/pull/240)
 * Return error when fetching the snapshot fails
   [[GH-233]](https://github.com/digitalocean/csi-digitalocean/pull/233)
 * Reject requests for block access type

@@ -642,25 +642,42 @@ func (d *Driver) CreateSnapshot(ctx context.Context, req *csi.CreateSnapshotRequ
 	log.Info("create snapshot is called")
 
 	// get snapshot first, if it's created do no thing
-	snapshots, _, err := d.storage.ListSnapshots(ctx, req.GetSourceVolumeId(), nil)
-	if err != nil {
-		return nil, status.Errorf(codes.Internal, "couldn't fetch snapshots: %s", err.Error())
+
+	opts := &godo.ListOptions{
+		Page:    1,
+		PerPage: 50,
 	}
-
-	for _, snap := range snapshots {
-		if snap.Name == req.GetName() && snap.ResourceID == req.GetSourceVolumeId() {
-			s, err := toCSISnapshot(&snap)
-			if err != nil {
-				return nil, status.Errorf(codes.Internal,
-					"couldn't convert DO snapshot to CSI snapshot: %s", err.Error())
-			}
-
-			snapResp := &csi.CreateSnapshotResponse{
-				Snapshot: s,
-			}
-			log.WithField("response", snapResp).Info("existing snapshot found")
-			return snapResp, nil
+	for {
+		snapshots, resp, err := d.storage.ListSnapshots(ctx, req.GetSourceVolumeId(), opts)
+		if err != nil {
+			return nil, status.Errorf(codes.Internal, "failed to list snapshots on page %d: %s", opts.Page, err)
 		}
+
+		for _, snap := range snapshots {
+			if snap.Name == req.GetName() && snap.ResourceID == req.GetSourceVolumeId() {
+				s, err := toCSISnapshot(&snap)
+				if err != nil {
+					return nil, status.Errorf(codes.Internal,
+						"failed to convert DO snapshot %q to CSI snapshot: %s", snap.Name, err)
+				}
+
+				snapResp := &csi.CreateSnapshotResponse{
+					Snapshot: s,
+				}
+				log.WithField("response", snapResp).Info("existing snapshot found")
+				return snapResp, nil
+			}
+		}
+
+		if resp.Links == nil || resp.Links.IsLastPage() {
+			break
+		}
+
+		page, err := resp.Links.CurrentPage()
+		if err != nil {
+			return nil, fmt.Errorf("failed to get current page: %s", err)
+		}
+		opts.Page = page + 1
 	}
 
 	snapReq := &godo.SnapshotCreateRequest{
