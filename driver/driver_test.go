@@ -81,9 +81,16 @@ func TestDriverSuite(t *testing.T) {
 		account: &fakeAccountDriver{},
 		tags:    &fakeTagsDriver{},
 	}
-	defer driver.Stop()
 
-	go driver.Run()
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	go func() {
+		err := driver.Run(ctx)
+		if err != nil {
+			t.Error(err)
+		}
+	}()
 
 	cfg := &sanity.Config{
 		TargetPath:  os.TempDir() + "/csi-target",
