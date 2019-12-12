@@ -169,6 +169,7 @@ func (d *Driver) CreateVolume(ctx context.Context, req *csi.CreateVolumeRequest)
 			if resp != nil && resp.StatusCode == http.StatusNotFound {
 				return nil, status.Errorf(codes.NotFound, "snapshot %q not found", snapshotID)
 			}
+			return nil, err
 		}
 
 		ll.WithField("snapshot_id", snapshotID).Info("using snapshot as volume source")

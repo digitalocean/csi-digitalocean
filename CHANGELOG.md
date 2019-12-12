@@ -2,6 +2,8 @@
 
 * Use WARN log level for non-critical failures to get an action
   [[GH-241]](https://github.com/digitalocean/csi-digitalocean/pull/241)
+* Return error when fetching the snapshot fails
+  [[GH-233]](https://github.com/digitalocean/csi-digitalocean/pull/233)
 * Reject requests for block access type
   [[GH-225]](https://github.com/digitalocean/csi-digitalocean/pull/225)
 * Assume detached state on 404 during ControllerUnpublishVolume

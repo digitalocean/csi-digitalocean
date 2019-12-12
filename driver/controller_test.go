@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"net/http"
+	"strings"
 	"testing"
 	"time"
 
@@ -251,6 +252,73 @@ func TestControllerExpandVolume(t *testing.T) {
 				assert.Equal(t, (volume.SizeGigaBytes * giB), resp.CapacityBytes)
 			}
 
+		})
+	}
+}
+
+func TestCreateVolume(t *testing.T) {
+	tests := []struct {
+		name           string
+		listVolumesErr error
+		getSnapshotErr error
+	}{
+		{
+			name:           "listing volumes failing",
+			listVolumesErr: errors.New("failed to list volumes"),
+		},
+		{
+			name:           "fetching snapshot failing",
+			getSnapshotErr: errors.New("failed to get snapshot"),
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			d := &Driver{
+				storage: &fakeStorageDriver{
+					listVolumesErr: test.listVolumesErr,
+				},
+				snapshots: &fakeSnapshotsDriver{
+					getSnapshotErr: test.getSnapshotErr,
+				},
+				log: logrus.New().WithField("test_enabed", true),
+			}
+
+			_, err := d.CreateVolume(context.Background(), &csi.CreateVolumeRequest{
+				Name: "name",
+				VolumeCapabilities: []*csi.VolumeCapability{
+					&csi.VolumeCapability{
+						AccessType: &csi.VolumeCapability_Mount{
+							Mount: &csi.VolumeCapability_MountVolume{},
+						},
+						AccessMode: &csi.VolumeCapability_AccessMode{
+							Mode: csi.VolumeCapability_AccessMode_SINGLE_NODE_WRITER,
+						},
+					},
+				},
+				VolumeContentSource: &csi.VolumeContentSource{
+					Type: &csi.VolumeContentSource_Snapshot{
+						Snapshot: &csi.VolumeContentSource_SnapshotSource{
+							SnapshotId: "snapshotId",
+						},
+					},
+				},
+			})
+
+			var wantErr error
+			switch {
+			case test.listVolumesErr != nil:
+				wantErr = test.listVolumesErr
+			case test.getSnapshotErr != nil:
+				wantErr = test.getSnapshotErr
+			}
+
+			if wantErr == nil && err != nil {
+				t.Errorf("got error %q, want none", err)
+			}
+			if wantErr != nil && !strings.Contains(err.Error(), wantErr.Error()) {
+				t.Errorf("want error %q to include %q", err, wantErr)
+			}
 		})
 	}
 }
