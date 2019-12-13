@@ -1,0 +1,18 @@
+ShortName: do-csi
+StorageClass:
+  FromName: true
+SnapshotClass:
+  FromName: true
+DriverInfo:
+  Name: dobs.csi.digitalocean.com-dev
+  Capabilities:
+    persistence: true
+    fsGroup: true
+    exec: true
+    dataSource: true
+    multipods: true
+    singleNodeVolume: true
+  SupportedFsType:
+    ext3:
+    ext4:
+    xfs:

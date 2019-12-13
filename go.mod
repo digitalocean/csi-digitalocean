@@ -4,6 +4,7 @@ require (
 	github.com/container-storage-interface/spec v1.2.0
 	github.com/digitalocean/go-metadata v0.0.0-20180111002115-15bd36e5f6f7
 	github.com/digitalocean/godo v1.29.0
+	github.com/docker/docker v1.13.1
 	github.com/golang/groupcache v0.0.0-20181024230925-c65c006176ff // indirect
 	github.com/golang/protobuf v1.3.1
 	github.com/google/go-cmp v0.3.0
