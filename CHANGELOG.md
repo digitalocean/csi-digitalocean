@@ -1,5 +1,7 @@
 ## unreleased
 
+* Check volume exists during NodeUnpublishVolume
+  [[GH-243]](https://github.com/digitalocean/csi-digitalocean/pull/243)
 * Use WARN log level for non-critical failures to get an action
   [[GH-241]](https://github.com/digitalocean/csi-digitalocean/pull/241)
 * Return error when fetching the snapshot fails
