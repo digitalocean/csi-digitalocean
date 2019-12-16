@@ -25,6 +25,7 @@ limitations under the License.
 package driver
 
 import (
+	"net/http"
 	"context"
 	"path/filepath"
 
@@ -265,6 +266,16 @@ func (d *Driver) NodeUnpublishVolume(ctx context.Context, req *csi.NodeUnpublish
 		"method":      "node_unpublish_volume",
 	})
 	ll.Info("node unpublish volume called")
+
+	// TODO(treimann): Update csi-sanity once
+	// https://github.com/kubernetes-csi/csi-test/pull/242 has been released.
+	_, resp, err := d.storage.GetVolume(ctx, req.VolumeId)
+	if err != nil {
+		if resp != nil && resp.StatusCode == http.StatusNotFound {
+			return nil, status.Errorf(codes.NotFound, "volume %q not found", req.VolumeId)
+		}
+		return nil, status.Errorf(codes.Internal, "failed to get volume %q: %s", req.VolumeId, err)
+	}
 
 	mounted, err := d.mounter.IsMounted(req.TargetPath)
 	if err != nil {
