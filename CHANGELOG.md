@@ -1,5 +1,7 @@
 ## unreleased
 
+* Fix and improve logging
+  [[GH-244]](https://github.com/digitalocean/csi-digitalocean/pull/244)
 * Check volume exists during NodeUnpublishVolume
   [[GH-243]](https://github.com/digitalocean/csi-digitalocean/pull/243)
 * Use WARN log level for non-critical failures to get an action
