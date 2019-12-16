@@ -349,7 +349,7 @@ func (d *Driver) ControllerPublishVolume(ctx context.Context, req *csi.Controlle
 
 	if action != nil {
 		ll.Info("waiting until volume is attached")
-		if err := d.waitAction(ctx, req.VolumeId, action.ID); err != nil {
+		if err := d.waitAction(ctx, ll, req.VolumeId, action.ID); err != nil {
 			return nil, err
 		}
 	}
@@ -439,7 +439,7 @@ func (d *Driver) ControllerUnpublishVolume(ctx context.Context, req *csi.Control
 
 	if action != nil {
 		ll.Info("waiting until volume is detached")
-		if err := d.waitAction(ctx, req.VolumeId, action.ID); err != nil {
+		if err := d.waitAction(ctx, ll, req.VolumeId, action.ID); err != nil {
 			return nil, err
 		}
 	}
@@ -828,8 +828,6 @@ func (d *Driver) ListSnapshots(ctx context.Context, req *csi.ListSnapshotsReques
 
 // ControllerExpandVolume is called from the resizer to increase the volume size.
 func (d *Driver) ControllerExpandVolume(ctx context.Context, req *csi.ControllerExpandVolumeRequest) (*csi.ControllerExpandVolumeResponse, error) {
-	ll := d.log.WithField("method", "controller_expand_volume")
-	ll.Info("controller expand volume called")
 	volID := req.GetVolumeId()
 
 	if len(volID) == 0 {
@@ -839,7 +837,14 @@ func (d *Driver) ControllerExpandVolume(ctx context.Context, req *csi.Controller
 	if err != nil {
 		return nil, status.Errorf(codes.Internal, "ControllerExpandVolume could not retrieve existing volume: %v", err)
 	}
-	ll.Info("extracting storage from requested capacity range")
+
+	ll := d.log.WithFields(logrus.Fields{
+		"volume_id": req.VolumeId,
+		"method":    "controller_expand_volume",
+	})
+
+	ll.Info("controller expand volume called")
+
 	resizeBytes, err := extractStorage(req.GetCapacityRange())
 	if err != nil {
 		return nil, status.Errorf(codes.OutOfRange, "ControllerExpandVolume invalid capacity range: %v", err)
@@ -856,16 +861,20 @@ func (d *Driver) ControllerExpandVolume(ctx context.Context, req *csi.Controller
 		return &csi.ControllerExpandVolumeResponse{CapacityBytes: volume.SizeGigaBytes * giB, NodeExpansionRequired: true}, nil
 	}
 
-	ll.WithField("new_volume_size", resizeGigaBytes).Info("attempting to resize volume")
 	action, _, err := d.storageActions.Resize(ctx, req.GetVolumeId(), int(resizeGigaBytes), d.region)
 	if err != nil {
 		return nil, status.Errorf(codes.Internal, "ControllerExpandVolume cannot resize volume %s: %s", req.GetVolumeId(), err.Error())
 	}
+
+	ll = ll.WithField("new_volume_size", resizeGigaBytes)
+
 	if action != nil {
-		if err := d.waitAction(ctx, req.VolumeId, action.ID); err != nil {
-			return nil, status.Errorf(codes.Internal, "ControllerExpandVolume storage action unsuccessful: %v", err)
+		ll.Info("waiting until volume is resized")
+		if err := d.waitAction(ctx, ll, req.VolumeId, action.ID); err != nil {
+			return nil, status.Errorf(codes.Internal, "failed waiting for volume to get resized: %s", err)
 		}
 	}
+	ll.Info("volume is resized")
 
 	return &csi.ControllerExpandVolumeResponse{CapacityBytes: resizeGigaBytes * giB, NodeExpansionRequired: true}, nil
 }
@@ -950,9 +959,8 @@ func formatBytes(inputBytes int64) string {
 }
 
 // waitAction waits until the given action for the volume is completed
-func (d *Driver) waitAction(ctx context.Context, volumeId string, actionId int) error {
-	ll := d.log.WithFields(logrus.Fields{
-		"volume_id": volumeId,
+func (d *Driver) waitAction(ctx context.Context, ll *logrus.Entry, volumeId string, actionId int) error {
+	ll = ll.WithFields(logrus.Fields{
 		"action_id": actionId,
 	})
 

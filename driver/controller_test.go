@@ -387,7 +387,12 @@ func TestWaitAction(t *testing.T) {
 				log: logrus.New().WithField("test_enabed", true),
 			}
 
-			err := d.waitAction(context.Background(), "volumeID", 42)
+			err := d.waitAction(
+				context.Background(),
+				logrus.New().WithField("test_enabed", true),
+				"volumeID",
+				42,
+			)
 			if err != test.wantErr {
 				t.Errorf("got error %q, want %q", err, test.wantErr)
 			}

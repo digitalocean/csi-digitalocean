@@ -55,7 +55,7 @@ func TestDriverSuite(t *testing.T) {
 	driver := &Driver{
 		name:              DefaultDriverName,
 		endpoint:          endpoint,
-		nodeId:            strconv.Itoa(nodeID),
+		hostID:            strconv.Itoa(nodeID),
 		doTag:             doTag,
 		region:            "nyc3",
 		waitActionTimeout: defaultWaitActionTimeout,
