@@ -18,6 +18,7 @@ package driver
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"net/http"
 	"strconv"
@@ -1039,40 +1040,30 @@ func (d *Driver) checkLimit(ctx context.Context) (*limitDetails, error) {
 		return nil, nil //  hail to the king!
 	}
 
-	opt := &godo.ListOptions{
-		Page:    1,
-		PerPage: 50,
+	// The API returns the limit for *all* regions, so passing the region
+	// down as a parameter doesn't change the response. Nevertheless, this
+	// is something we should be aware of.
+	_, resp, err := d.storage.ListVolumes(ctx, &godo.ListVolumeParams{
+		Region: d.region,
+		ListOptions: &godo.ListOptions{
+			Page:    1,
+			PerPage: 1,
+		},
+	})
+	if err != nil {
+		return nil, fmt.Errorf("failed to list volumes: %s", err)
 	}
-	var numVolumes int
-	for {
-		// The API returns the limit for *all* regions, so passing the region
-		// down as a parameter doesn't change the response. Nevertheless, this
-		// is something we should be aware of.
-		volumes, resp, err := d.storage.ListVolumes(ctx, &godo.ListVolumeParams{
-			Region:      d.region,
-			ListOptions: opt,
-		})
-		if err != nil {
-			return nil, fmt.Errorf("failed to list volumes at page %d: %s", opt.Page, err)
-		}
 
-		numVolumes += len(volumes)
-		if account.VolumeLimit <= numVolumes {
-			return &limitDetails{
-				limit:      account.VolumeLimit,
-				numVolumes: numVolumes,
-			}, nil
-		}
-
-		if resp.Links == nil || resp.Links.IsLastPage() {
-			break
-		}
-
-		page, err := resp.Links.CurrentPage()
-		if err != nil {
-			return nil, fmt.Errorf("failed to get current page: %s", err)
-		}
-		opt.Page = page + 1
+	if resp.Meta == nil {
+		// This should really never happen.
+		return nil, errors.New("no meta field available in list volumes response")
+	}
+	numVolumes := resp.Meta.Total
+	if account.VolumeLimit <= numVolumes {
+		return &limitDetails{
+			limit:      account.VolumeLimit,
+			numVolumes: numVolumes,
+		}, nil
 	}
 
 	return nil, nil
