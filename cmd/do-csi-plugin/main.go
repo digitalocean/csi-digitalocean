@@ -17,10 +17,13 @@ limitations under the License.
 package main
 
 import (
+	"context"
 	"flag"
 	"fmt"
 	"log"
 	"os"
+	"os/signal"
+	"syscall"
 
 	"github.com/digitalocean/csi-digitalocean/driver"
 )
@@ -47,7 +50,17 @@ func main() {
 		log.Fatalln(err)
 	}
 
-	if err := drv.Run(); err != nil {
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	c := make(chan os.Signal, 1)
+	signal.Notify(c, os.Interrupt, syscall.SIGINT, syscall.SIGTERM)
+	go func() {
+		<-c
+		cancel()
+	}()
+
+	if err := drv.Run(ctx); err != nil {
 		log.Fatalln(err)
 	}
 }

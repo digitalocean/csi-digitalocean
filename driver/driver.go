@@ -164,7 +164,7 @@ func NewDriver(ep, token, url, doTag, driverName, address string) (*Driver, erro
 }
 
 // Run starts the CSI plugin by communication over the given endpoint
-func (d *Driver) Run() error {
+func (d *Driver) Run(ctx context.Context) error {
 	u, err := url.Parse(d.endpoint)
 	if err != nil {
 		return fmt.Errorf("unable to parse address: %q", err)
@@ -247,23 +247,29 @@ func (d *Driver) Run() error {
 
 	var eg errgroup.Group
 	eg.Go(func() error {
+		<-ctx.Done()
+		return d.httpSrv.Shutdown(context.Background())
+	})
+	eg.Go(func() error {
+		go func() {
+			<-ctx.Done()
+			d.log.Info("server stopped")
+			d.readyMu.Lock()
+			d.ready = false
+			d.readyMu.Unlock()
+			d.srv.GracefulStop()
+		}()
 		return d.srv.Serve(grpcListener)
 	})
 	eg.Go(func() error {
-		return d.httpSrv.Serve(httpListener)
+		err := d.httpSrv.Serve(httpListener)
+		if err == http.ErrServerClosed {
+			return nil
+		}
+		return err
 	})
 
 	return eg.Wait()
-}
-
-// Stop stops the plugin
-func (d *Driver) Stop() {
-	d.readyMu.Lock()
-	d.ready = false
-	d.readyMu.Unlock()
-
-	d.log.Info("server stopped")
-	d.srv.Stop()
 }
 
 // When building any packages that import version, pass the build/install cmd
