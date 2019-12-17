@@ -284,7 +284,7 @@ func (d *Driver) ControllerPublishVolume(ctx context.Context, req *csi.Controlle
 		err = d.tagVolume(ctx, vol)
 		if err != nil {
 			ll.Errorf("error tagging volume: %s", err)
-			return nil, status.Errorf(codes.Internal, "failed to tag volume")
+			return nil, status.Errorf(codes.Internal, "failed to tag volume: %s", err)
 		}
 	}
 
