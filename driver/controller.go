@@ -394,7 +394,7 @@ func (d *Driver) ControllerUnpublishVolume(ctx context.Context, req *csi.Control
 	_, resp, err := d.storage.GetVolume(ctx, req.VolumeId)
 	if err != nil {
 		if resp != nil && resp.StatusCode == http.StatusNotFound {
-			// assume it's detached
+			log.Info("assuming volume is detached because it does not exist anymore")
 			return &csi.ControllerUnpublishVolumeResponse{}, nil
 		}
 		return nil, err
