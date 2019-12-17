@@ -3,10 +3,10 @@ module github.com/digitalocean/csi-digitalocean
 require (
 	github.com/container-storage-interface/spec v1.2.0
 	github.com/digitalocean/go-metadata v0.0.0-20180111002115-15bd36e5f6f7
-	github.com/digitalocean/godo v1.13.0
+	github.com/digitalocean/godo v1.29.0
 	github.com/golang/groupcache v0.0.0-20181024230925-c65c006176ff // indirect
 	github.com/golang/protobuf v1.3.1
-	github.com/google/go-querystring v0.0.0-20170111101155-53e6ce116135 // indirect
+	github.com/google/go-cmp v0.3.0
 	github.com/googleapis/gnostic v0.2.0 // indirect
 	github.com/imdario/mergo v0.3.6 // indirect
 	github.com/kubernetes-csi/csi-test v2.2.0+incompatible

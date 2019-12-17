@@ -94,10 +94,14 @@ func TestDriverSuite(t *testing.T) {
 	sanity.Test(t, cfg)
 }
 
-type fakeAccountDriver struct{}
+type fakeAccountDriver struct {
+	volumeLimit int
+}
 
 func (f *fakeAccountDriver) Get(context.Context) (*godo.Account, *godo.Response, error) {
-	return &godo.Account{}, godoResponse(), nil
+	return &godo.Account{
+		VolumeLimit: f.volumeLimit,
+	}, godoResponse(), nil
 }
 
 type fakeStorageDriver struct {
@@ -119,12 +123,16 @@ func (f *fakeStorageDriver) ListVolumes(ctx context.Context, param *godo.ListVol
 
 	if param != nil && param.ListOptions != nil && param.ListOptions.PerPage != 0 {
 		perPage := param.ListOptions.PerPage
-		vols := volumes[:perPage]
+		chunkSize := perPage
+		if len(volumes) < perPage {
+			chunkSize = len(volumes)
+		}
+		vols := volumes[:chunkSize]
 		for _, vol := range vols {
 			delete(f.volumes, vol.ID)
 		}
 
-		return vols, godoResponse(), nil
+		return vols, godoResponseWithMeta(len(volumes)), nil
 	}
 
 	if param.Name != "" {
@@ -135,10 +143,10 @@ func (f *fakeStorageDriver) ListVolumes(ctx context.Context, param *godo.ListVol
 			}
 		}
 
-		return filtered, godoResponse(), nil
+		return filtered, godoResponseWithMeta(len(filtered)), nil
 	}
 
-	return volumes, godoResponse(), nil
+	return volumes, godoResponseWithMeta(len(volumes)), nil
 }
 
 func (f *fakeStorageDriver) GetVolume(ctx context.Context, id string) (*godo.Volume, *godo.Response, error) {
@@ -183,7 +191,7 @@ func (f *fakeStorageDriver) ListSnapshots(ctx context.Context, volumeID string, 
 		}
 	}
 
-	return snapshots, godoResponse(), nil
+	return snapshots, godoResponseWithMeta(len(snapshots)), nil
 }
 
 func (f *fakeStorageDriver) GetSnapshot(ctx context.Context, id string) (*godo.Snapshot, *godo.Response, error) {
@@ -247,7 +255,7 @@ func (f *fakeStorageActionsDriver) Get(ctx context.Context, volumeID string, act
 }
 
 func (f *fakeStorageActionsDriver) List(ctx context.Context, volumeID string, opt *godo.ListOptions) ([]godo.Action, *godo.Response, error) {
-	return nil, godoResponse(), nil
+	return nil, godoResponseWithMeta(0), nil
 }
 
 func (f *fakeStorageActionsDriver) Resize(ctx context.Context, volumeID string, sizeGigabytes int, regionSlug string) (*godo.Action, *godo.Response, error) {
@@ -332,7 +340,7 @@ func (f *fakeSnapshotsDriver) ListVolume(ctx context.Context, opts *godo.ListOpt
 		snapshots = append(snapshots, *snap)
 	}
 
-	return snapshots, godoResponse(), nil
+	return snapshots, godoResponseWithMeta(len(snapshots)), nil
 }
 
 func (f *fakeSnapshotsDriver) ListDroplet(context.Context, *godo.ListOptions) ([]godo.Snapshot, *godo.Response, error) {
@@ -399,9 +407,16 @@ func (f *fakeMounter) GetStatistics(volumePath string) (volumeStatistics, error)
 }
 
 func godoResponse() *godo.Response {
+	return godoResponseWithMeta(0)
+}
+
+func godoResponseWithMeta(total int) *godo.Response {
 	return &godo.Response{
 		Response: &http.Response{StatusCode: 200},
 		Rate:     godo.Rate{Limit: 10, Remaining: 10},
+		Meta: &godo.Meta{
+			Total: total,
+		},
 	}
 }
 
