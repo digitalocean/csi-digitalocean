@@ -443,7 +443,7 @@ func (d *Driver) NodeExpandVolume(ctx context.Context, req *csi.NodeExpandVolume
 		return nil, status.Errorf(codes.Internal, "NodeExpandVolume could not resize volume %q (%q):  %v", volumeID, req.GetVolumePath(), err)
 	}
 
-	log.Info("resizing volume finished")
+	log.Info("volume was resized")
 	return &csi.NodeExpandVolumeResponse{}, nil
 }
 
