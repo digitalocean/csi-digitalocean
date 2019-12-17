@@ -168,7 +168,7 @@ func (d *Driver) CreateVolume(ctx context.Context, req *csi.CreateVolumeRequest)
 		_, resp, err := d.snapshots.Get(ctx, snapshotID)
 		if err != nil {
 			if resp != nil && resp.StatusCode == http.StatusNotFound {
-				return nil, status.Errorf(codes.NotFound, "snapshot %q not found", snapshotID)
+				return nil, status.Errorf(codes.NotFound, "snapshot %q does not exist", snapshotID)
 			}
 			return nil, err
 		}
@@ -208,7 +208,7 @@ func (d *Driver) CreateVolume(ctx context.Context, req *csi.CreateVolumeRequest)
 		},
 	}
 
-	log.WithField("response", resp).Info("volume created")
+	log.WithField("response", resp).Info("volume was created")
 	return resp, nil
 }
 
@@ -231,13 +231,13 @@ func (d *Driver) DeleteVolume(ctx context.Context, req *csi.DeleteVolumeRequest)
 			log.WithFields(logrus.Fields{
 				"error": err,
 				"resp":  resp,
-			}).Warn("assuming volume is deleted already")
+			}).Warn("assuming volume is deleted because it does not exist")
 			return &csi.DeleteVolumeResponse{}, nil
 		}
 		return nil, err
 	}
 
-	log.WithField("response", resp).Info("volume is deleted")
+	log.WithField("response", resp).Info("volume was deleted")
 	return &csi.DeleteVolumeResponse{}, nil
 }
 
@@ -282,7 +282,7 @@ func (d *Driver) ControllerPublishVolume(ctx context.Context, req *csi.Controlle
 	vol, resp, err := d.storage.GetVolume(ctx, req.VolumeId)
 	if err != nil {
 		if resp != nil && resp.StatusCode == http.StatusNotFound {
-			return nil, status.Errorf(codes.NotFound, "volume %q not found", req.VolumeId)
+			return nil, status.Errorf(codes.NotFound, "volume %q does not exist", req.VolumeId)
 		}
 		return nil, err
 	}
@@ -299,7 +299,7 @@ func (d *Driver) ControllerPublishVolume(ctx context.Context, req *csi.Controlle
 	_, resp, err = d.droplets.Get(ctx, dropletID)
 	if err != nil {
 		if resp != nil && resp.StatusCode == http.StatusNotFound {
-			return nil, status.Errorf(codes.NotFound, "droplet %d not found", dropletID)
+			return nil, status.Errorf(codes.NotFound, "droplet %d does not exist", dropletID)
 		}
 		return nil, err
 	}
@@ -333,7 +333,7 @@ func (d *Driver) ControllerPublishVolume(ctx context.Context, req *csi.Controlle
 				log.WithFields(logrus.Fields{
 					"error": err,
 					"resp":  resp,
-				}).Warn("assuming volume is attached already")
+				}).Warn("assuming volume is attached because of error response")
 				return &csi.ControllerPublishVolumeResponse{
 					PublishContext: map[string]string{
 						d.publishInfoVolumeName: vol.Name,
@@ -345,10 +345,9 @@ func (d *Driver) ControllerPublishVolume(ctx context.Context, req *csi.Controlle
 				log.WithFields(logrus.Fields{
 					"error": err,
 					"resp":  resp,
-				}).Warn("droplet is not able to attach the volume")
+				}).Warn("cannot attach because droplet has pending volume action")
 				// sending an abort makes sure the csi-attacher retries with the next backoff tick
-				return nil, status.Errorf(codes.Aborted, "volume %q couldn't be attached. droplet %d is in process of another action",
-					req.VolumeId, dropletID)
+				return nil, status.Errorf(codes.Aborted, "cannot attach because droplet %d has pending action for volume %q", dropletID, req.VolumeId)
 			}
 		}
 		return nil, err
@@ -361,7 +360,7 @@ func (d *Driver) ControllerPublishVolume(ctx context.Context, req *csi.Controlle
 		}
 	}
 
-	log.Info("volume is attached")
+	log.Info("volume was attached")
 	return &csi.ControllerPublishVolumeResponse{
 		PublishContext: map[string]string{
 			d.publishInfoVolumeName: vol.Name,
@@ -394,7 +393,7 @@ func (d *Driver) ControllerUnpublishVolume(ctx context.Context, req *csi.Control
 	_, resp, err := d.storage.GetVolume(ctx, req.VolumeId)
 	if err != nil {
 		if resp != nil && resp.StatusCode == http.StatusNotFound {
-			log.Info("assuming volume is detached because it does not exist anymore")
+			log.Info("assuming volume is detached because it does not exist")
 			return &csi.ControllerUnpublishVolumeResponse{}, nil
 		}
 		return nil, err
@@ -404,7 +403,7 @@ func (d *Driver) ControllerUnpublishVolume(ctx context.Context, req *csi.Control
 	_, resp, err = d.droplets.Get(ctx, dropletID)
 	if err != nil {
 		if resp != nil && resp.StatusCode == http.StatusNotFound {
-			return nil, status.Errorf(codes.NotFound, "droplet %d not found", dropletID)
+			return nil, status.Errorf(codes.NotFound, "droplet %d does not exist", dropletID)
 		}
 		return nil, err
 	}
@@ -425,7 +424,7 @@ func (d *Driver) ControllerUnpublishVolume(ctx context.Context, req *csi.Control
 					log.WithFields(logrus.Fields{
 						"error": err,
 						"resp":  resp,
-					}).Warn("assuming volume is detached already")
+					}).Warn("assuming volume is detached because of error response")
 					return &csi.ControllerUnpublishVolumeResponse{}, nil
 				}
 
@@ -433,10 +432,9 @@ func (d *Driver) ControllerUnpublishVolume(ctx context.Context, req *csi.Control
 					log.WithFields(logrus.Fields{
 						"error": err,
 						"resp":  resp,
-					}).Warn("droplet is not able to detach the volume")
+					}).Warn("cannot detach because droplet has pending volume action")
 					// sending an abort makes sure the csi-attacher retries with the next backoff tick
-					return nil, status.Errorf(codes.Aborted, "volume %q couldn't be detached. droplet %d is in process of another action",
-						req.VolumeId, dropletID)
+					return nil, status.Errorf(codes.Aborted, "cannot detach because droplet %d has pending action for volume %q", dropletID, req.VolumeId)
 				}
 			}
 		}
@@ -451,7 +449,7 @@ func (d *Driver) ControllerUnpublishVolume(ctx context.Context, req *csi.Control
 		}
 	}
 
-	log.Info("volume is detached")
+	log.Info("volume was detached")
 	return &csi.ControllerUnpublishVolumeResponse{}, nil
 }
 
@@ -478,7 +476,7 @@ func (d *Driver) ValidateVolumeCapabilities(ctx context.Context, req *csi.Valida
 	_, volResp, err := d.storage.GetVolume(ctx, req.VolumeId)
 	if err != nil {
 		if volResp != nil && volResp.StatusCode == http.StatusNotFound {
-			return nil, status.Errorf(codes.NotFound, "volume %q not found", req.VolumeId)
+			return nil, status.Errorf(codes.NotFound, "volume %q does not exist", req.VolumeId)
 		}
 		return nil, err
 	}
@@ -702,9 +700,10 @@ func (d *Driver) CreateSnapshot(ctx context.Context, req *csi.CreateSnapshotRequ
 			// 409 is returned when we try to snapshot a volume with the same
 			// name
 			log.WithFields(logrus.Fields{
-				"error": err,
-				"resp":  resp,
-			}).Warn("snapshot create failed, might be due using an existing name")
+				"error":         err,
+				"resp":          resp,
+				"snapshot_name": req.GetName(),
+			}).Warn("snapshot already exists")
 			return nil, status.Errorf(codes.AlreadyExists, "snapshot with name %s already exists", req.GetName())
 		}
 
@@ -744,13 +743,13 @@ func (d *Driver) DeleteSnapshot(ctx context.Context, req *csi.DeleteSnapshotRequ
 			log.WithFields(logrus.Fields{
 				"error": err,
 				"resp":  resp,
-			}).Warn("assuming snapshot is deleted already")
+			}).Warn("assuming snapshot is deleted because it does not exist")
 			return &csi.DeleteSnapshotResponse{}, nil
 		}
 		return nil, err
 	}
 
-	log.WithField("response", resp).Info("snapshot is deleted")
+	log.WithField("response", resp).Info("snapshot was deleted")
 	return &csi.DeleteSnapshotResponse{}, nil
 }
 
@@ -862,6 +861,12 @@ func (d *Driver) ControllerExpandVolume(ctx context.Context, req *csi.Controller
 		return nil, status.Errorf(codes.Internal, "ControllerExpandVolume could not retrieve existing volume: %v", err)
 	}
 
+	resizeBytes, err := extractStorage(req.GetCapacityRange())
+	if err != nil {
+		return nil, status.Errorf(codes.OutOfRange, "ControllerExpandVolume invalid capacity range: %v", err)
+	}
+	resizeGigaBytes := resizeBytes / giB
+
 	log := d.log.WithFields(logrus.Fields{
 		"volume_id": req.VolumeId,
 		"method":    "controller_expand_volume",
@@ -869,17 +874,11 @@ func (d *Driver) ControllerExpandVolume(ctx context.Context, req *csi.Controller
 
 	log.Info("controller expand volume called")
 
-	resizeBytes, err := extractStorage(req.GetCapacityRange())
-	if err != nil {
-		return nil, status.Errorf(codes.OutOfRange, "ControllerExpandVolume invalid capacity range: %v", err)
-	}
-	resizeGigaBytes := resizeBytes / giB
-
 	if resizeGigaBytes <= volume.SizeGigaBytes {
 		log.WithFields(logrus.Fields{
 			"current_volume_size":   volume.SizeGigaBytes,
 			"requested_volume_size": resizeGigaBytes,
-		}).Info("Skip volume resize: current volume size exceeds requested volume size. Node FS resize will be performed to resize claim capacity")
+		}).Info("skipping volume resize because current volume size exceeds requested volume size")
 		// even if the volume is resized independently from the control panel, we still need to resize the node fs when resize is requested
 		// in this case, the claim capacity will be resized to the volume capacity, requested capcity will be ignored to make the PV and PVC capacities consistent
 		return &csi.ControllerExpandVolumeResponse{CapacityBytes: volume.SizeGigaBytes * giB, NodeExpansionRequired: true}, nil
@@ -887,7 +886,7 @@ func (d *Driver) ControllerExpandVolume(ctx context.Context, req *csi.Controller
 
 	action, _, err := d.storageActions.Resize(ctx, req.GetVolumeId(), int(resizeGigaBytes), d.region)
 	if err != nil {
-		return nil, status.Errorf(codes.Internal, "ControllerExpandVolume cannot resize volume %s: %s", req.GetVolumeId(), err.Error())
+		return nil, status.Errorf(codes.Internal, "cannot resize volume %s: %s", req.GetVolumeId(), err.Error())
 	}
 
 	log = log.WithField("new_volume_size", resizeGigaBytes)
@@ -898,8 +897,8 @@ func (d *Driver) ControllerExpandVolume(ctx context.Context, req *csi.Controller
 			return nil, status.Errorf(codes.Internal, "failed waiting for volume to get resized: %s", err)
 		}
 	}
-	log.Info("volume is resized")
 
+	log.Info("volume was resized")
 	return &csi.ControllerExpandVolumeResponse{CapacityBytes: resizeGigaBytes * giB, NodeExpansionRequired: true}, nil
 }
 
