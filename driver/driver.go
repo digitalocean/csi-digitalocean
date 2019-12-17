@@ -68,7 +68,7 @@ type Driver struct {
 
 	endpoint          string
 	address           string
-	nodeId            string
+	hostID            string
 	region            string
 	doTag             string
 	isController      bool
@@ -113,7 +113,7 @@ func NewDriver(ep, token, url, doTag, driverName, address string) (*Driver, erro
 	}
 
 	region := all.Region
-	nodeId := strconv.Itoa(all.DropletID)
+	hostID := strconv.Itoa(all.DropletID)
 
 	opts := []godo.ClientOpt{}
 	opts = append(opts, godo.SetBaseURL(url))
@@ -132,7 +132,7 @@ func NewDriver(ep, token, url, doTag, driverName, address string) (*Driver, erro
 
 	log := logrus.New().WithFields(logrus.Fields{
 		"region":  region,
-		"node_id": nodeId,
+		"host_id": hostID,
 		"version": version,
 	})
 
@@ -143,7 +143,7 @@ func NewDriver(ep, token, url, doTag, driverName, address string) (*Driver, erro
 		doTag:    doTag,
 		endpoint: ep,
 		address:  address,
-		nodeId:   nodeId,
+		hostID:   hostID,
 		region:   region,
 		mounter:  newMounter(log),
 		log:      log,

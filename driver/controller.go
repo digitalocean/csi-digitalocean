@@ -108,13 +108,13 @@ func (d *Driver) CreateVolume(ctx context.Context, req *csi.CreateVolumeRequest)
 
 	volumeName := req.Name
 
-	ll := d.log.WithFields(logrus.Fields{
+	log := d.log.WithFields(logrus.Fields{
 		"volume_name":             volumeName,
 		"storage_size_giga_bytes": size / giB,
 		"method":                  "create_volume",
 		"volume_capabilities":     req.VolumeCapabilities,
 	})
-	ll.Info("create volume called")
+	log.Info("create volume called")
 
 	// get volume first, if it's created do no thing
 	volumes, _, err := d.storage.ListVolumes(ctx, &godo.ListVolumeParams{
@@ -136,7 +136,7 @@ func (d *Driver) CreateVolume(ctx context.Context, req *csi.CreateVolumeRequest)
 			return nil, status.Error(codes.AlreadyExists, fmt.Sprintf("invalid option requested size: %d", size))
 		}
 
-		ll.Info("volume already created")
+		log.Info("volume already created")
 		return &csi.CreateVolumeResponse{
 			Volume: &csi.Volume{
 				VolumeId:      vol.ID,
@@ -172,16 +172,16 @@ func (d *Driver) CreateVolume(ctx context.Context, req *csi.CreateVolumeRequest)
 			return nil, err
 		}
 
-		ll.WithField("snapshot_id", snapshotID).Info("using snapshot as volume source")
+		log.WithField("snapshot_id", snapshotID).Info("using snapshot as volume source")
 		volumeReq.SnapshotID = snapshotID
 	}
 
-	ll.Info("checking volume limit")
+	log.Info("checking volume limit")
 	if err := d.checkLimit(ctx); err != nil {
 		return nil, err
 	}
 
-	ll.WithField("volume_req", volumeReq).Info("creating volume")
+	log.WithField("volume_req", volumeReq).Info("creating volume")
 	vol, _, err := d.storage.CreateVolume(ctx, volumeReq)
 	if err != nil {
 		return nil, status.Error(codes.Internal, err.Error())
@@ -201,7 +201,7 @@ func (d *Driver) CreateVolume(ctx context.Context, req *csi.CreateVolumeRequest)
 		},
 	}
 
-	ll.WithField("response", resp).Info("volume created")
+	log.WithField("response", resp).Info("volume created")
 	return resp, nil
 }
 
@@ -211,17 +211,17 @@ func (d *Driver) DeleteVolume(ctx context.Context, req *csi.DeleteVolumeRequest)
 		return nil, status.Error(codes.InvalidArgument, "DeleteVolume Volume ID must be provided")
 	}
 
-	ll := d.log.WithFields(logrus.Fields{
+	log := d.log.WithFields(logrus.Fields{
 		"volume_id": req.VolumeId,
 		"method":    "delete_volume",
 	})
-	ll.Info("delete volume called")
+	log.Info("delete volume called")
 
 	resp, err := d.storage.DeleteVolume(ctx, req.VolumeId)
 	if err != nil {
 		if resp != nil && resp.StatusCode == http.StatusNotFound {
 			// we assume it's deleted already for idempotency
-			ll.WithFields(logrus.Fields{
+			log.WithFields(logrus.Fields{
 				"error": err,
 				"resp":  resp,
 			}).Warn("assuming volume is deleted already")
@@ -230,7 +230,7 @@ func (d *Driver) DeleteVolume(ctx context.Context, req *csi.DeleteVolumeRequest)
 		return nil, err
 	}
 
-	ll.WithField("response", resp).Info("volume is deleted")
+	log.WithField("response", resp).Info("volume is deleted")
 	return &csi.DeleteVolumeResponse{}, nil
 }
 
@@ -263,13 +263,13 @@ func (d *Driver) ControllerPublishVolume(ctx context.Context, req *csi.Controlle
 		return nil, status.Error(codes.AlreadyExists, "read only Volumes are not supported")
 	}
 
-	ll := d.log.WithFields(logrus.Fields{
+	log := d.log.WithFields(logrus.Fields{
 		"volume_id":  req.VolumeId,
 		"node_id":    req.NodeId,
 		"droplet_id": dropletID,
 		"method":     "controller_publish_volume",
 	})
-	ll.Info("controller publish volume called")
+	log.Info("controller publish volume called")
 
 	// check if volume exist before trying to attach it
 	vol, resp, err := d.storage.GetVolume(ctx, req.VolumeId)
@@ -283,7 +283,7 @@ func (d *Driver) ControllerPublishVolume(ctx context.Context, req *csi.Controlle
 	if d.doTag != "" {
 		err = d.tagVolume(ctx, vol)
 		if err != nil {
-			ll.Errorf("error tagging volume: %s", err)
+			log.Errorf("error tagging volume: %s", err)
 			return nil, status.Errorf(codes.Internal, "failed to tag volume: %s", err)
 		}
 	}
@@ -301,7 +301,7 @@ func (d *Driver) ControllerPublishVolume(ctx context.Context, req *csi.Controlle
 	for _, id := range vol.DropletIDs {
 		attachedID = id
 		if id == dropletID {
-			ll.Info("volume is already attached")
+			log.Info("volume is already attached")
 			return &csi.ControllerPublishVolumeResponse{
 				PublishContext: map[string]string{
 					d.publishInfoVolumeName: vol.Name,
@@ -323,7 +323,7 @@ func (d *Driver) ControllerPublishVolume(ctx context.Context, req *csi.Controlle
 		// don't do anything if attached
 		if resp != nil && resp.StatusCode == http.StatusUnprocessableEntity {
 			if strings.Contains(err.Error(), "This volume is already attached") {
-				ll.WithFields(logrus.Fields{
+				log.WithFields(logrus.Fields{
 					"error": err,
 					"resp":  resp,
 				}).Warn("assuming volume is attached already")
@@ -335,7 +335,7 @@ func (d *Driver) ControllerPublishVolume(ctx context.Context, req *csi.Controlle
 			}
 
 			if strings.Contains(err.Error(), "Droplet already has a pending event") {
-				ll.WithFields(logrus.Fields{
+				log.WithFields(logrus.Fields{
 					"error": err,
 					"resp":  resp,
 				}).Warn("droplet is not able to attach the volume")
@@ -348,13 +348,13 @@ func (d *Driver) ControllerPublishVolume(ctx context.Context, req *csi.Controlle
 	}
 
 	if action != nil {
-		ll.Info("waiting until volume is attached")
-		if err := d.waitAction(ctx, req.VolumeId, action.ID); err != nil {
+		log.Info("waiting until volume is attached")
+		if err := d.waitAction(ctx, log, req.VolumeId, action.ID); err != nil {
 			return nil, err
 		}
 	}
 
-	ll.Info("volume is attached")
+	log.Info("volume is attached")
 	return &csi.ControllerPublishVolumeResponse{
 		PublishContext: map[string]string{
 			d.publishInfoVolumeName: vol.Name,
@@ -375,13 +375,13 @@ func (d *Driver) ControllerUnpublishVolume(ctx context.Context, req *csi.Control
 		d.log.WithField("node_id", req.NodeId).Warn("node ID cannot be converted to an integer")
 	}
 
-	ll := d.log.WithFields(logrus.Fields{
+	log := d.log.WithFields(logrus.Fields{
 		"volume_id":  req.VolumeId,
 		"node_id":    req.NodeId,
 		"droplet_id": dropletID,
 		"method":     "controller_unpublish_volume",
 	})
-	ll.Info("controller unpublish volume called")
+	log.Info("controller unpublish volume called")
 
 	// check if volume exist before trying to detach it
 	_, resp, err := d.storage.GetVolume(ctx, req.VolumeId)
@@ -406,7 +406,7 @@ func (d *Driver) ControllerUnpublishVolume(ctx context.Context, req *csi.Control
 	if err != nil {
 		if resp != nil {
 			if resp.StatusCode == http.StatusNotFound {
-				ll.WithFields(logrus.Fields{
+				log.WithFields(logrus.Fields{
 					"error": err,
 					"resp":  resp,
 				}).Warn("volume is not attached to droplet")
@@ -415,7 +415,7 @@ func (d *Driver) ControllerUnpublishVolume(ctx context.Context, req *csi.Control
 
 			if resp.StatusCode == http.StatusUnprocessableEntity {
 				if strings.Contains(err.Error(), "Attachment not found") {
-					ll.WithFields(logrus.Fields{
+					log.WithFields(logrus.Fields{
 						"error": err,
 						"resp":  resp,
 					}).Warn("assuming volume is detached already")
@@ -423,7 +423,7 @@ func (d *Driver) ControllerUnpublishVolume(ctx context.Context, req *csi.Control
 				}
 
 				if strings.Contains(err.Error(), "Droplet already has a pending event") {
-					ll.WithFields(logrus.Fields{
+					log.WithFields(logrus.Fields{
 						"error": err,
 						"resp":  resp,
 					}).Warn("droplet is not able to detach the volume")
@@ -438,13 +438,13 @@ func (d *Driver) ControllerUnpublishVolume(ctx context.Context, req *csi.Control
 	}
 
 	if action != nil {
-		ll.Info("waiting until volume is detached")
-		if err := d.waitAction(ctx, req.VolumeId, action.ID); err != nil {
+		log.Info("waiting until volume is detached")
+		if err := d.waitAction(ctx, log, req.VolumeId, action.ID); err != nil {
 			return nil, err
 		}
 	}
 
-	ll.Info("volume is detached")
+	log.Info("volume is detached")
 	return &csi.ControllerUnpublishVolumeResponse{}, nil
 }
 
@@ -459,13 +459,13 @@ func (d *Driver) ValidateVolumeCapabilities(ctx context.Context, req *csi.Valida
 		return nil, status.Error(codes.InvalidArgument, "ValidateVolumeCapabilities Volume Capabilities must be provided")
 	}
 
-	ll := d.log.WithFields(logrus.Fields{
+	log := d.log.WithFields(logrus.Fields{
 		"volume_id":              req.VolumeId,
 		"volume_capabilities":    req.VolumeCapabilities,
 		"supported_capabilities": supportedAccessMode,
 		"method":                 "validate_volume_capabilities",
 	})
-	ll.Info("validate volume capabilities called")
+	log.Info("validate volume capabilities called")
 
 	// check if volume exist before trying to validate it it
 	_, volResp, err := d.storage.GetVolume(ctx, req.VolumeId)
@@ -487,7 +487,7 @@ func (d *Driver) ValidateVolumeCapabilities(ctx context.Context, req *csi.Valida
 		},
 	}
 
-	ll.WithField("confirmed", resp.Confirmed).Info("supported capabilities")
+	log.WithField("confirmed", resp.Confirmed).Info("supported capabilities")
 	return resp, nil
 }
 
@@ -510,12 +510,12 @@ func (d *Driver) ListVolumes(ctx context.Context, req *csi.ListVolumesRequest) (
 		Region: d.region,
 	}
 
-	ll := d.log.WithFields(logrus.Fields{
+	log := d.log.WithFields(logrus.Fields{
 		"list_opts":          listOpts,
 		"req_starting_token": req.StartingToken,
 		"method":             "list_volumes",
 	})
-	ll.Info("list volumes called")
+	log.Info("list volumes called")
 
 	var volumes []godo.Volume
 	lastPage := 0
@@ -572,7 +572,7 @@ func (d *Driver) ListVolumes(ctx context.Context, req *csi.ListVolumesRequest) (
 		NextToken: strconv.Itoa(lastPage),
 	}
 
-	ll.WithField("response", resp).Info("volumes listed")
+	log.WithField("response", resp).Info("volumes listed")
 	return resp, nil
 }
 
@@ -632,14 +632,14 @@ func (d *Driver) CreateSnapshot(ctx context.Context, req *csi.CreateSnapshotRequ
 		return nil, status.Error(codes.InvalidArgument, "CreateSnapshot Source Volume ID must be provided")
 	}
 
-	ll := d.log.WithFields(logrus.Fields{
+	log := d.log.WithFields(logrus.Fields{
 		"req_name":             req.GetName(),
 		"req_source_volume_id": req.GetSourceVolumeId(),
 		"req_parameters":       req.GetParameters(),
 		"method":               "create_snapshot",
 	})
 
-	ll.Info("create snapshot is called")
+	log.Info("create snapshot is called")
 
 	// get snapshot first, if it's created do no thing
 	snapshots, _, err := d.storage.ListSnapshots(ctx, req.GetSourceVolumeId(), nil)
@@ -658,7 +658,7 @@ func (d *Driver) CreateSnapshot(ctx context.Context, req *csi.CreateSnapshotRequ
 			snapResp := &csi.CreateSnapshotResponse{
 				Snapshot: s,
 			}
-			ll.WithField("response", snapResp).Info("existing snapshot found")
+			log.WithField("response", snapResp).Info("existing snapshot found")
 			return snapResp, nil
 		}
 	}
@@ -677,7 +677,7 @@ func (d *Driver) CreateSnapshot(ctx context.Context, req *csi.CreateSnapshotRequ
 		if resp != nil && resp.StatusCode == http.StatusConflict {
 			// 409 is returned when we try to snapshot a volume with the same
 			// name
-			ll.WithFields(logrus.Fields{
+			log.WithFields(logrus.Fields{
 				"error": err,
 				"resp":  resp,
 			}).Warn("snapshot create failed, might be due using an existing name")
@@ -696,18 +696,18 @@ func (d *Driver) CreateSnapshot(ctx context.Context, req *csi.CreateSnapshotRequ
 	snapResp := &csi.CreateSnapshotResponse{
 		Snapshot: s,
 	}
-	ll.WithField("response", resp).Info("snapshot created")
+	log.WithField("response", resp).Info("snapshot created")
 	return snapResp, nil
 }
 
 // DeleteSnapshot will be called by the CO to delete a snapshot.
 func (d *Driver) DeleteSnapshot(ctx context.Context, req *csi.DeleteSnapshotRequest) (*csi.DeleteSnapshotResponse, error) {
-	ll := d.log.WithFields(logrus.Fields{
+	log := d.log.WithFields(logrus.Fields{
 		"req_snapshot_id": req.GetSnapshotId(),
 		"method":          "delete_snapshot",
 	})
 
-	ll.Info("delete snapshot is called")
+	log.Info("delete snapshot is called")
 
 	if req.GetSnapshotId() == "" {
 		return nil, status.Error(codes.InvalidArgument, "DeleteSnapshot Snapshot ID must be provided")
@@ -717,7 +717,7 @@ func (d *Driver) DeleteSnapshot(ctx context.Context, req *csi.DeleteSnapshotRequ
 	if err != nil {
 		if resp != nil && resp.StatusCode == http.StatusNotFound {
 			// we assume it's deleted already for idempotency
-			ll.WithFields(logrus.Fields{
+			log.WithFields(logrus.Fields{
 				"error": err,
 				"resp":  resp,
 			}).Warn("assuming snapshot is deleted already")
@@ -726,7 +726,7 @@ func (d *Driver) DeleteSnapshot(ctx context.Context, req *csi.DeleteSnapshotRequ
 		return nil, err
 	}
 
-	ll.WithField("response", resp).Info("snapshot is deleted")
+	log.WithField("response", resp).Info("snapshot is deleted")
 	return &csi.DeleteSnapshotResponse{}, nil
 }
 
@@ -759,11 +759,11 @@ func (d *Driver) ListSnapshots(ctx context.Context, req *csi.ListSnapshotsReques
 			"ListSnapshots invalid arguments starting token: %d and max entries: %d can't be non null at the same time", nextToken, req.MaxEntries)
 	}
 
-	ll := d.log.WithFields(logrus.Fields{
+	log := d.log.WithFields(logrus.Fields{
 		"req_starting_token": req.StartingToken,
 		"method":             "list_snapshots",
 	})
-	ll.Info("list snapshots is called")
+	log.Info("list snapshots is called")
 
 	// fetch all entries
 	listOpts := &godo.ListOptions{
@@ -822,14 +822,12 @@ func (d *Driver) ListSnapshots(ctx context.Context, req *csi.ListSnapshotsReques
 		NextToken: strconv.Itoa(nextToken),
 	}
 
-	ll.WithField("response", listResp).Info("snapshots listed")
+	log.WithField("response", listResp).Info("snapshots listed")
 	return listResp, nil
 }
 
 // ControllerExpandVolume is called from the resizer to increase the volume size.
 func (d *Driver) ControllerExpandVolume(ctx context.Context, req *csi.ControllerExpandVolumeRequest) (*csi.ControllerExpandVolumeResponse, error) {
-	ll := d.log.WithField("method", "controller_expand_volume")
-	ll.Info("controller expand volume called")
 	volID := req.GetVolumeId()
 
 	if len(volID) == 0 {
@@ -839,7 +837,14 @@ func (d *Driver) ControllerExpandVolume(ctx context.Context, req *csi.Controller
 	if err != nil {
 		return nil, status.Errorf(codes.Internal, "ControllerExpandVolume could not retrieve existing volume: %v", err)
 	}
-	ll.Info("extracting storage from requested capacity range")
+
+	log := d.log.WithFields(logrus.Fields{
+		"volume_id": req.VolumeId,
+		"method":    "controller_expand_volume",
+	})
+
+	log.Info("controller expand volume called")
+
 	resizeBytes, err := extractStorage(req.GetCapacityRange())
 	if err != nil {
 		return nil, status.Errorf(codes.OutOfRange, "ControllerExpandVolume invalid capacity range: %v", err)
@@ -847,7 +852,7 @@ func (d *Driver) ControllerExpandVolume(ctx context.Context, req *csi.Controller
 	resizeGigaBytes := resizeBytes / giB
 
 	if resizeGigaBytes <= volume.SizeGigaBytes {
-		ll.WithFields(logrus.Fields{
+		log.WithFields(logrus.Fields{
 			"current_volume_size":   volume.SizeGigaBytes,
 			"requested_volume_size": resizeGigaBytes,
 		}).Info("Skip volume resize: current volume size exceeds requested volume size. Node FS resize will be performed to resize claim capacity")
@@ -856,16 +861,20 @@ func (d *Driver) ControllerExpandVolume(ctx context.Context, req *csi.Controller
 		return &csi.ControllerExpandVolumeResponse{CapacityBytes: volume.SizeGigaBytes * giB, NodeExpansionRequired: true}, nil
 	}
 
-	ll.WithField("new_volume_size", resizeGigaBytes).Info("attempting to resize volume")
 	action, _, err := d.storageActions.Resize(ctx, req.GetVolumeId(), int(resizeGigaBytes), d.region)
 	if err != nil {
 		return nil, status.Errorf(codes.Internal, "ControllerExpandVolume cannot resize volume %s: %s", req.GetVolumeId(), err.Error())
 	}
+
+	log = log.WithField("new_volume_size", resizeGigaBytes)
+
 	if action != nil {
-		if err := d.waitAction(ctx, req.VolumeId, action.ID); err != nil {
-			return nil, status.Errorf(codes.Internal, "ControllerExpandVolume storage action unsuccessful: %v", err)
+		log.Info("waiting until volume is resized")
+		if err := d.waitAction(ctx, log, req.VolumeId, action.ID); err != nil {
+			return nil, status.Errorf(codes.Internal, "failed waiting for volume to get resized: %s", err)
 		}
 	}
+	log.Info("volume is resized")
 
 	return &csi.ControllerExpandVolumeResponse{CapacityBytes: resizeGigaBytes * giB, NodeExpansionRequired: true}, nil
 }
@@ -950,9 +959,8 @@ func formatBytes(inputBytes int64) string {
 }
 
 // waitAction waits until the given action for the volume is completed
-func (d *Driver) waitAction(ctx context.Context, volumeId string, actionId int) error {
-	ll := d.log.WithFields(logrus.Fields{
-		"volume_id": volumeId,
+func (d *Driver) waitAction(ctx context.Context, log *logrus.Entry, volumeId string, actionId int) error {
+	log = log.WithFields(logrus.Fields{
 		"action_id": actionId,
 	})
 
@@ -967,17 +975,17 @@ func (d *Driver) waitAction(ctx context.Context, volumeId string, actionId int) 
 		if err != nil {
 			ctxCanceled := ctx.Err() != nil
 			if !ctxCanceled {
-				ll.WithError(err).Warn("getting action for volume")
+				log.WithError(err).Warn("getting action for volume")
 				return false, nil
 			}
 
 			return false, fmt.Errorf("failed to get action %d for volume %s: %s", actionId, volumeId, err)
 		}
 
-		ll.WithField("action_status", action.Status).Info("action received")
+		log.WithField("action_status", action.Status).Info("action received")
 
 		if action.Status == godo.ActionCompleted {
-			ll.Info("action completed")
+			log.Info("action completed")
 			return true, nil
 		}
 
