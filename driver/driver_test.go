@@ -29,6 +29,7 @@ import (
 	"github.com/digitalocean/godo"
 	"github.com/kubernetes-csi/csi-test/pkg/sanity"
 	"github.com/sirupsen/logrus"
+	"golang.org/x/sync/errgroup"
 )
 
 func init() {
@@ -83,22 +84,23 @@ func TestDriverSuite(t *testing.T) {
 	}
 
 	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
 
-	go func() {
-		err := driver.Run(ctx)
-		if err != nil {
-			t.Error(err)
-		}
-	}()
+	var eg errgroup.Group
+	eg.Go(func() error {
+		return driver.Run(ctx)
+	})
 
 	cfg := &sanity.Config{
 		TargetPath:  os.TempDir() + "/csi-target",
 		StagingPath: os.TempDir() + "/csi-staging",
 		Address:     endpoint,
 	}
-
 	sanity.Test(t, cfg)
+
+	cancel()
+	if err := eg.Wait(); err != nil {
+		t.Errorf("driver run failed: %s", err)
+	}
 }
 
 type fakeAccountDriver struct {
