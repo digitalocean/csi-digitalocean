@@ -1,4 +1,7 @@
-# csi-digitalocean [![Build Status](https://travis-ci.org/digitalocean/csi-digitalocean.svg?branch=master)](https://travis-ci.org/digitalocean/csi-digitalocean)
+# csi-digitalocean
+
+![](https://github.com/digitalocean/csi-digitalocean/workflows/test/badge.svg)
+
 A Container Storage Interface ([CSI](https://github.com/container-storage-interface/spec)) Driver for [DigitalOcean Block Storage](https://www.digitalocean.com/docs/volumes/). The CSI plugin allows you to use DigitalOcean Block Storage with your preferred Container Orchestrator.
 
 The DigitalOcean CSI plugin is mostly tested on Kubernetes. Theoretically it
@@ -245,57 +248,86 @@ manage them and the old driver is no longer running.
 
 Requirements:
 
-* Go: min `v1.13.x`
-
-After making your changes, run the unit tests: 
-
-```
-$ make test
-```
-
-If you want to test your changes, create a new image with the version set to `dev`:
-
-```
-$ VERSION=dev make publish
-```
-
-This will create a binary with version `dev` and docker image pushed to
-`digitalocean/do-csi-plugin:dev`
-
-To run the integration tests on a DOKS cluster, follow
-[these instructions](test/kubernetes/deploy/README.md).
+* Go at the version specified in `.github/workflows/test.yaml`
+* Docker (for building via the Makefile, post-unit testing, and publishing)
 
 Dependencies are managed via [Go modules](https://github.com/golang/go/wiki/Modules).
 
-### Release a new version
+PRs from the code-hosting repository are automatically unit- and end-to-end-tested in our CI (implemented by Github Actions). See the [.github/workflows directory](.github/workflows) for details.
+
+For every green build of the master branch, the container image `digitalocean/do-csi-plugin:master` is updated and pushed at the end of the CI run. This allows to test the latest commit easily.
+
+Steps to run the tests manually are outlined below.
+
+## Unit Tests
+
+To execute the unit tests locally, run:
+
+```shell
+make test
+```
+
+## End-to-End Tests
+
+To manually run the end-to-end tests, you need to build a container image for your change first and publish it to a registry. Repository owners can publish under `digitalocean/do-csi-plugin:dev`:
+
+```shell
+VERSION=dev make publish
+```
+
+If you do not have write permissions to `digitalocean/do-csi-plugin` on Docker Hub or are worried about conflicting usage of that tag, you can also publish under a different (presumably personal) organization:
+
+```shell
+DOCKER_REPO=johndoe VERSION=latest-feature make publish
+```
+
+This would yield the published container image `johndoe/do-csi-plugin:latest-feature`.
+
+Assuming you have your DO API token assigned to the `DIGITALOCEAN_ACCESS_TOKEN` environment variable, you can then spin up a DOKS cluster on-the-fly and execute the upstream end-to-end tests for a given set of Kubernetes versions like this:
+
+```shell
+make test-e2e E2E_ARGS="-driver-image johndoe/do-csi-plugin:latest-feature 1.16 1.15 1.14"
+```
+
+See [our documentation](test/e2e/README.md) for an overview on how the end-to-end tests work as well as usage instructions.
+
+## Integration Tests
+
+There is a set of custom integration tests which are mostly useful for Kubernetes pre-1.14 installations as these are not covered by the upstream end-to-end tests.
+
+To run the integration tests on a DOKS cluster, follow [the instructions](test/kubernetes/deploy/README.md).
+
+### Releasing
 
 To release a new version `vX.Y.Z`, first bump the version:
 
-```
-$ make NEW_VERSION=vX.Y.Z bump-version
-```
-
-Make sure everything looks good. Create a new branch with all changes:
-
-```
-$ git checkout -b new-release
-$ git add .
-$ git push origin
+```shell
+make NEW_VERSION=vX.Y.Z bump-version
 ```
 
-After it's merged to master, [create a new Github
-release](https://github.com/digitalocean/csi-digitalocean/releases/new) from
-master with the version `vX.Y.Z` and then publish a new docker build:
+This will create the set of files specific to a new release. Make sure everything looks good; in particular, ensure that the change log is up-to-date and is not missing any important, user-facing changes.
 
-```
-$ git checkout master
-$ make publish
+Create a new branch with all changes:
+
+```shell
+git checkout -b prepare-release-vX.Y.Z
+git add .
+git push origin
 ```
 
-This will create a binary with version `vX.Y.Z` and docker image pushed to
-`digitalocean/do-csi-plugin:vX.Y.Z`.
+After it is merged to master, wait for the master build to go green. (This will entail another run of the entire test suite.)
+
+Finally, check out the master branch again, tag the release, and push it:
+
+```shell
+git checkout master
+git pull
+git tag vX.Y.Z
+git push origin vX.Y.Z
+```
+
+The CI will publish the container image `digitalocean/do-csi-plugin:vX.Y.Z` and create a Github Release under the name `vX.Y.Z` automatically. Nothing else needs to be done.
 
 ## Contributing
 
-At DigitalOcean we value and love our community! If you have any issues or
-would like to contribute, feel free to open an issue/PR
+At DigitalOcean we value and love our community! If you have any issues or would like to contribute, feel free to open an issue or PR.

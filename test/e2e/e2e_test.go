@@ -27,6 +27,7 @@ import (
 	"os/signal"
 	"path/filepath"
 	"runtime"
+	"strconv"
 	"strings"
 	"syscall"
 	"testing"
@@ -73,6 +74,7 @@ type params struct {
 	kubeVersions   []string
 	skipParallel   bool
 	skipSequential bool
+	ginkgoNodes    int
 }
 
 func init() {
@@ -130,6 +132,9 @@ e2e.test -skip-parallel
 # Skip the sequential tests
 e2e.test -skip-sequential
 
+# Change the number of ginkgo nodes to use:
+e2e.test -ginkgo-nodes 5
+
 Options:`)
 		flag.PrintDefaults()
 	}
@@ -145,6 +150,7 @@ func TestMain(m *testing.M) {
 	flag.BoolVar(&p.retainClusters, "retain", false, "Retain the created cluster(s) on failure. (Clusters are always cleaned up on success.) Ignored if -kubeconfig is specified.")
 	flag.BoolVar(&p.skipParallel, "skip-parallel", false, "Skip parallel tests")
 	flag.BoolVar(&p.skipSequential, "skip-sequential", false, "Skip sequential tests")
+	flag.IntVar(&p.ginkgoNodes, "ginkgo-nodes", 0, "Number of ginkgo nodes [default: chosen by runner image]")
 	flag.Parse()
 
 	p.kubeVersions = flag.Args()
@@ -215,7 +221,7 @@ func TestE2E(t *testing.T) {
 						if (ctxCanceled || t.Failed()) && p.retainClusters {
 							return
 						}
-						cleanupCtx, cleanupCancel := context.WithTimeout(context.Background(), 10*time.Second)
+						cleanupCtx, cleanupCancel := context.WithTimeout(context.Background(), 15*time.Second)
 						defer cleanupCancel()
 						if err := cleanup(cleanupCtx); err != nil {
 							t.Errorf("failed to clean up cluster: %s", err)
@@ -251,7 +257,7 @@ func TestE2E(t *testing.T) {
 				}
 			}
 
-			err := runE2ETests(ctx, kubeVer, p.runnerImage, testdriverFilename, p.focus, kubeconfig, token, p.skipParallel, p.skipSequential)
+			err := runE2ETests(ctx, kubeVer, p.runnerImage, testdriverFilename, p.focus, kubeconfig, token, p.skipParallel, p.skipSequential, p.ginkgoNodes)
 			if err != nil {
 				t.Fatalf("end-to-end tests failed: %s", err)
 			}
@@ -406,7 +412,7 @@ func deployDriver(ctx context.Context, driverImage string, kubeconfigFile, token
 // runE2ETests invokes our test container.
 // It passes in bind-mount parameters for the kubeconfig and the location of the
 // testdriver YAML files.
-func runE2ETests(ctx context.Context, kubeVersion, runnerImage, testdriverFilename, focus, kubeconfigFile, token string, skipParallel, skipSequential bool) (retErr error) {
+func runE2ETests(ctx context.Context, kubeVersion, runnerImage, testdriverFilename, focus, kubeconfigFile, token string, skipParallel, skipSequential bool, ginkgoNodes int) (retErr error) {
 	testdriverDirectoryInContainer := "/testdrivers"
 	testdriverFilenameInContainer := filepath.Join(testdriverDirectoryInContainer, filepath.Base(testdriverFilename))
 
@@ -419,6 +425,10 @@ func runE2ETests(ctx context.Context, kubeVersion, runnerImage, testdriverFilena
 	}
 	if skipSequential {
 		envs = append(envs, fmt.Sprintf("%s=1", envVarSkipTestsSequential))
+	}
+
+	if ginkgoNodes > 0 {
+		envs = append(envs, "GINKGO_NODES="+strconv.Itoa(ginkgoNodes))
 	}
 
 	if token != "" {

@@ -18,6 +18,8 @@ set -o errexit
 set -o nounset
 set -o pipefail
 
+readonly DEFAULT_GINKGO_NODES=10
+
 if [[ $# -ne 2 ]]; then
   echo "usage: $(basename "$0") <Kubernetes major/minor version> <testdriver file>
 
@@ -55,7 +57,7 @@ else
   echo 'Running parallel tests'
   # Set node count explicitly since node detection does not work properly inside a
   # container.
-  ginkgo -v -p -nodes 10 -focus="External.Storage${focus}" -skip='\[Feature:|\[Disruptive\]|\[Serial\]' "${E2E_TEST_FILE}" -- "-storage.testdriver=${TD_FILE}"
+  ginkgo -v -p -nodes "${GINKGO_NODES:-$DEFAULT_GINKGO_NODES}" -focus="External.Storage${focus}" -skip='\[Feature:|\[Disruptive\]|\[Serial\]' "${E2E_TEST_FILE}" -- "-storage.testdriver=${TD_FILE}"
 fi
 
 if [[ "${SKIP_SEQUENTIAL_TESTS:-}" ]]; then

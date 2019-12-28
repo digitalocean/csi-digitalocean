@@ -1,0 +1,131 @@
+# Copyright 2020 DigitalOcean
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#    http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+### Run unit as well as end-to-end tests on PRs and master pushes. For the
+### latter, we also push a new CSI plugin master image to the container
+### registry.
+name: test
+
+env:
+  DOCKER_ORG: digitalocean
+  DOCKER_USER: ${{ secrets.DockerHubUser }}
+
+on:
+  push:
+    branches:
+      - master
+  pull_request:
+    branches:
+
+jobs:
+  unit-test:
+    runs-on: ubuntu-18.04
+
+    steps:
+      - name: checkout
+        uses: actions/checkout@master
+
+      - name: Go setup
+        uses: actions/setup-go@v1
+        with:
+          go-version: '1.13.5'
+
+      - name: Run unit tests
+        run: make
+
+  push-images:
+    runs-on: ubuntu-18.04
+    needs: unit-test
+
+    steps:
+      - name: checkout
+        uses: actions/checkout@master
+
+      - name: Log into container registry
+        run: echo ${{ secrets.DockerHubToken }} | docker login --username ${DOCKER_USER} --password-stdin
+
+      - name: build and push runner image
+        env:
+          # ${{ github.head_ref }} is empty for non-pull requests, which is
+          # exactly what we want on master.
+          RUNNER_IMAGE_TAG_PREFIX: ${{ github.head_ref }}
+        run: RUNNER_IMAGE=${DOCKER_ORG}/k8s-e2e-test-runner make runner-push
+
+      - name: Build and push plugin image
+        env:
+          VERSION: ${{ github.head_ref }}
+        run: |
+          VERSION="${VERSION:-latest}"
+          DOCKER_REPO=${DOCKER_ORG}/do-csi-plugin-dev make compile build push
+
+  e2e-test:
+    runs-on: ubuntu-18.04
+    needs: push-images
+    strategy:
+      matrix:
+        kube-release: ['1.16', '1.15', '1.14']
+
+    steps:
+      - name: checkout
+        uses: actions/checkout@master
+
+      - name: Go setup
+        uses: actions/setup-go@v1
+        with:
+          go-version: '1.13.5'
+
+      - name: Install kustomize
+        env:
+          KUSTOMIZE_VERSION: '3.5.3'
+        run: curl -fL https://github.com/kubernetes-sigs/kustomize/releases/download/kustomize%2Fv${KUSTOMIZE_VERSION}/kustomize_v${KUSTOMIZE_VERSION}_linux_amd64.tar.gz | sudo tar xzv -C /usr/local/bin kustomize
+
+      - name: Run end-to-end tests
+        env:
+          DIGITALOCEAN_ACCESS_TOKEN: ${{ secrets.CSIDigitalOceanAccessToken }}
+          # ${{ github.head_ref }} will be empty for pull requests and non-empty
+          # for pushes. Handle the cases in "run" below to parameterize our e2e
+          # test invocation accordingly.
+          BRANCH: ${{ github.head_ref }}
+          # Use less ginkgo nodes to avoid running into the DO API rate limit.
+          # The upstream end-to-end tests are quite demanding in terms of API
+          # request volume, and we run them concurrently.
+          NUM_GINKGO_NODES: "8"
+        run: |
+          NAME_SUFFIX="${BRANCH}"
+          TAG="${BRANCH}"
+          if [[ $BRANCH != "" ]]; then
+            RUNNER_IMAGE_TAG_PREFIX=${BRANCH}-
+          else
+            NAME_SUFFIX=master
+            TAG=latest
+          fi
+          TIMEOUT=60m make test-e2e E2E_ARGS="-ginkgo-nodes ${NUM_GINKGO_NODES} -driver-image ${DOCKER_ORG}/do-csi-plugin-dev:${TAG} -runner-image ${DOCKER_ORG}/k8s-e2e-test-runner:${RUNNER_IMAGE_TAG_PREFIX}latest -name-suffix ${NAME_SUFFIX} ${{ matrix.kube-release }}"
+
+  tag-new-master-image:
+    runs-on: ubuntu-18.04
+    if: github.ref == 'refs/heads/master'
+    needs: e2e-test
+
+    steps:
+      - name: checkout
+        uses: actions/checkout@master
+
+      - name: Log into container registry
+        run: echo ${{ secrets.DockerHubToken }} | docker login --username ${DOCKER_USER} --password-stdin
+
+      - name: tag new CSI plugin master image
+        run: |
+          docker pull ${DOCKER_ORG}/do-csi-plugin-dev:latest
+          docker tag ${DOCKER_ORG}/do-csi-plugin-dev:latest ${DOCKER_ORG}/do-csi-plugin:master
+          docker push ${DOCKER_ORG}/do-csi-plugin:master

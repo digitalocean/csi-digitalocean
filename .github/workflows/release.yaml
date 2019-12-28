@@ -1,0 +1,55 @@
+# Copyright 2020 DigitalOcean
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#    http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+### Release a new CSI version once a tag is pushed.
+name: release
+
+env:
+  DOCKER_ORG: digitalocean
+  DOCKER_USER: ${{ secrets.DockerHubUser }}
+
+on:
+  push:
+    tags-ignore:
+      - v0.*
+      - v1.0.*
+
+jobs:
+  release:
+    runs-on: ubuntu-18.04
+
+    steps:
+      - name: checkout
+        uses: actions/checkout@master
+
+      - name: Log into container registry
+        run: echo ${{ secrets.DockerHubToken }} | docker login --username ${DOCKER_USER} --password-stdin
+
+      - name: tag new CSI plugin release image
+        run: |
+          TAG=$(echo ${GITHUB_REF} | cut -d/ -f3-)
+          docker pull ${DOCKER_ORG}/do-csi-plugin:master
+          docker tag ${DOCKER_ORG}/do-csi-plugin:master ${DOCKER_ORG}/do-csi-plugin:${TAG}
+          docker push ${DOCKER_ORG}/do-csi-plugin:${TAG}
+
+      - name: create Github release
+        uses: softprops/action-gh-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          body: |
+            See the [change log](CHANGELOG.md) for release details.
+
+            Refer to the [installation instructions](README.md#installing-to-kubernetes) to learn how the CSI driver can be installed. (**Note:** The driver comes pre-installed already for [DOKS](https://www.digitalocean.com/products/kubernetes/) users.)
+          draft: false
