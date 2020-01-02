@@ -13,6 +13,9 @@ PKG ?= github.com/digitalocean/csi-digitalocean/cmd/do-csi-plugin
 VERSION ?= $(shell cat VERSION)
 DOCKER_REPO ?= digitalocean/do-csi-plugin
 
+# Max Volumes to a Single Droplet is 7
+INTEGRATION_PARALLEL ?= 7
+
 all: check-unused test
 
 publish: compile build push clean
@@ -48,7 +51,7 @@ test:
 .PHONY: test-integration
 test-integration:
 	@echo "==> Started integration tests"
-	@env go test -count 1 -v -tags integration ./test/...
+	@env go test -parallel ${INTEGRATION_PARALLEL} -count 1 -v -tags integration ./test/...
 
 .PHONY: build
 build:

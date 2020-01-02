@@ -26,7 +26,9 @@ package driver
 
 import (
 	"context"
+	"fmt"
 	"path/filepath"
+	"strings"
 
 	"github.com/container-storage-interface/spec/lib/go/csi"
 	"github.com/sirupsen/logrus"
@@ -42,6 +44,9 @@ const (
 
 	// See: https://www.digitalocean.com/docs/volumes/overview/#limits
 	maxVolumesPerNode = 7
+
+	volumeModeBlock      = "block"
+	volumeModeFilesystem = "filesystem"
 )
 
 var (
@@ -87,7 +92,14 @@ func (d *Driver) NodeStageVolume(ctx context.Context, req *csi.NodeStageVolumeRe
 		volumeName = volName
 	}
 
-	source := getDiskSource(volumeName)
+	// If it is a block volume, we do nothing for stage volume
+	// because we bind mount the absolute device path to a file
+	switch req.VolumeCapability.GetAccessType().(type) {
+	case *csi.VolumeCapability_Block:
+		return &csi.NodeStageVolumeResponse{}, nil
+	}
+
+	source := getDeviceByIDPath(volumeName)
 	target := req.StagingTargetPath
 
 	mnt := req.VolumeCapability.GetMount()
@@ -99,11 +111,12 @@ func (d *Driver) NodeStageVolume(ctx context.Context, req *csi.NodeStageVolumeRe
 	}
 
 	log = d.log.WithFields(logrus.Fields{
+		"volume_mode":     volumeModeFilesystem,
 		"volume_name":     volumeName,
 		"volume_context":  req.VolumeContext,
 		"publish_context": req.PublishContext,
 		"source":          source,
-		"fsType":          fsType,
+		"fs_type":         fsType,
 		"mount_options":   options,
 	})
 
@@ -213,43 +226,23 @@ func (d *Driver) NodePublishVolume(ctx context.Context, req *csi.NodePublishVolu
 	})
 	log.Info("node publish volume called")
 
-	source := req.StagingTargetPath
-	target := req.TargetPath
-
-	mnt := req.VolumeCapability.GetMount()
-	options := mnt.MountFlags
-
-	// TODO(arslan): do we need bind here? check it out
-	// Perform a bind mount to the full path to allow duplicate mounts of the same PD.
-	options = append(options, "bind")
+	options := []string{"bind"}
 	if req.Readonly {
 		options = append(options, "ro")
 	}
 
-	fsType := "ext4"
-	if mnt.FsType != "" {
-		fsType = mnt.FsType
+	var err error
+	switch req.GetVolumeCapability().GetAccessType().(type) {
+	case *csi.VolumeCapability_Block:
+		err = d.nodePublishVolumeForBlock(req, options, log)
+	case *csi.VolumeCapability_Mount:
+		err = d.nodePublishVolumeForFileSystem(req, options, log)
+	default:
+		return nil, status.Error(codes.InvalidArgument, "Unknown access type")
 	}
 
-	mounted, err := d.mounter.IsMounted(target)
 	if err != nil {
 		return nil, err
-	}
-
-	log = d.log.WithFields(logrus.Fields{
-		"source":        source,
-		"target":        target,
-		"fsType":        fsType,
-		"mount_options": options,
-	})
-
-	if !mounted {
-		log.Info("mounting the volume")
-		if err := d.mounter.Mount(source, target, fsType, options...); err != nil {
-			return nil, status.Error(codes.Internal, err.Error())
-		}
-	} else {
-		log.Info("volume is already mounted")
 	}
 
 	log.Info("bind mounting the volume is finished")
@@ -374,12 +367,35 @@ func (d *Driver) NodeGetVolumeStats(ctx context.Context, req *csi.NodeGetVolumeS
 		return nil, status.Errorf(codes.NotFound, "volume path %q is not mounted", volumePath)
 	}
 
+	isBlock, err := d.mounter.IsBlockDevice(volumePath)
+	if err != nil {
+		return nil, status.Errorf(codes.Internal, "failed to determine if %q is block device: %s", volumePath, err)
+	}
+
 	stats, err := d.mounter.GetStatistics(volumePath)
 	if err != nil {
 		return nil, status.Errorf(codes.Internal, "failed to retrieve capacity statistics for volume path %q: %s", volumePath, err)
 	}
 
+	// only can retrieve total capacity for a block device
+	if isBlock {
+		log.WithFields(logrus.Fields{
+			"volume_mode": volumeModeBlock,
+			"bytes_total": stats.totalBytes,
+		}).Info("node capacity statistics retrieved")
+
+		return &csi.NodeGetVolumeStatsResponse{
+			Usage: []*csi.VolumeUsage{
+				{
+					Unit:  csi.VolumeUsage_BYTES,
+					Total: stats.totalBytes,
+				},
+			},
+		}, nil
+	}
+
 	log.WithFields(logrus.Fields{
+		"volume_mode":      volumeModeFilesystem,
 		"bytes_available":  stats.availableBytes,
 		"bytes_total":      stats.totalBytes,
 		"bytes_used":       stats.usedBytes,
@@ -424,6 +440,14 @@ func (d *Driver) NodeExpandVolume(ctx context.Context, req *csi.NodeExpandVolume
 	})
 	log.Info("node expand volume called")
 
+	if req.GetVolumeCapability() != nil {
+		switch req.GetVolumeCapability().GetAccessType().(type) {
+		case *csi.VolumeCapability_Block:
+			log.Info("filesystem expansion is skipped for block volumes")
+			return &csi.NodeExpandVolumeResponse{}, nil
+		}
+	}
+
 	mounter := mount.New("")
 	devicePath, _, err := mount.GetDeviceNameFromMount(mounter, volumePath)
 	if err != nil {
@@ -447,8 +471,100 @@ func (d *Driver) NodeExpandVolume(ctx context.Context, req *csi.NodeExpandVolume
 	return &csi.NodeExpandVolumeResponse{}, nil
 }
 
-// getDiskSource returns the absolute path of the attached volume for the given
+func (d *Driver) nodePublishVolumeForFileSystem(req *csi.NodePublishVolumeRequest, mountOptions []string, log *logrus.Entry) error {
+	source := req.StagingTargetPath
+	target := req.TargetPath
+
+	mnt := req.VolumeCapability.GetMount()
+	for _, flag := range mnt.MountFlags {
+		mountOptions = append(mountOptions, flag)
+	}
+
+	fsType := "ext4"
+	if mnt.FsType != "" {
+		fsType = mnt.FsType
+	}
+
+	mounted, err := d.mounter.IsMounted(target)
+	if err != nil {
+		return err
+	}
+
+	log = log.WithFields(logrus.Fields{
+		"source_path":   source,
+		"volume_mode":   volumeModeFilesystem,
+		"fs_type":       fsType,
+		"mount_options": mountOptions,
+	})
+
+	if !mounted {
+		log.Info("mounting the volume")
+		if err := d.mounter.Mount(source, target, fsType, mountOptions...); err != nil {
+			return status.Error(codes.Internal, err.Error())
+		}
+	} else {
+		log.Info("volume is already mounted")
+	}
+
+	return nil
+}
+
+func (d *Driver) nodePublishVolumeForBlock(req *csi.NodePublishVolumeRequest, mountOptions []string, log *logrus.Entry) error {
+	volumeName, ok := req.GetPublishContext()[d.publishInfoVolumeName]
+	if !ok {
+		return status.Error(codes.InvalidArgument, fmt.Sprintf("Could not find the volume name from the publish context %q", d.publishInfoVolumeName))
+	}
+
+	source, err := findAbsoluteDeviceByIDPath(volumeName)
+	if err != nil {
+		return status.Errorf(codes.Internal, "Failed to find device path for volume %s. %v", volumeName, err)
+	}
+
+	target := req.TargetPath
+
+	mounted, err := d.mounter.IsMounted(target)
+	if err != nil {
+		return err
+	}
+
+	log = log.WithFields(logrus.Fields{
+		"source_path":   source,
+		"volume_mode":   volumeModeBlock,
+		"mount_options": mountOptions,
+	})
+
+	if !mounted {
+		log.Info("mounting the volume")
+		if err := d.mounter.Mount(source, target, "", mountOptions...); err != nil {
+			return status.Errorf(codes.Internal, err.Error())
+		}
+	} else {
+		log.Info("volume is already mounted")
+	}
+
+	return nil
+}
+
+// getDeviceByIDPath returns the absolute path of the attached volume for the given
 // DO volume name
-func getDiskSource(volumeName string) string {
-	return filepath.Join(diskIDPath, diskDOPrefix+volumeName)
+func getDeviceByIDPath(volumeName string) string {
+	return filepath.Join(diskIDPath, fmt.Sprintf("%s%s", diskDOPrefix, volumeName))
+}
+
+// findAbsoluteDeviceByIDPath follows the /dev/disk/by-id symlink to find the absolute path of a device
+func findAbsoluteDeviceByIDPath(volumeName string) (string, error) {
+	path := getDeviceByIDPath(volumeName)
+
+	// EvalSymlinks returns relative link if the file is not a symlink
+	// so we do not have to check if it is symlink prior to evaluation
+	resolved, err := filepath.EvalSymlinks(path)
+	if err != nil {
+		return "", fmt.Errorf("could not resolve symlink %q: %v", path, err)
+	}
+
+	if !strings.HasPrefix(resolved, "/dev") {
+		return "", fmt.Errorf("resolved symlink %q for %q was unexpected", resolved, path)
+	}
+
+	return resolved, nil
 }

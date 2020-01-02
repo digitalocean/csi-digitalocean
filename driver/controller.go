@@ -68,7 +68,7 @@ const (
 var (
 	// DO currently only support a single node to be attached to a single node
 	// in read/write mode. This corresponds to `accessModes.ReadWriteOnce` in a
-	// PVC resource on Kubernets
+	// PVC resource on Kubernetes
 	supportedAccessMode = &csi.VolumeCapability_AccessMode{
 		Mode: csi.VolumeCapability_AccessMode_SINGLE_NODE_WRITER,
 	}
@@ -913,7 +913,17 @@ func (d *Driver) ControllerExpandVolume(ctx context.Context, req *csi.Controller
 	}
 
 	log.Info("volume was resized")
-	return &csi.ControllerExpandVolumeResponse{CapacityBytes: resizeGigaBytes * giB, NodeExpansionRequired: true}, nil
+
+	nodeExpansionRequired := true
+	if req.GetVolumeCapability() != nil {
+		switch req.GetVolumeCapability().GetAccessType().(type) {
+		case *csi.VolumeCapability_Block:
+			log.Info("node expansion is not required for block volumes")
+			nodeExpansionRequired = false
+		}
+	}
+
+	return &csi.ControllerExpandVolumeResponse{CapacityBytes: resizeGigaBytes * giB, NodeExpansionRequired: nodeExpansionRequired}, nil
 }
 
 // extractStorage extracts the storage size in bytes from the given capacity
@@ -1112,7 +1122,12 @@ func validateCapabilities(caps []*csi.VolumeCapability) []string {
 		if cap.GetAccessMode().GetMode() != supportedAccessMode.GetMode() {
 			violations.Insert(fmt.Sprintf("unsupported access mode %s", cap.GetAccessMode().GetMode().String()))
 		}
-		if cap.GetMount() == nil {
+
+		accessType := cap.GetAccessType()
+		switch accessType.(type) {
+		case *csi.VolumeCapability_Block:
+		case *csi.VolumeCapability_Mount:
+		default:
 			violations.Insert("unsupported access type")
 		}
 	}
