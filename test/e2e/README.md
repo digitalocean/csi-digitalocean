@@ -59,6 +59,6 @@ Command-line arguments are passed as-in to the test tool. Run `e2e.sh -h` for us
 3. Run `handle-image.sh build`
 4. Run `handle-image.sh push`
 
-For testing purposes, you may also overwrite a commit hash on-the-fly by defining the corresponding environment variable(s) `SHA_*`, e.g.: `SHA_1_16=deadbeef handle-image build`.
+For testing purposes, you may also overwrite a commit hash on-the-fly by defining the corresponding environment variable(s) `SHA_*`, e.g.: `SHA_1_16=deadbeef ./handle-image.sh build`.
 
 The image to be built may be overwritten by defining the `IMAGE` variable, e.g.: `IMAGE=timoreimann/k8s-e2e-test-runner ./handle-image.sh build`.
