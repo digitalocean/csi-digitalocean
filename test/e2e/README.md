@@ -6,7 +6,7 @@ It is possible to run the SIG Storage-managed end-to-end tests provided by upstr
 
 The Kubernetes project maintains a set of end-to-end tests that are used to validate the correctness of the upstream development. Since Kubernetes 1.14, these tests can also be consumed externally by provisioning a Kubernetes cluster to run the tests against.
 
-This also holds for the storage-related tests but comes with a caveat: the CSI specification gives a lot of flexibility as to which features may be implemented by a drivers, with the implication that not all drivers may implement all functionality that is being verified by the end-to-end tests. Fortunately, the external storage tests [provide a mechanism](https://github.com/kubernetes/kubernetes/tree/master/test/e2e/storage/external) to declare the set of features implemented by a driver-under-test, and the testing framework takes this information into account to selectively choose tests during runtime.
+This also holds for the storage-related tests but comes with a caveat: the CSI specification gives a lot of flexibility as to which features may be implemented by a drivers, with the implication that not all drivers may implement all functionality that is being verified by the end-to-end tests. Fortunately, the external storage tests provide a mechanism to declare the set of features implemented by a driver-under-test, and the testing framework takes this information into account to selectively choose tests during runtime.
 
 Our end-to-end testing integration customizes the test configuration for DigitalOcean's CSI driver and provides tooling to easily perform the testing.
 
@@ -15,6 +15,7 @@ Our end-to-end testing integration customizes the test configuration for Digital
 The end-to-end test integration consists of the following components:
 
 - a Dockerfile bundling Kubernetes version-specific dependencies and tools to drive test execution through a test runner image
+- a set of Kubernetes release-specific testdriver YAML configuration files for our CSI driver
 - a set of Go files preparing the right test environment and triggering the test execution
 - a shell wrapper start script
 
@@ -30,6 +31,14 @@ Forks will be phased out as we are able to use Kubernetes releases that ship wit
 A test binary is needed for each Kubernetes version since upstream does not offer backwards compatibility for older versions; that is, the test binary for a given version is guaranteed to work with that version only.
 
 We also ship ginkgo and a few other tools needed to run the tests. See the Dockerfile comments for details.
+
+### Testdrivers
+
+External storage tests for CSI drivers require a so-called _testdriver_ specification, which is a YAML file describing the capabilities of a particular driver. Roughly speaking, it codifies the set of supported features, which the upstream test framework takes into account to dynamically determine the set of tests to run.
+
+For posterity, the steps required to define a testdriver and run the tests [are documented upstream](https://github.com/kubernetes/kubernetes/tree/master/test/e2e/storage/external). The test runner provided here encapsulate all of this, however, so DigitalOcean CSI driver authors only need to care about updating or adding testdriver files in the `tests` sub-directory. Each file is specific to a particular Kubernetes release and must be named `<major version>.<minor version>.yaml`, e.g., `1.16.yaml`.
+
+Frequently, representing newly supported features in a testdriver file means flipping on additional capabilities [which are documented in-code](https://github.com/kubernetes/kubernetes/blob/master/test/e2e/storage/testsuites/testdriver.go).
 
 ### Go files
 
@@ -50,7 +59,8 @@ Command-line arguments are passed as-in to the test tool. Run `e2e.sh -h` for us
 ### Run the end-to-end tests
 
 1. If necessary, update the test runner image (see below for instructions)
-2. Execute `e2e.sh`, passing in parameters as needed
+2. If necessary, add or update the testdriver file definitions (see the [related section above](#testdrivers) for details)
+3. Execute `e2e.sh`, passing in parameters as needed
 
 ### Update the test runner image
 
