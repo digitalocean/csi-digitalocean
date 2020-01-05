@@ -92,7 +92,7 @@ e2e.test 1.16 1.14
 # Create cluster with a specific suffix:
 e2e.test --name-suffix=$(git rev-parse --short HEAD)
 
-# Retain cluster after completion of the tests:
+# Retain cluster after erroneous completion of the tests:
 e2e.test --retain
 
 # Use cluster referenced by kubeconfig file instead of using a dynamic cluster:
@@ -114,9 +114,9 @@ func TestMain(m *testing.M) {
 	flag.StringVar(&p.driverImage, "driver-image", "", "The driver container image to use. Triggers a deployment of the \"latest\"-suffixed development manifest into the cluster if given. Otherwise, the built-in driver of the cluster is used.")
 	flag.StringVar(&p.runnerImage, "runner-image", testRunnerImage, "The end-to-end runner image to use.")
 	flag.StringVar(&p.focus, "focus", "", "A custom ginkgo focus to use for external storage tests. Defaults to running all external tests.")
-	flag.StringVar(&p.kubeconfig, "kubeconfig", "", "The kubeconfig file to use. For DOKS clusters where the kubeconfig has been retrieved via doctl, the DIGITALOCEAN_ACCESS_TOKEN environment variable must be set. If not specified, add-hoc DOKS clusters will be created and cleaned up afterwards for each tested Kubernetes version (unless -retain is also specified).")
+	flag.StringVar(&p.kubeconfig, "kubeconfig", "", "The kubeconfig file to use. For DOKS clusters where the kubeconfig has been retrieved via doctl, the DIGITALOCEAN_ACCESS_TOKEN environment variable must be set. If not specified, add-hoc DOKS clusters will be created and cleaned up afterwards for each tested Kubernetes version (unless the test failed and -retain is specified).")
 	flag.StringVar(&p.nameSuffix, "name-suffix", "", "A suffix to append to the cluster name. If not specified, a random suffix will be chosen. Ignored if -kubeconfig is specified.")
-	flag.BoolVar(&p.retainClusters, "retain", false, "Retain/keep the created cluster(s). Ignored if -kubeconfig is specified.")
+	flag.BoolVar(&p.retainClusters, "retain", false, "Retain the created cluster(s) on failure. (Clusters are always cleaned up on success.) Ignored if -kubeconfig is specified.")
 	flag.Parse()
 
 	p.kubeVersions = flag.Args()
@@ -179,8 +179,15 @@ func TestE2E(t *testing.T) {
 				// Ignore error in order to clean up any partial cluster setups
 				// as long as we received a cleanup function and do not intend
 				// to retain the cluster.
-				if !p.retainClusters && cleanup != nil {
+				if cleanup != nil {
 					defer func() {
+						// Do not clean up if run succeeded, or if it failed
+						// (including cancelations) but we do not want to retain
+						// the cluster.
+						ctxCanceled := ctx.Err() != nil
+						if (!ctxCanceled && !t.Failed()) || !p.retainClusters {
+							return
+						}
 						cleanupCtx, cleanupCancel := context.WithTimeout(context.Background(), 10*time.Second)
 						defer cleanupCancel()
 						if err := cleanup(cleanupCtx); err != nil {
