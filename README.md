@@ -7,10 +7,9 @@ Cloud Foundry. Feel free to test it on other CO's and give us a feedback.
 
 ## Releases
 
+This is the 1.0.x version development.
 The DigitalOcean CSI plugin follows [semantic versioning](https://semver.org/).
-The current version is: **`v1.0.3`**. The project is still
-under active development and may not be production ready. The plugin will be
-bumped following the rules below:
+The version will be bumped following the rules below:
 
 * Bug fixes will be released as a `PATCH` update.
 * New features (such as CSI spec bumps with no breaking changes) will be released as a `MINOR` update.
@@ -106,17 +105,19 @@ digitalocean          Opaque                                1         18h
 #### 2. Deploy the CSI plugin and sidecars:
 
 Before you continue, be sure to checkout to a [tagged
-release](https://github.com/digitalocean/csi-digitalocean/releases). Always use the [latest stable version](https://github.com/digitalocean/csi-digitalocean/releases/latest) 
-For example, to use the latest stable version (`v1.0.3`) you can execute the following command:
+release](https://github.com/digitalocean/csi-digitalocean/releases). Always use the [latest version](https://github.com/digitalocean/csi-digitalocean/releases) compatible with your Kubernetes release (see the [compatibility information](#kubernetes-compatibility)).
 
-```
-$ kubectl apply -f https://raw.githubusercontent.com/digitalocean/csi-digitalocean/master/deploy/kubernetes/releases/csi-digitalocean-v1.0.3.yaml
+The [releases directory](deploy/kubernetes/releases) directory holds manifests for all plugin releases. You can deploy a specific version by executing the command
+
+```shell
+kubectl apply -f https://raw.githubusercontent.com/digitalocean/csi-digitalocean/master/deploy/kubernetes/releases/csi-digitalocean-vX.Y.Z.yaml
 ```
 
-This file will be always updated to point to the latest stable release. If you
-see any issues during the installation, this could be because the newly created
-CRD's haven't been established yet. If you call `kubectl apply -f` again on the
-same file, the missing resources will be applied again
+where `vX.Y.Z` is the plugin target version.
+
+If you see any issues during the installation, this could be because the newly
+created CRDs haven't been established yet. If you call `kubectl apply -f` again
+on the same file, the missing resources will be applied again.
 
 
 #### 3. Test and verify:
@@ -233,10 +234,10 @@ Dependencies are managed via [Go modules](https://github.com/golang/go/wiki/Modu
 
 ### Release a new version
 
-To release a new version bump first the version:
+To release a new version `vX.Y.Z`, first bump the version:
 
 ```
-$ make NEW_VERSION=v1.0.3 bump-version
+$ make NEW_VERSION=vX.Y.Z bump-version
 ```
 
 Make sure everything looks good. Create a new branch with all changes:
@@ -247,17 +248,17 @@ $ git add .
 $ git push origin
 ```
 
-After it's merged to master, [create a new Github
+After it's merged into the release-1.0 branch, [create a new Github
 release](https://github.com/digitalocean/csi-digitalocean/releases/new) from
-master with the version `v1.0.3` and then publish a new docker build:
+that branch with the version `vX.Y.Z` and then publish a new docker build:
 
 ```
-$ git checkout master
+$ git checkout release-1.0
 $ make publish
 ```
 
-This will create a binary with version `v1.0.3` and docker image pushed to
-`digitalocean/do-csi-plugin:v1.0.3`
+This will create a binary with version `vX.Y.Z` and docker image pushed to
+`digitalocean/do-csi-plugin:vX.Y.Z`.
 
 ## Contributing
 
