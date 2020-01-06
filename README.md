@@ -66,61 +66,17 @@ Volumes can be transferred across clusters. The exact steps are outlined in [our
 
 ### Kubernetes Compatibility
 
-<table>
-  <thead>
-    <tr>
-      <th></th>
-      <th colspan=4>Kubernetes Version</th>
-    </tr>
-    <tr>
-      <th>DigitalOcean CSI Driver</th>
-      <th>1.10.5 - 1.11</th>
-      <th>1.12</th>
-      <th>1.13</th>
-      <th>1.14</th>
-      <th>1.15</th>
-      <th>1.16</th>
-    </tr>
-  </thead>
-  <tbody>
-    <tr>
-      <td>v0.1.x - v0.2.x</td>
-      <td>yes</td>
-      <td>no</td>
-      <td>no</td>
-      <td>no</td>
-      <td>no</td>
-      <td>no</td>
-    </tr>
-    <tr>
-      <td>v0.3.x - v0.4.x</td>
-      <td>no</td>
-      <td>yes</td>
-      <td>no</td>
-      <td>no</td>
-      <td>no</td>
-      <td>no</td>
-    </tr>
-    <tr>
-      <td>v1.0.x - v1.0.x</td>
-      <td>no</td>
-      <td>no</td>
-      <td>yes</td>
-      <td>no</td>
-      <td>no</td>
-      <td>no</td>
-    </tr>
-    <tr>
-      <td>v1.1.0 - v1.1.x</td>
-      <td>no</td>
-      <td>no</td>
-      <td>no</td>
-      <td>yes</td>
-      <td>yes</td>
-      <td>yes</td>
-    </tr>
-  </tbody>
-</table>
+The following table describes the required DigitalOcean CSI driver version per Kubernetes release.
+
+Kubernetes Release | DigitalOcean CSI Driver Version
+------------------ | -------------------------------
+1.10 (1.10.5+)     | v0.2.x
+1.11               | v0.2.x
+1.12               | v0.4.x
+1.13               | v1.0.x
+1.14               | v1.1.x
+1.15               | v1.1.x
+1.16               | v1.1.x
 
 Note: The [`DigitalOcean Kubernetes`](https://www.digitalocean.com/products/kubernetes/) products comes
 with the CSI driver pre-installed and no further steps are required.
