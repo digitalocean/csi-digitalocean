@@ -75,15 +75,19 @@ Volumes can be transferred across clusters. The exact steps are outlined in [our
     <tr>
       <th>DigitalOcean CSI Driver</th>
       <th>1.10.5 - 1.11</th>
-      <th>1.12+</th>
-      <th>1.13+</th>
-      <th>1.14+</th>
+      <th>1.12</th>
+      <th>1.13</th>
+      <th>1.14</th>
+      <th>1.15</th>
+      <th>1.16</th>
     </tr>
   </thead>
   <tbody>
     <tr>
       <td>v0.1.x - v0.2.x</td>
       <td>yes</td>
+      <td>no</td>
+      <td>no</td>
       <td>no</td>
       <td>no</td>
       <td>no</td>
@@ -94,12 +98,16 @@ Volumes can be transferred across clusters. The exact steps are outlined in [our
       <td>yes</td>
       <td>no</td>
       <td>no</td>
+      <td>no</td>
+      <td>no</td>
     </tr>
     <tr>
       <td>v1.0.x - v1.0.x</td>
       <td>no</td>
       <td>no</td>
       <td>yes</td>
+      <td>no</td>
+      <td>no</td>
       <td>no</td>
     </tr>
     <tr>
@@ -108,12 +116,7 @@ Volumes can be transferred across clusters. The exact steps are outlined in [our
       <td>no</td>
       <td>no</td>
       <td>yes</td>
-    </tr>
-    <tr>
-      <td>dev</td>
-      <td>no</td>
-      <td>no</td>
-      <td>no</td>
+      <td>yes</td>
       <td>yes</td>
     </tr>
   </tbody>
