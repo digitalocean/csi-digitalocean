@@ -16,6 +16,8 @@ import (
 	utilerrors "k8s.io/apimachinery/pkg/util/errors"
 )
 
+const dockerHost = "docker.io/"
+
 type containerParams struct {
 	image       string
 	cmd         []string
@@ -58,14 +60,31 @@ ContList:
 		}
 	}
 
-	// Pull image as needed.
-	pull, err := cli.ImagePull(ctx, p.image, types.ImagePullOptions{})
+	// Check if image exists locally.
+	summaries, err := cli.ImageList(ctx, types.ImageListOptions{})
 	if err != nil {
-		return fmt.Errorf("failed to pull image %q: %s", p.image, err)
+		return fmt.Errorf("failed to list images: %s", err)
 	}
-	defer pull.Close()
-	if _, err := io.Copy(os.Stdout, pull); err != nil {
-		return fmt.Errorf("failed to write image pull output: %s", err)
+	var imageExists bool
+Summaries:
+	for _, summary := range summaries {
+		for _, repoTag := range summary.RepoTags {
+			if imagesEqual(p.image, repoTag) {
+				imageExists = true
+				break Summaries
+			}
+		}
+	}
+	if !imageExists {
+		// Pull image.
+		pull, err := cli.ImagePull(ctx, p.image, types.ImagePullOptions{})
+		if err != nil {
+			return fmt.Errorf("failed to pull image %q: %s", p.image, err)
+		}
+		defer pull.Close()
+		if _, err := io.Copy(os.Stdout, pull); err != nil {
+			return fmt.Errorf("failed to write image pull output: %s", err)
+		}
 	}
 
 	// Create and start container.
@@ -166,4 +185,8 @@ ContList:
 	isDeleted = true
 
 	return nil
+}
+
+func imagesEqual(i1, i2 string) bool {
+	return strings.TrimPrefix(i1, dockerHost) == strings.TrimPrefix(i2, dockerHost)
 }

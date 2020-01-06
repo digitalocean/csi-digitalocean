@@ -410,7 +410,7 @@ func runE2ETests(ctx context.Context, kubeVersion, runnerImage, testdriverFilena
 
 func canonicalizeImage(image string) string {
 	if strings.Count(image, "/") < 2 {
-		image = "docker.io/" + image
+		image = dockerHost + image
 	}
 	return image
 }
