@@ -65,7 +65,7 @@ func init() {
 		fmt.Println(`e2e.test runs containerized, external storage end-to-end tests from upstream Kubernetes against a CSI driver.
 
 It supports dynamically creating (and post-test deleting) a DOKS cluster to run a driver-under-test in. The environment
-variable DIGITALOCAN_ACCESS_TOKEN must be set to a DigitalOcean API key for this purpose.
+variable DIGITALOCEAN_ACCESS_TOKEN must be set to a DigitalOcean API key for this purpose.
 The cluster will be tagged with "csi-e2e-test" and "version:<sanitized Kubernetes version>" where
 <sanitized Kubernetes version> is the Kubernetes major-minor version replacing dots by dashes, e.g., "version:1-16"
 (DigitalOcean tags must not contain dots).
