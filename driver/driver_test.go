@@ -415,6 +415,10 @@ func (f *fakeMounter) GetStatistics(volumePath string) (volumeStatistics, error)
 	}, nil
 }
 
+func (f *fakeMounter) IsBlockDevice(volumePath string) (bool, error) {
+	return false, nil
+}
+
 func godoResponse() *godo.Response {
 	return godoResponseWithMeta(0)
 }

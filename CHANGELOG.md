@@ -1,5 +1,7 @@
 ## unreleased
 
+* Support raw block volume mode
+  [[GH-249]](https://github.com/digitalocean/csi-digitalocean/pull/249)
 * Fix and improve logging
   [[GH-244]](https://github.com/digitalocean/csi-digitalocean/pull/244)
 * Use WARN log level for non-critical failures to get an action
