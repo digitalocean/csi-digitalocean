@@ -11,8 +11,9 @@ LDFLAGS ?= -X github.com/digitalocean/csi-digitalocean/driver.version=${VERSION}
 PKG ?= github.com/digitalocean/csi-digitalocean/cmd/do-csi-plugin
 
 VERSION ?= $(shell cat VERSION)
+DOCKER_REPO ?= digitalocean/do-csi-plugin
 
-all: test
+all: check-unused test
 
 publish: compile build push clean
 
@@ -23,17 +24,23 @@ bump-version:
 	@echo "Bumping VERSION from $(VERSION) to $(NEW_VERSION)"
 	@echo $(NEW_VERSION) > VERSION
 	@cp deploy/kubernetes/releases/csi-digitalocean-${VERSION}.yaml deploy/kubernetes/releases/csi-digitalocean-${NEW_VERSION}.yaml
-	@sed -i'' -e 's/${VERSION}/${NEW_VERSION}/g' deploy/kubernetes/releases/csi-digitalocean-${NEW_VERSION}.yaml
+	@sed -i'' -e 's#digitalocean/do-csi-plugin:${VERSION}#digitalocean/do-csi-plugin:${NEW_VERSION}#g' deploy/kubernetes/releases/csi-digitalocean-${NEW_VERSION}.yaml
 	@sed -i'' -e 's/${VERSION}/${NEW_VERSION}/g' README.md
+	@git add --intent-to-add deploy/kubernetes/releases/csi-digitalocean-${NEW_VERSION}.yaml
 	$(eval NEW_DATE = $(shell date +%Y.%m.%d))
 	@sed -i'' -e 's/## unreleased/## ${NEW_VERSION} - ${NEW_DATE}/g' CHANGELOG.md
 	@ echo '## unreleased\n' | cat - CHANGELOG.md > temp && mv temp CHANGELOG.md
+	@rm -f deploy/kubernetes/releases/csi-digitalocean-${NEW_VERSION}.yaml-e README.md-e CHANGELOG.md-e
 
 .PHONY: compile
 compile:
 	@echo "==> Building the project"
-	@env CGO_ENABLED=0 GOOS=${OS} GOARCH=amd64 go build -o cmd/do-csi-plugin/${NAME} -ldflags "$(LDFLAGS)" ${PKG}
+	@docker run --rm -it -e GOOS=${OS} -e GOARCH=amd64 -v ${PWD}/:/app -w /app golang:1.13-alpine sh -c 'apk add git && go build -mod=vendor -o cmd/do-csi-plugin/${NAME} -ldflags "$(LDFLAGS)" ${PKG}'
 
+
+.PHONY: check-unused
+check-unused: vendor
+	@git diff --exit-code -- go.sum go.mod vendor/ || ( echo "there are uncommitted changes to the Go modules and/or vendor files -- please run 'make vendor' and commit the changes first"; exit 1 )
 
 .PHONY: test
 test:
@@ -44,23 +51,31 @@ test:
 test-integration:
 
 	@echo "==> Started integration tests"
-	@env go test -v -tags integration ./test/...
+	@env go test -v -tags integration -count 1 ./test/...
 
 
 .PHONY: build
 build:
 	@echo "==> Building the docker image"
-	@docker build -t digitalocean/do-csi-plugin:$(VERSION) cmd/do-csi-plugin -f cmd/do-csi-plugin/Dockerfile
+	@docker build -t $(DOCKER_REPO):$(VERSION) cmd/do-csi-plugin -f cmd/do-csi-plugin/Dockerfile
 
 .PHONY: push
 push:
-ifeq ($(shell [[ $(BRANCH) != "release-0.4" && $(VERSION) != "dev" ]] && echo true ),true)
-	@echo "ERROR: Publishing image with a SEMVER version '$(VERSION)' is only allowed from master"
-else
-	@echo "==> Publishing digitalocean/do-csi-plugin:$(VERSION)"
-	@docker push digitalocean/do-csi-plugin:$(VERSION)
-	@echo "==> Your image is now available at digitalocean/do-csi-plugin:$(VERSION)"
+ifeq ($(DOCKER_REPO),digitalocean/do-csi-plugin)
+  ifneq ($(BRANCH),release-0.4)
+    ifneq ($(VERSION),dev)
+	  $(error "Only the `dev` tag can be published from branch release-0.4")
+    endif
+  endif
 endif
+	@echo "==> Publishing $(DOCKER_REPO):$(VERSION)"
+	@docker push $(DOCKER_REPO):$(VERSION)
+	@echo "==> Your image is now available at $(DOCKER_REPO):$(VERSION)"
+
+.PHONY: vendor
+vendor:
+	@GO111MODULE=on go mod tidy
+	@GO111MODULE=on go mod vendor
 
 .PHONY: clean
 clean:
