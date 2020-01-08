@@ -1,5 +1,8 @@
 ## unreleased
 
+* Backport several fixes and improvements from master
+  * test: Add kustomization for deploying a dev version
+* [[GH-TBD]](https://github.com/digitalocean/csi-digitalocean/pull/TBD)]
 * Add health check endpoint
   [[GH-214]](https://github.com/digitalocean/csi-digitalocean/pull/214)
 
