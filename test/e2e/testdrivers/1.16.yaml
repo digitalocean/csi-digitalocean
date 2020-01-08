@@ -1,0 +1,20 @@
+StorageClass:
+  FromName: true
+SnapshotClass:
+  FromName: true
+DriverInfo:
+  Name: dobs.csi.digitalocean.com-dev
+  Capabilities:
+    persistence: true
+    fsGroup: true
+    exec: true
+    snapshotDataSource: true
+    multipods: true
+    controllerExpansion: true
+    nodeExpansion: true
+    volumeLimits: true
+    singleNodeVolume: true
+  SupportedFsType:
+    ext3:
+    ext4:
+    xfs:
