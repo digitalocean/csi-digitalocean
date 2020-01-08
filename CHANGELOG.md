@@ -1,5 +1,7 @@
 ## unreleased
 
+## v1.0.4 - 2020.01.15
+
 * Update csi-provisioner and csi-snapshotter sidecars
   [[GH-256]](https://github.com/digitalocean/csi-digitalocean/pull/256)]
 * Backport several fixes and improvements from master
