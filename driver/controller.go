@@ -269,7 +269,7 @@ func (d *Driver) ControllerPublishVolume(ctx context.Context, req *csi.Controlle
 		err = d.tagVolume(ctx, vol)
 		if err != nil {
 			ll.Errorf("error tagging volume: %s", err)
-			return nil, status.Errorf(codes.Internal, "failed to tag volume")
+			return nil, status.Errorf(codes.Internal, "failed to tag volume: %s", err)
 		}
 	}
 
@@ -322,7 +322,7 @@ func (d *Driver) ControllerPublishVolume(ctx context.Context, req *csi.Controlle
 				ll.WithFields(logrus.Fields{
 					"error": err,
 					"resp":  resp,
-				}).Warn("droplet is not able to detach the volume")
+				}).Warn("droplet is not able to attach the volume")
 				// sending an abort makes sure the csi-attacher retries with the next backoff tick
 				return nil, status.Errorf(codes.Aborted, "volume %q couldn't be attached. droplet %d is in process of another action",
 					req.VolumeId, dropletID)
@@ -641,9 +641,11 @@ func (d *Driver) CreateSnapshot(ctx context.Context, req *csi.CreateSnapshotRequ
 					"couldn't convert DO snapshot to CSI snapshot: %s", err.Error())
 			}
 
-			return &csi.CreateSnapshotResponse{
+			snapResp := &csi.CreateSnapshotResponse{
 				Snapshot: s,
-			}, nil
+			}
+			ll.WithField("response", snapResp).Info("existing snapshot found")
+			return snapResp, nil
 		}
 	}
 
@@ -677,9 +679,11 @@ func (d *Driver) CreateSnapshot(ctx context.Context, req *csi.CreateSnapshotRequ
 			"couldn't convert DO snapshot to CSI snapshot: %s", err.Error())
 	}
 
-	return &csi.CreateSnapshotResponse{
+	snapResp := &csi.CreateSnapshotResponse{
 		Snapshot: s,
-	}, nil
+	}
+	ll.WithField("response", resp).Info("snapshot created")
+	return snapResp, nil
 }
 
 // DeleteSnapshot will be called by the CO to delete a snapshot.
