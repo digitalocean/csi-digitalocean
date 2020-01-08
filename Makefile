@@ -33,7 +33,7 @@ bump-version:
 	$(eval NEW_DATE = $(shell date +%Y.%m.%d))
 	@sed -i'' -e 's/## unreleased/## ${NEW_VERSION} - ${NEW_DATE}/g' CHANGELOG.md
 	@ echo '## unreleased\n' | cat - CHANGELOG.md > temp && mv temp CHANGELOG.md
-	@rm -f deploy/kubernetes/releases/csi-digitalocean-${NEW_VERSION}.yaml-e deploy/kubernetes/releases/csi-digitalocean-${NEW_VERSION}.yaml-e README.md-e CHANGELOG.md-e
+	@rm -f deploy/kubernetes/releases/csi-digitalocean-${NEW_VERSION}.yaml-e CHANGELOG.md-e
 
 .PHONY: compile
 compile:
