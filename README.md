@@ -226,12 +226,8 @@ $ VERSION=dev make publish
 This will create a binary with version `dev` and docker image pushed to
 `digitalocean/do-csi-plugin:dev`
 
-
-To run the integration tests run the following:
-
-```
-$ KUBECONFIG=$(pwd)/kubeconfig make test-integration
-```
+To run the integration tests on a DOKS cluster, follow
+[these instructions](test/kubernetes/deploy/README.md).
 
 Dependencies are managed via [Go modules](https://github.com/golang/go/wiki/Modules).
 
