@@ -28,6 +28,11 @@ patchesStrategicMerge:
       spec:
         serviceAccount: csi-do-controller-sa-dev
         containers:
+        - name: csi-provisioner
+          args:
+            - "--provisioner=dobs.csi.digitalocean.com-dev"
+            - "--csi-address=$(ADDRESS)"
+            - "--v=5"
         - name: csi-do-plugin
           args:
           - --endpoint=$(CSI_ENDPOINT)
