@@ -1,5 +1,11 @@
 ## unreleased
 
+* Backport several fixes and improvements from master
+  * test: Add kustomization for deploying a dev version
+  * Assume detached state on 404 during ControllerUnpublishVolume
+  * Improve and fix logging
+  * Improve Makefile
+* [[GH-254]](https://github.com/digitalocean/csi-digitalocean/pull/254)]
 * Add health check endpoint
   [[GH-213]](https://github.com/digitalocean/csi-digitalocean/pull/213)]
 

@@ -1,0 +1,96 @@
+# This kustomization allows a dev version of the CSI driver to be installed on a
+# DOKS cluster alongside the preconfigured CSI driver. The dev version uses a
+# different storage class and provisioner name so that volumes can use either
+# one.
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+- ../../../deploy/kubernetes/releases/csi-digitalocean-latest.yaml
+nameSuffix: -dev
+images:
+- name: digitalocean/do-csi-plugin
+  newName: digitalocean/do-csi-plugin
+  newTag: dev
+patchesStrategicMerge:
+- |-
+  apiVersion: apps/v1beta1
+  kind: StatefulSet
+  metadata:
+    name: csi-do-controller
+    namespace: kube-system
+  spec:
+    serviceName: csi-do-dev
+    template:
+      metadata:
+        labels:
+          app: csi-do-controller-dev
+          role: csi-do-dev
+      spec:
+        serviceAccount: csi-do-controller-sa-dev
+        containers:
+        - name: csi-provisioner
+          args:
+            - "--provisioner=dobs.csi.digitalocean.com-dev"
+            - "--csi-address=$(ADDRESS)"
+            - "--v=5"
+        - name: csi-do-plugin
+          args:
+          - --endpoint=$(CSI_ENDPOINT)
+          - --token=$(DIGITALOCEAN_ACCESS_TOKEN)
+          - --url=$(DIGITALOCEAN_API_URL)
+          - --driver-name=dobs.csi.digitalocean.com-dev
+- |-
+  apiVersion: apps/v1beta2
+  kind: DaemonSet
+  metadata:
+    name: csi-do-node
+    namespace: kube-system
+  spec:
+    selector:
+      matchLabels:
+        app: csi-do-node-dev
+    template:
+      metadata:
+        labels:
+          app: csi-do-node-dev
+          role: csi-do-dev
+      spec:
+        serviceAccount: csi-do-node-sa-dev
+        containers:
+        - name: csi-do-plugin
+          args:
+          - --endpoint=$(CSI_ENDPOINT)
+          - --url=$(DIGITALOCEAN_API_URL)
+          - --driver-name=dobs.csi.digitalocean.com-dev
+        - name: csi-node-driver-registrar
+          env:
+          - name: DRIVER_REG_SOCK_PATH
+            value: /var/lib/kubelet/plugins/dobs.csi.digitalocean.com-dev/csi.sock
+          lifecycle:
+            preStop:
+              exec:
+                command:
+                - /bin/sh
+                - -c
+                - rm -rf /registration/dobs.csi.digitalocean.com-dev /registration/dobs.csi.digitalocean.com-dev-reg.sock
+        volumes:
+        - name: plugin-dir
+          hostPath:
+            path: /var/lib/kubelet/plugins/dobs.csi.digitalocean.com-dev
+            type: DirectoryOrCreate
+- |-
+  apiVersion: storage.k8s.io/v1
+  kind: StorageClass
+  metadata:
+    name: do-block-storage
+    namespace: kube-system
+    annotations: null
+  provisioner: dobs.csi.digitalocean.com-dev
+- |-
+  apiVersion: snapshot.storage.k8s.io/v1alpha1
+  kind: VolumeSnapshotClass
+  metadata:
+    name: do-block-storage
+    namespace: kube-system
+    annotations: null
+  snapshotter: dobs.csi.digitalocean.com-dev
