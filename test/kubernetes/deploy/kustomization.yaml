@@ -28,6 +28,11 @@ patchesStrategicMerge:
       spec:
         serviceAccount: csi-do-controller-sa-dev
         containers:
+        - name: csi-provisioner
+          args:
+            - "--provisioner=dobs.csi.digitalocean.com-dev"
+            - "--csi-address=$(ADDRESS)"
+            - "--v=5"
         - name: csi-do-plugin
           args:
           - --endpoint=$(CSI_ENDPOINT)
@@ -57,17 +62,10 @@ patchesStrategicMerge:
           - --endpoint=$(CSI_ENDPOINT)
           - --url=$(DIGITALOCEAN_API_URL)
           - --driver-name=dobs.csi.digitalocean.com-dev
-        - name: csi-node-driver-registrar
+        - name: driver-registrar
           env:
           - name: DRIVER_REG_SOCK_PATH
             value: /var/lib/kubelet/plugins/dobs.csi.digitalocean.com-dev/csi.sock
-          lifecycle:
-            preStop:
-              exec:
-                command:
-                - /bin/sh
-                - -c
-                - rm -rf /registration/dobs.csi.digitalocean.com-dev /registration/dobs.csi.digitalocean.com-dev-reg.sock
         volumes:
         - name: plugin-dir
           hostPath:

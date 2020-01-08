@@ -214,7 +214,7 @@ spec:
       serviceAccount: csi-do-controller-sa
       containers:
         - name: csi-provisioner
-          image: quay.io/k8scsi/csi-provisioner:v0.4.1
+          image: quay.io/k8scsi/csi-provisioner:v0.4.2
           args:
             - "--provisioner=dobs.csi.digitalocean.com"
             - "--csi-address=$(ADDRESS)"
@@ -227,7 +227,7 @@ spec:
             - name: socket-dir
               mountPath: /var/lib/csi/sockets/pluginproxy/
         - name: csi-attacher
-          image: quay.io/k8scsi/csi-attacher:v0.4.1
+          image: quay.io/k8scsi/csi-attacher:v0.4.2
           args:
             - "--v=5"
             - "--csi-address=$(ADDRESS)"
@@ -239,7 +239,7 @@ spec:
             - name: socket-dir
               mountPath: /var/lib/csi/sockets/pluginproxy/
         - name: csi-snapshotter
-          image: quay.io/k8scsi/csi-snapshotter:v0.4.1
+          image: quay.io/k8scsi/csi-snapshotter:v0.4.2
           args:
             - "--connection-timeout=15s"
             - "--csi-address=$(ADDRESS)"
@@ -261,6 +261,11 @@ spec:
               value: unix:///var/lib/csi/sockets/pluginproxy/csi.sock
             - name: DIGITALOCEAN_API_URL
               value: https://api.digitalocean.com/
+            - name: DIGITALOCEAN_ACCESS_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: digitalocean
+                  key: access-token
           imagePullPolicy: "Always"
           volumeMounts:
             - name: socket-dir
@@ -402,8 +407,7 @@ roleRef:
   name: csi-do-snapshotter-role
   apiGroup: rbac.authorization.k8s.io
 
-
-
+---
 
 ########################################
 ###########                 ############
@@ -430,7 +434,7 @@ spec:
       hostNetwork: true
       containers:
         - name: driver-registrar
-          image: quay.io/k8scsi/driver-registrar:v0.4.1
+          image: quay.io/k8scsi/driver-registrar:v0.4.2
           args:
             - "--v=5"
             - "--csi-address=$(ADDRESS)"
@@ -462,11 +466,6 @@ spec:
               value: unix:///csi/csi.sock
             - name: DIGITALOCEAN_API_URL
               value: https://api.digitalocean.com/
-            - name: DIGITALOCEAN_ACCESS_TOKEN
-              valueFrom:
-                secretKeyRef:
-                  name: digitalocean
-                  key: access-token
           imagePullPolicy: "Always"
           securityContext:
             privileged: true
