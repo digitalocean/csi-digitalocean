@@ -1,5 +1,7 @@
 ## unreleased
 
+* Update csi-snapshotter to v1.2.2
+  [[GH-266]](https://github.com/digitalocean/csi-digitalocean/pull/266)
 * Support raw block volume mode
   [[GH-249]](https://github.com/digitalocean/csi-digitalocean/pull/249)
 * Fix and improve logging

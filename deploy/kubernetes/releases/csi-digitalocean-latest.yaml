@@ -58,6 +58,8 @@ spec:
     plural: volumesnapshotclasses
   scope: Cluster
   version: v1alpha1
+  subresources:
+    status: {}
 
 ---
 
@@ -86,6 +88,8 @@ spec:
     plural: volumesnapshots
   scope: Namespaced
   version: v1alpha1
+  subresources:
+    status: {}
 
 ---
 
@@ -163,7 +167,7 @@ spec:
             - name: socket-dir
               mountPath: /var/lib/csi/sockets/pluginproxy/
         - name: csi-snapshotter
-          image: quay.io/k8scsi/csi-snapshotter:v1.1.0
+          image: quay.io/k8scsi/csi-snapshotter:v1.2.2
           args:
             - "--csi-address=$(ADDRESS)"
           env:
@@ -312,7 +316,7 @@ rules:
     verbs: ["get", "list", "watch"]
   - apiGroups: [""]
     resources: ["persistentvolumeclaims"]
-    verbs: ["get", "list", "watch"]
+    verbs: ["get", "list", "watch", "update"]
   - apiGroups: ["storage.k8s.io"]
     resources: ["storageclasses"]
     verbs: ["get", "list", "watch"]
@@ -331,9 +335,12 @@ rules:
   - apiGroups: ["snapshot.storage.k8s.io"]
     resources: ["volumesnapshots"]
     verbs: ["get", "list", "watch", "update"]
+  - apiGroups: ["snapshot.storage.k8s.io"]
+    resources: ["volumesnapshots/status"]
+    verbs: ["update"]
   - apiGroups: ["apiextensions.k8s.io"]
     resources: ["customresourcedefinitions"]
-    verbs: ["create", "list", "watch", "delete"]
+    verbs: ["create", "list", "watch", "delete", "get", "update"]
 
 ---
 kind: ClusterRoleBinding
