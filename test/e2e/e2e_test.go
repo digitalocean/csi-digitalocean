@@ -25,6 +25,8 @@ import (
 const (
 	testRunnerImage                 = "digitalocean/k8s-e2e-test-runner:latest"
 	envVarDigitalOceanAccessToken   = "DIGITALOCEAN_ACCESS_TOKEN"
+	envVarSkipTestsParallel         = "SKIP_PARALLEL_TESTS"
+	envVarSkipTestsSequential       = "SKIP_SEQUENTIAL_TESTS"
 	testdriverDirectoryRelativePath = "testdrivers"
 	deployScriptName                = "deploy.sh"
 	e2eContainerName                = "do-k8s-e2e"
@@ -53,6 +55,8 @@ type params struct {
 	nameSuffix     string
 	retainClusters bool
 	kubeVersions   []string
+	skipParallel   bool
+	skipSequential bool
 }
 
 func init() {
@@ -104,6 +108,12 @@ e2e.test --driver-image=timoreimann/do-csi-plugin:dev
 # Use a custom end-to-end test runner image:
 e2e.test --runner-image=timoreimann/k8s-e2e-test-runner:latest
 
+# Skip the parallel tests
+e2e.test -skip-parallel
+
+# Skip the sequential tests
+e2e.test -skip-sequential
+
 Options:`)
 		flag.PrintDefaults()
 	}
@@ -117,6 +127,8 @@ func TestMain(m *testing.M) {
 	flag.StringVar(&p.kubeconfig, "kubeconfig", "", "The kubeconfig file to use. For DOKS clusters where the kubeconfig has been retrieved via doctl, the DIGITALOCEAN_ACCESS_TOKEN environment variable must be set. If not specified, add-hoc DOKS clusters will be created and cleaned up afterwards for each tested Kubernetes version (unless the test failed and -retain is specified).")
 	flag.StringVar(&p.nameSuffix, "name-suffix", "", "A suffix to append to the cluster name. If not specified, a random suffix will be chosen. Ignored if -kubeconfig is specified.")
 	flag.BoolVar(&p.retainClusters, "retain", false, "Retain the created cluster(s) on failure. (Clusters are always cleaned up on success.) Ignored if -kubeconfig is specified.")
+	flag.BoolVar(&p.skipParallel, "skip-parallel", false, "Skip parallel tests")
+	flag.BoolVar(&p.skipSequential, "skip-sequential", false, "Skip sequential tests")
 	flag.Parse()
 
 	p.kubeVersions = flag.Args()
@@ -224,7 +236,7 @@ func TestE2E(t *testing.T) {
 				}
 			}
 
-			err := runE2ETests(ctx, kubeVer, p.runnerImage, testdriverFilename, p.focus, kubeconfig, token)
+			err := runE2ETests(ctx, kubeVer, p.runnerImage, testdriverFilename, p.focus, kubeconfig, token, p.skipParallel, p.skipSequential)
 			if err != nil {
 				t.Fatalf("end-to-end tests failed: %s", err)
 			}
@@ -379,11 +391,21 @@ func deployDriver(ctx context.Context, driverImage string, kubeconfigFile, token
 // runE2ETests invokes our test container.
 // It passes in bind-mount parameters for the kubeconfig and the location of the
 // testdriver YAML files.
-func runE2ETests(ctx context.Context, kubeVersion, runnerImage, testdriverFilename, focus, kubeconfigFile, token string) (retErr error) {
+func runE2ETests(ctx context.Context, kubeVersion, runnerImage, testdriverFilename, focus, kubeconfigFile, token string, skipParallel, skipSequential bool) (retErr error) {
 	testdriverDirectoryInContainer := "/testdrivers"
 	testdriverFilenameInContainer := filepath.Join(testdriverDirectoryInContainer, filepath.Base(testdriverFilename))
 
-	envs := []string{"KUBECONFIG=/root/.kube/config"}
+	envs := []string{
+		"KUBECONFIG=/root/.kube/config",
+	}
+
+	if skipParallel {
+		envs = append(envs, fmt.Sprintf("%s=1", envVarSkipTestsParallel))
+	}
+	if skipSequential {
+		envs = append(envs, fmt.Sprintf("%s=1", envVarSkipTestsSequential))
+	}
+
 	if token != "" {
 		envs = append(envs, fmt.Sprintf("%s=%s", envVarDigitalOceanAccessToken, token))
 	}
