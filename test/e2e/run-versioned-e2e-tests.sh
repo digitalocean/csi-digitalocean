@@ -34,9 +34,19 @@ focus=
 if [[ "${FOCUS:-}" ]]; then
   focus=".*${focus}"
 fi
-echo 'Running parallel tests'
-# Set node count explicitly since node detection does not work properly inside a
-# container.
-ginkgo -v -p -nodes 10 -focus="External.Storage${focus}" -skip='\[Feature:|\[Disruptive\]|\[Serial\]' "${E2E_TEST_FILE}" -- "-storage.testdriver=${TD_FILE}"
-echo 'Running sequential tests'
-ginkgo -v -focus="External.Storage${focus}.*(\[Feature:|\[Serial\])" -skip='\[Disruptive\]' "${E2E_TEST_FILE}" -- "-storage.testdriver=${TD_FILE}"
+
+if [[ "${SKIP_PARALLEL_TESTS:-}" ]]; then
+  echo 'Skipping parallel tests'
+else
+  echo 'Running parallel tests'
+  # Set node count explicitly since node detection does not work properly inside a
+  # container.
+  ginkgo -v -p -nodes 10 -focus="External.Storage${focus}" -skip='\[Feature:|\[Disruptive\]|\[Serial\]' "${E2E_TEST_FILE}" -- "-storage.testdriver=${TD_FILE}"
+fi
+
+if [[ "${SKIP_SEQUENTIAL_TESTS:-}" ]]; then
+  echo 'Skipping sequential tests'
+else
+  echo 'Running sequential tests'
+  ginkgo -v -focus="External.Storage${focus}.*(\[Feature:|\[Serial\])" -skip='\[Disruptive\]' "${E2E_TEST_FILE}" -- "-storage.testdriver=${TD_FILE}"
+fi
