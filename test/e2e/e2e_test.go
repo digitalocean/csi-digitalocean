@@ -90,19 +90,19 @@ e2e.test 1.16
 e2e.test 1.16 1.14
 
 # Create cluster with a specific suffix:
-e2e.test --name-suffix=$(git rev-parse --short HEAD)
+e2e.test -name-suffix=$(git rev-parse --short HEAD)
 
 # Retain cluster after erroneous completion of the tests:
-e2e.test --retain
+e2e.test -retain
 
 # Use cluster referenced by kubeconfig file instead of using a dynamic cluster:
-e2e.test --kubeconfig=$HOME/.kube/config
+e2e.test -kubeconfig=$HOME/.kube/config
 
 # Use a custom driver image:
-e2e.test --driver-image=timoreimann/do-csi-plugin:dev
+e2e.test -driver-image=timoreimann/do-csi-plugin:dev
 
 # Use a custom end-to-end test runner image:
-e2e.test --runner-image=timoreimann/k8s-e2e-test-runner:latest
+e2e.test -runner-image=timoreimann/k8s-e2e-test-runner:latest
 
 Options:`)
 		flag.PrintDefaults()
