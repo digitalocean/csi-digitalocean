@@ -109,7 +109,7 @@ func NewDriver(ep, token, url, doTag, driverName, address string) (*Driver, erro
 
 	all, err := metadata.NewClient().Metadata()
 	if err != nil {
-		return nil, fmt.Errorf("couldn't get metadata: %s", err)
+		return nil, fmt.Errorf("couldn't get metadata: %s (are you running on DigitalOcean droplets?)", err)
 	}
 
 	region := all.Region
