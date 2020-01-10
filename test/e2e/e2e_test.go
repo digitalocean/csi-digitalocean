@@ -181,11 +181,10 @@ func TestE2E(t *testing.T) {
 				// to retain the cluster.
 				if cleanup != nil {
 					defer func() {
-						// Do not clean up if run succeeded, or if it failed
-						// (including cancelations) but we do not want to retain
-						// the cluster.
+						// Do not clean up if the run failed (including
+						// cancelations) and retaining clusters was requested.
 						ctxCanceled := ctx.Err() != nil
-						if (!ctxCanceled && !t.Failed()) || !p.retainClusters {
+						if (ctxCanceled || t.Failed()) && p.retainClusters {
 							return
 						}
 						cleanupCtx, cleanupCancel := context.WithTimeout(context.Background(), 10*time.Second)
