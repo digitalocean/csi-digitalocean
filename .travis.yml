@@ -1,11 +1,11 @@
 language: go
 
-matrix:
-  include:
-  - go: "1.13"
-    script: go test -v -mod=vendor ./...
-  - go: tip
-    script: go test -v -mod=vendor ./...
+go:
+  - "1.13"
+  - tip
+
+script:
+  - make all
 
 env:
   - GO111MODULE=on
