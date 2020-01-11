@@ -1,5 +1,7 @@
 # github.com/Microsoft/go-winio v0.4.11
 github.com/Microsoft/go-winio
+# github.com/blang/semver v3.5.0+incompatible
+github.com/blang/semver
 # github.com/container-storage-interface/spec v1.2.0
 github.com/container-storage-interface/spec/lib/go/csi
 # github.com/davecgh/go-spew v1.1.1
@@ -381,7 +383,6 @@ k8s.io/utils/exec
 k8s.io/utils/integer
 k8s.io/utils/io
 k8s.io/utils/keymutex
-k8s.io/utils/mount
 k8s.io/utils/path
 k8s.io/utils/trace
 # sigs.k8s.io/yaml v1.1.0
