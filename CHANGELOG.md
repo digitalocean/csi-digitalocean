@@ -1,9 +1,15 @@
 ## unreleased
 
+## v1.2.0 - 2020.01.15
+
 * Update csi-snapshotter to v1.2.2
   [[GH-266]](https://github.com/digitalocean/csi-digitalocean/pull/266)
 * Support raw block volume mode
   [[GH-249]](https://github.com/digitalocean/csi-digitalocean/pull/249)
+* Add support for running upstream storage end-to-end tests
+  [[GH-248]](https://github.com/digitalocean/csi-digitalocean/pull/248)
+* Include error details in failure to tag volumes
+  [[GH-245]](https://github.com/digitalocean/csi-digitalocean/pull/245)
 * Fix and improve logging
   [[GH-244]](https://github.com/digitalocean/csi-digitalocean/pull/244)
 * Use WARN log level for non-critical failures to get an action
@@ -16,16 +22,24 @@
   [[GH-236]](https://github.com/digitalocean/csi-digitalocean/pull/236)
 * Support checkLimit for multiple pages
   [[GH-235]](https://github.com/digitalocean/csi-digitalocean/pull/235)
+* Log snapshot responses
+  [[GH-234]](https://github.com/digitalocean/csi-digitalocean/pull/234)
 * Return error when fetching the snapshot fails
   [[GH-233]](https://github.com/digitalocean/csi-digitalocean/pull/233)
-* Reject requests for block access type
-  [[GH-225]](https://github.com/digitalocean/csi-digitalocean/pull/225)
+* Refactor waitAction
+  [[GH-229]](https://github.com/digitalocean/csi-digitalocean/pull/229)
 * Assume detached state on 404 during ControllerUnpublishVolume
   [[GH-221]](https://github.com/digitalocean/csi-digitalocean/pull/221)
-* Implement NodeGetVolumeStats RPC
-  [[GH-197]](https://github.com/digitalocean/csi-digitalocean/pull/197)
+* Bump Kubernetes dependencies to 1.15
+  [[GH-212]](https://github.com/digitalocean/csi-digitalocean/pull/212)
 * Add health check endpoint
   [[GH-210]](https://github.com/digitalocean/csi-digitalocean/pull/210)
+* Implement NodeGetVolumeStats RPC
+  [[GH-197]](https://github.com/digitalocean/csi-digitalocean/pull/197)
+* Build using Go 1.13
+  [[GH-194]](https://github.com/digitalocean/csi-digitalocean/pull/194)
+* Implement ControllerExpandVolume and NodeExpandVolume to resize volumes automatically
+  [[GH-193]](https://github.com/digitalocean/csi-digitalocean/pull/193)
 
 ## v1.1.2 - 2019.09.17
 
