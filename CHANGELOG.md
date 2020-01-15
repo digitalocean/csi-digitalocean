@@ -1,5 +1,7 @@
 ## unreleased
 
+## v0.4.4 - 2020.01.15
+
 * Update csi-provisioner to v0.4.3
   [[GH-257]](https://github.com/digitalocean/csi-digitalocean/pull/257)]
 * Backport several fixes and improvements from master
