@@ -39,7 +39,7 @@ jobs:
           fetch-depth: 1
 
       - name: Log into container registry
-        run: echo ${{ secrets.DockerHubToken }} | docker login --username ${DOCKER_USER} --password-stdin
+        run: echo "${{ secrets.DockerHubToken }}" | docker login --username ${DOCKER_USER} --password-stdin
 
       - name: tag new CSI plugin release image
         run: |
