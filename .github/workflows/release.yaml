@@ -43,7 +43,7 @@ jobs:
 
       - name: tag new CSI plugin release image
         run: |
-          TAG=$(echo ${GITHUB_REF} | cut -d/ -f3-)
+          TAG=$(git describe --tags)
           docker pull ${DOCKER_ORG}/do-csi-plugin:master
           docker tag ${DOCKER_ORG}/do-csi-plugin:master ${DOCKER_ORG}/do-csi-plugin:${TAG}
           docker push ${DOCKER_ORG}/do-csi-plugin:${TAG}
