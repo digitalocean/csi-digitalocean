@@ -34,7 +34,9 @@ jobs:
 
     steps:
       - name: checkout
-        uses: actions/checkout@master
+        uses: actions/checkout@v2
+        with:
+          fetch-depth: 1
 
       - name: Log into container registry
         run: echo ${{ secrets.DockerHubToken }} | docker login --username ${DOCKER_USER} --password-stdin
