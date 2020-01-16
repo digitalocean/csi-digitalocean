@@ -44,7 +44,7 @@ jobs:
           go-version: '1.13.5'
 
       - name: Run unit tests
-        run: make
+        run: make all
 
   push-images:
     runs-on: ubuntu-18.04
