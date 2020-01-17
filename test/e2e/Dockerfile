@@ -83,7 +83,7 @@ RUN chmod u+x kubectl
 RUN cp kubectl /
 
 ### final test container
-FROM bitnami/minideb:buster
+FROM bitnami/minideb:buster AS runtime
 # Certificates needed to trust the CA for any HTTPS connections to the DO API.
 RUN apt-get update && \
     DEBIAN_FRONTEND=noninteractive apt-get install --yes --no-install-recommends ca-certificates

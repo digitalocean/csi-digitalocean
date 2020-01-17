@@ -34,10 +34,7 @@ readonly OPERATION="$1"
 
 case "${OPERATION}" in
   build)
-    (
-    cd "${SCRIPT_DIR}"
-    docker build -t "${IMAGE}" --build-arg SHA_1_16 --build-arg SHA_1_15 --build-arg SHA_1_14 .
-    )
+    docker build -t "${IMAGE}" --build-arg SHA_1_16 --build-arg SHA_1_15 --build-arg SHA_1_14 -f "${SCRIPT_DIR}/Dockerfile" .
     ;;
   
   push)
