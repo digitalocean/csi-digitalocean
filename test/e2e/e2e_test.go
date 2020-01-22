@@ -366,8 +366,11 @@ func createCluster(ctx context.Context, client *godo.Client, nameSuffix, kubeMaj
 	defer cancel()
 	fmt.Printf("Waiting for cluster %s (%s) to become running\n", cluster.ID, cluster.Name)
 	err = wait.PollUntil(10*time.Second, func() (done bool, waitErr error) {
-		c, _, err := client.Kubernetes.Get(pollCtx, cluster.ID)
+		c, resp, err := client.Kubernetes.Get(pollCtx, cluster.ID)
 		if err != nil {
+			if resp != nil && resp.StatusCode >= 500 {
+				return false, nil
+			}
 			return false, err
 		}
 
