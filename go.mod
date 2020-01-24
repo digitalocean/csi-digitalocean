@@ -1,7 +1,7 @@
 module github.com/digitalocean/csi-digitalocean
 
 require (
-	github.com/blang/semver v3.5.0+incompatible
+	github.com/blang/semver v3.5.1+incompatible
 	github.com/container-storage-interface/spec v1.2.0
 	github.com/digitalocean/go-metadata v0.0.0-20180111002115-15bd36e5f6f7
 	github.com/digitalocean/godo v1.29.0

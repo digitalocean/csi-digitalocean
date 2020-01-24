@@ -33,6 +33,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/blang/semver"
 	"github.com/digitalocean/godo"
 	"golang.org/x/oauth2"
 	"k8s.io/apimachinery/pkg/util/rand"
@@ -94,8 +95,10 @@ The cluster will be tagged with "csi-e2e-test" and "version:<sanitized Kubernete
 The name of a cluster will be "csi-e2e-<sanitized Kubernetes version>-test-<suffix>" where <suffix> is a random
 alphanumeric suffix if not customized through the corresponding command-line flag.
 
-One or more Kubernetes major-minor versions to run tests for may be given. If omitted, tests will be run for all supported
-Kubernetes versions.
+One or more Kubernetes versions to run tests for may be given. It suffices to specify a major/minor version (e.g., 1.16).
+For dynamically created clusters, the version will be passed through to the DOKS cluster create request so that specific
+DOKS versions can be tested.
+If omitted, tests will be run for all supported Kubernetes versions.
 
 External storage end-to-end tests require a Kubernetes version-specific testdriver YAML file to be defined. An error is
 returned if no corresponding file is found for a given Kubernetes release.
@@ -110,6 +113,9 @@ e2e.test 1.16
 
 # Run tests for 1.16 and 1.14 (but not 1.15):
 e2e.test 1.16 1.14
+
+# Run tests for a dynamically created cluster using DOKS version 1.16.2-do.3:
+e2e.test 1.16.2-do.3
 
 # Create cluster with a specific suffix:
 e2e.test -name-suffix=$(git rev-parse --short HEAD)
@@ -187,8 +193,13 @@ func TestE2E(t *testing.T) {
 	for _, kubeVer := range p.kubeVersions {
 		t.Run(kubeVer, func(t *testing.T) {
 			var found bool
+			parsedKubeVer, err := semver.ParseTolerant(kubeVer)
+			if err != nil {
+				t.Fatalf("failed to parse Kubernetes version %q: %s", kubeVer, err)
+			}
+			majorMinorVer := fmt.Sprintf("%d.%d", parsedKubeVer.Major, parsedKubeVer.Minor)
 			for _, supportedKubeVer := range supportedKubernetesVersions {
-				if supportedKubeVer == kubeVer {
+				if majorMinorVer == supportedKubeVer {
 					found = true
 					break
 				}
@@ -197,7 +208,7 @@ func TestE2E(t *testing.T) {
 				t.Fatalf("unsupported Kubernetes version: %s", kubeVer)
 			}
 
-			testdriverFilename := filepath.Join(testdriverDirectoryAbsolutePath, fmt.Sprintf("%s.yaml", kubeVer))
+			testdriverFilename := filepath.Join(testdriverDirectoryAbsolutePath, fmt.Sprintf("%s.yaml", majorMinorVer))
 			if _, err := os.Stat(testdriverFilename); os.IsNotExist(err) {
 				t.Fatalf("testdriver file %q does not exist in %q", testdriverFilename, testdriverDirectoryAbsolutePath)
 			}
@@ -257,7 +268,7 @@ func TestE2E(t *testing.T) {
 				}
 			}
 
-			err := runE2ETests(ctx, kubeVer, p.runnerImage, testdriverFilename, p.focus, kubeconfig, token, p.skipParallel, p.skipSequential, p.ginkgoNodes)
+			err = runE2ETests(ctx, kubeVer, p.runnerImage, testdriverFilename, p.focus, kubeconfig, token, p.skipParallel, p.skipSequential, p.ginkgoNodes)
 			if err != nil {
 				t.Fatalf("end-to-end tests failed: %s", err)
 			}
