@@ -35,7 +35,7 @@ func main() {
 		url        = flag.String("url", "https://api.digitalocean.com/", "DigitalOcean API URL")
 		doTag      = flag.String("do-tag", "", "Tag DigitalOcean volumes on Create/Attach")
 		driverName = flag.String("driver-name", driver.DefaultDriverName, "Name for the driver")
-		address    = flag.String("address", driver.DefaultAddress, "Address to serve on")
+		debugAddr  = flag.String("debug-addr", "", "Address to serve the HTTP debug server on")
 		version    = flag.Bool("version", false, "Print the version and exit.")
 	)
 	flag.Parse()
@@ -45,7 +45,7 @@ func main() {
 		os.Exit(0)
 	}
 
-	drv, err := driver.NewDriver(*endpoint, *token, *url, *doTag, *driverName, *address)
+	drv, err := driver.NewDriver(*endpoint, *token, *url, *doTag, *driverName, *debugAddr)
 	if err != nil {
 		log.Fatalln(err)
 	}
