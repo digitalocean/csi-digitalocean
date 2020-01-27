@@ -41,10 +41,7 @@ import (
 const (
 	// DefaultDriverName defines the name that is used in Kubernetes and the CSI
 	// system for the canonical, official name of this plugin
-	DefaultDriverName = "dobs.csi.digitalocean.com"
-	// DefaultAddress is the default address that the csi plugin will serve its
-	// http handler on.
-	DefaultAddress           = "127.0.0.1:12302"
+	DefaultDriverName        = "dobs.csi.digitalocean.com"
 	defaultWaitActionTimeout = 1 * time.Minute
 )
 
@@ -67,7 +64,7 @@ type Driver struct {
 	publishInfoVolumeName string
 
 	endpoint          string
-	address           string
+	debugAddr         string
 	hostID            string
 	region            string
 	doTag             string
@@ -75,7 +72,7 @@ type Driver struct {
 	waitActionTimeout time.Duration
 
 	srv     *grpc.Server
-	httpSrv http.Server
+	httpSrv *http.Server
 	log     *logrus.Entry
 	mounter Mounter
 
@@ -97,7 +94,7 @@ type Driver struct {
 // NewDriver returns a CSI plugin that contains the necessary gRPC
 // interfaces to interact with Kubernetes over unix domain sockets for
 // managaing DigitalOcean Block Storage
-func NewDriver(ep, token, url, doTag, driverName, address string) (*Driver, error) {
+func NewDriver(ep, token, url, doTag, driverName, debugAddr string) (*Driver, error) {
 	if driverName == "" {
 		driverName = DefaultDriverName
 	}
@@ -140,13 +137,13 @@ func NewDriver(ep, token, url, doTag, driverName, address string) (*Driver, erro
 		name:                  driverName,
 		publishInfoVolumeName: driverName + "/volume-name",
 
-		doTag:    doTag,
-		endpoint: ep,
-		address:  address,
-		hostID:   hostID,
-		region:   region,
-		mounter:  newMounter(log),
-		log:      log,
+		doTag:     doTag,
+		endpoint:  ep,
+		debugAddr: debugAddr,
+		hostID:    hostID,
+		region:    region,
+		mounter:   newMounter(log),
+		log:       log,
 		// for now we're assuming only the controller has a non-empty token. In
 		// the future we should pass an explicit flag to the driver.
 		isController:      token != "",
@@ -215,6 +212,22 @@ func (d *Driver) Run(ctx context.Context) error {
 				"num_volumes": details.numVolumes,
 			}).Warn("CSI plugin will not function correctly, please resolve volume limit")
 		}
+
+		if d.debugAddr != "" {
+			mux := http.NewServeMux()
+			mux.HandleFunc("/health", func(w http.ResponseWriter, r *http.Request) {
+				err := d.healthChecker.Check(r.Context())
+				if err != nil {
+					w.WriteHeader(http.StatusInternalServerError)
+					return
+				}
+				w.WriteHeader(http.StatusOK)
+			})
+			d.httpSrv = &http.Server{
+				Addr:    d.debugAddr,
+				Handler: mux,
+			}
+		}
 	}
 
 	d.srv = grpc.NewServer(grpc.UnaryInterceptor(errHandler))
@@ -222,34 +235,28 @@ func (d *Driver) Run(ctx context.Context) error {
 	csi.RegisterControllerServer(d.srv, d)
 	csi.RegisterNodeServer(d.srv, d)
 
-	httpListener, err := net.Listen("tcp", d.address)
-	if err != nil {
-		return fmt.Errorf("failed to listen: %v", err)
-	}
-	mux := http.NewServeMux()
-	mux.HandleFunc("/health", func(w http.ResponseWriter, r *http.Request) {
-		err := d.healthChecker.Check(r.Context())
-		if err != nil {
-			w.WriteHeader(http.StatusInternalServerError)
-			return
-		}
-		w.WriteHeader(http.StatusOK)
-	})
-	d.httpSrv = http.Server{
-		Handler: mux,
-	}
-
 	d.ready = true // we're now ready to go!
 	d.log.WithFields(logrus.Fields{
 		"grpc_addr": grpcAddr,
-		"http_addr": d.address,
+		"http_addr": d.debugAddr,
 	}).Info("starting server")
 
 	var eg errgroup.Group
-	eg.Go(func() error {
-		<-ctx.Done()
-		return d.httpSrv.Shutdown(context.Background())
-	})
+	if d.httpSrv != nil {
+		eg.Go(func() error {
+			<-ctx.Done()
+			ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+			defer cancel()
+			return d.httpSrv.Shutdown(ctx)
+		})
+		eg.Go(func() error {
+			err := d.httpSrv.ListenAndServe()
+			if err == http.ErrServerClosed {
+				return nil
+			}
+			return err
+		})
+	}
 	eg.Go(func() error {
 		go func() {
 			<-ctx.Done()
@@ -260,13 +267,6 @@ func (d *Driver) Run(ctx context.Context) error {
 			d.srv.GracefulStop()
 		}()
 		return d.srv.Serve(grpcListener)
-	})
-	eg.Go(func() error {
-		err := d.httpSrv.Serve(httpListener)
-		if err == http.ErrServerClosed {
-			return nil
-		}
-		return err
 	})
 
 	return eg.Wait()

@@ -1,5 +1,8 @@
 ## unreleased
 
+* Improve debug HTTP server usage
+  [[GH-281]](https://github.com/digitalocean/csi-digitalocean/pull/281)
+
 ## v1.2.0 - 2020.01.15
 
 * Update csi-snapshotter to v1.2.2
