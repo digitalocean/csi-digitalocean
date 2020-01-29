@@ -220,7 +220,7 @@ func TestE2E(t *testing.T) {
 					t.Fatalf("failed to create DigitalOcean API client: %s", err)
 				}
 
-				kubeconfigData, cleanup, err := createCluster(ctx, client, p.nameSuffix, kubeVer)
+				kubeconfigData, cleanup, err := createCluster(ctx, client, p.nameSuffix, majorMinorVer, kubeVer)
 				// Ignore error in order to clean up any partial cluster setups
 				// as long as we received a cleanup function and do not intend
 				// to retain the cluster.
@@ -298,8 +298,8 @@ func createDOClient(ctx context.Context, token string) (client *godo.Client, err
 	return doClient, nil
 }
 
-func createCluster(ctx context.Context, client *godo.Client, nameSuffix, kubeVersion string) (*godo.KubernetesClusterConfig, func(ctx context.Context) error, error) {
-	kubeVerSanitized := strings.ReplaceAll(kubeVersion, ".", "-")
+func createCluster(ctx context.Context, client *godo.Client, nameSuffix, kubeMajorMinorVersion, versionSlug string) (*godo.KubernetesClusterConfig, func(ctx context.Context) error, error) {
+	kubeVerSanitized := strings.ReplaceAll(kubeMajorMinorVersion, ".", "-")
 	clusterName := fmt.Sprintf("csi-e2e-%s-test-%s", kubeVerSanitized, nameSuffix)
 	versionTag := fmt.Sprintf("version:%s", kubeVerSanitized)
 
@@ -338,7 +338,7 @@ func createCluster(ctx context.Context, client *godo.Client, nameSuffix, kubeVer
 	cluster, resp, err := client.Kubernetes.Create(ctx, &godo.KubernetesClusterCreateRequest{
 		Name:        clusterName,
 		RegionSlug:  "fra1",
-		VersionSlug: kubeVersion,
+		VersionSlug: versionSlug,
 		Tags:        []string{"csi-e2e-test", versionTag},
 		NodePools: []*godo.KubernetesNodePoolCreateRequest{
 			&godo.KubernetesNodePoolCreateRequest{

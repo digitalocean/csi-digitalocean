@@ -111,6 +111,9 @@ jobs:
           NAME_SUFFIX="${BRANCH}"
           TAG="${BRANCH}"
           if [[ $BRANCH != "" ]]; then
+            # Hash name suffix which goes into the cluster name to ensure we do
+            # not exceed any name constraints.
+            NAME_SUFFIX=$(echo -n ${BRANCH} | sha256sum | cut -c1-7)
             RUNNER_IMAGE_TAG_PREFIX=${BRANCH}-
           else
             NAME_SUFFIX=master
