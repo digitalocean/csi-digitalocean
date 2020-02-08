@@ -108,6 +108,7 @@ jobs:
           # request volume, and we run them concurrently.
           NUM_GINKGO_NODES: "8"
         run: |
+          BRANCH=$(echo -n ${BRANCH} | tr -c '[:alnum:]._-' '-')
           NAME_SUFFIX="${BRANCH}"
           TAG="${BRANCH}"
           if [[ $BRANCH != "" ]]; then
