@@ -23,8 +23,11 @@ COMMIT ?= $(shell git rev-parse HEAD)
 BRANCH ?= $(shell git rev-parse --abbrev-ref HEAD)
 LDFLAGS ?= -X github.com/digitalocean/csi-digitalocean/driver.version=${VERSION} -X github.com/digitalocean/csi-digitalocean/driver.commit=${COMMIT} -X github.com/digitalocean/csi-digitalocean/driver.gitTreeState=${GIT_TREE_STATE}
 PKG ?= github.com/digitalocean/csi-digitalocean/cmd/do-csi-plugin
-
-VERSION ?= $(shell cat VERSION)
+ifneq ($(VERSION),)
+  VERSION := $(shell /bin/echo -n "$(VERSION)" | tr -c '[:alnum:]._-' '-')
+else
+  VERSION ?= $(shell cat VERSION)
+endif
 DOCKER_REPO ?= digitalocean/do-csi-plugin
 CANONICAL_RUNNER_IMAGE = digitalocean/k8s-e2e-test-runner
 RUNNER_IMAGE ?= $(CANONICAL_RUNNER_IMAGE)
@@ -33,6 +36,7 @@ RUNNER_IMAGE ?= $(CANONICAL_RUNNER_IMAGE)
 INTEGRATION_PARALLEL ?= 7
 
 ifneq ($(RUNNER_IMAGE_TAG_PREFIX),)
+  RUNNER_IMAGE_TAG_PREFIX := $(shell /bin/echo -n "$(RUNNER_IMAGE_TAG_PREFIX)" | tr -c '[:alnum:]._-' '-')
 	RUNNER_IMAGE_TAG_PREFIX := $(RUNNER_IMAGE_TAG_PREFIX)-
 endif
 
