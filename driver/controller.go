@@ -1108,7 +1108,7 @@ func toCSISnapshot(snap *godo.Snapshot) (*csi.Snapshot, error) {
 	return &csi.Snapshot{
 		SnapshotId:     snap.ID,
 		SourceVolumeId: snap.ResourceID,
-		SizeBytes:      int64(snap.SizeGigaBytes) * giB,
+		SizeBytes:      int64(snap.MinDiskSize) * giB,
 		CreationTime:   tstamp,
 		ReadyToUse:     true,
 	}, nil
