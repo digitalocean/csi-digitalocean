@@ -1,5 +1,7 @@
 ## unreleased
 
+* Return minimum disk size field from snapshot response
+  [[GH-298]](https://github.com/digitalocean/csi-digitalocean/pull/298)
 * Improve debug HTTP server usage
   [[GH-281]](https://github.com/digitalocean/csi-digitalocean/pull/281)
 
