@@ -1,5 +1,7 @@
 ## unreleased
 
+* Support filtering snapshots by ID
+  [[GH-299]](https://github.com/digitalocean/csi-digitalocean/pull/299)
 * Return minimum disk size field from snapshot response
   [[GH-298]](https://github.com/digitalocean/csi-digitalocean/pull/298)
 * Improve debug HTTP server usage

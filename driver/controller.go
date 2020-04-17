@@ -772,92 +772,118 @@ func (d *Driver) DeleteSnapshot(ctx context.Context, req *csi.DeleteSnapshotRequ
 // ListSnapshots shold not list a snapshot that is being created but has not
 // been cut successfully yet.
 func (d *Driver) ListSnapshots(ctx context.Context, req *csi.ListSnapshotsRequest) (*csi.ListSnapshotsResponse, error) {
-	// Pagination in the CSI world works different than at DO. CSI sends the
-	// `req.MaxEntries` to indicate how much snapshots it wants. The
-	// req.StartingToken is returned by us, if we somehow need to indicate that
-	// we couldn't fetch and need to fetch again. But it's NOT the page number.
-	// I.e: suppose CSI wants us to fetch 50 entries, we only fetch 30, we need to
-	// return NextToken as 31 (so req.StartingToken will be set to 31 when CSI
-	// calls us again), to indicate that we want to continue returning from the
-	// index 31 up to 50.
-
-	var nextToken int
-	var err error
-	if req.StartingToken != "" {
-		nextToken, err = strconv.Atoi(req.StartingToken)
-		if err != nil {
-			return nil, status.Errorf(codes.Aborted, "ListSnapshots starting token %s is not valid : %s",
-				req.StartingToken, err.Error())
-		}
-	}
-
-	if nextToken != 0 && req.MaxEntries != 0 {
-		return nil, status.Errorf(codes.Aborted,
-			"ListSnapshots invalid arguments starting token: %d and max entries: %d can't be non null at the same time", nextToken, req.MaxEntries)
-	}
-
+	listResp := &csi.ListSnapshotsResponse{}
 	log := d.log.WithFields(logrus.Fields{
+		"snapshot_id":        req.SnapshotId,
+		"source_volume_id":   req.SourceVolumeId,
 		"req_starting_token": req.StartingToken,
 		"method":             "list_snapshots",
 	})
 	log.Info("list snapshots is called")
 
-	// fetch all entries
-	listOpts := &godo.ListOptions{
-		PerPage: int(req.MaxEntries),
-	}
-	var snapshots []godo.Snapshot
-	for {
-		snaps, resp, err := d.snapshots.ListVolume(ctx, listOpts)
+	if req.SnapshotId != "" {
+		snapshot, resp, err := d.snapshots.Get(ctx, req.SnapshotId)
 		if err != nil {
-			return nil, status.Errorf(codes.Aborted, "ListSnapshots listing volume snapshots has failed: %s", err.Error())
+			if resp == nil || resp.StatusCode != http.StatusNotFound {
+				return nil, status.Errorf(codes.Internal, "failed to get snapshot by ID %s: %s", req.SnapshotId, err)
+			}
+		} else {
+			snap, err := toCSISnapshot(snapshot)
+			if err != nil {
+				return nil, status.Errorf(codes.Internal,
+					"failed to convert DO snapshot to CSI snapshot: %s", err)
+			}
+			listResp = &csi.ListSnapshotsResponse{
+				Entries: []*csi.ListSnapshotsResponse_Entry{
+					{
+						Snapshot: snap,
+					},
+				},
+			}
+		}
+	} else {
+		// Pagination in the CSI world works different than at DO. CSI sends the
+		// `req.MaxEntries` to indicate how much snapshots it wants. The
+		// req.StartingToken is returned by us, if we somehow need to indicate that
+		// we couldn't fetch and need to fetch again. But it's NOT the page number.
+		// I.e: suppose CSI wants us to fetch 50 entries, we only fetch 30, we need to
+		// return NextToken as 31 (so req.StartingToken will be set to 31 when CSI
+		// calls us again), to indicate that we want to continue returning from the
+		// index 31 up to 50.
+
+		var nextToken int
+		var err error
+		if req.StartingToken != "" {
+			nextToken, err = strconv.Atoi(req.StartingToken)
+			if err != nil {
+				return nil, status.Errorf(codes.Aborted, "ListSnapshots starting token %s is not valid : %s",
+					req.StartingToken, err.Error())
+			}
 		}
 
-		snapshots = append(snapshots, snaps...)
-
-		if resp.Links == nil || resp.Links.IsLastPage() {
-			break
+		if nextToken != 0 && req.MaxEntries != 0 {
+			return nil, status.Errorf(codes.Aborted,
+				"ListSnapshots invalid arguments starting token: %d and max entries: %d can't be non null at the same time", nextToken, req.MaxEntries)
 		}
 
-		page, err := resp.Links.CurrentPage()
-		if err != nil {
-			return nil, err
+		// fetch all entries
+		listOpts := &godo.ListOptions{
+			PerPage: int(req.MaxEntries),
+		}
+		var snapshots []godo.Snapshot
+		for {
+			snaps, resp, err := d.snapshots.ListVolume(ctx, listOpts)
+			if err != nil {
+				return nil, status.Errorf(codes.Aborted, "ListSnapshots listing volume snapshots has failed: %s", err.Error())
+			}
+
+			snapshots = append(snapshots, snaps...)
+
+			if resp.Links == nil || resp.Links.IsLastPage() {
+				break
+			}
+
+			page, err := resp.Links.CurrentPage()
+			if err != nil {
+				return nil, err
+			}
+
+			listOpts.Page = page + 1
+			listOpts.PerPage = len(snaps)
 		}
 
-		listOpts.Page = page + 1
-		listOpts.PerPage = len(snaps)
-	}
-
-	if nextToken > len(snapshots) {
-		return nil, status.Error(codes.Aborted, "ListSnapshots starting token is greater than total number of snapshots")
-	}
-
-	if nextToken != 0 {
-		snapshots = snapshots[nextToken:]
-	}
-
-	if req.MaxEntries != 0 {
-		nextToken = len(snapshots) - int(req.MaxEntries) - 1
-		snapshots = snapshots[:req.MaxEntries]
-	}
-
-	entries := make([]*csi.ListSnapshotsResponse_Entry, 0, len(snapshots))
-	for _, snapshot := range snapshots {
-		snap, err := toCSISnapshot(&snapshot)
-		if err != nil {
-			return nil, status.Errorf(codes.Internal,
-				"couldn't convert DO snapshot to CSI snapshot: %s", err.Error())
+		if nextToken > len(snapshots) {
+			return nil, status.Error(codes.Aborted, "ListSnapshots starting token is greater than total number of snapshots")
 		}
 
-		entries = append(entries, &csi.ListSnapshotsResponse_Entry{
-			Snapshot: snap,
-		})
+		if nextToken != 0 {
+			snapshots = snapshots[nextToken:]
+		}
+
+		if req.MaxEntries != 0 {
+			nextToken = len(snapshots) - int(req.MaxEntries) - 1
+			snapshots = snapshots[:req.MaxEntries]
+		}
+
+		entries := make([]*csi.ListSnapshotsResponse_Entry, 0, len(snapshots))
+		for _, snapshot := range snapshots {
+			snap, err := toCSISnapshot(&snapshot)
+			if err != nil {
+				return nil, status.Errorf(codes.Internal,
+					"failed to convert DO snapshot to CSI snapshot: %s", err)
+			}
+
+			entries = append(entries, &csi.ListSnapshotsResponse_Entry{
+				Snapshot: snap,
+			})
+		}
+		listResp = &csi.ListSnapshotsResponse{
+			Entries:   entries,
+			NextToken: strconv.Itoa(nextToken),
+		}
 	}
 
-	listResp := &csi.ListSnapshotsResponse{
-		Entries:   entries,
-		NextToken: strconv.Itoa(nextToken),
-	}
+	filterSnapshotEntriesForVolumeID(listResp, req.SourceVolumeId)
 
 	log.WithField("response", listResp).Info("snapshots listed")
 	return listResp, nil
@@ -1175,4 +1201,18 @@ func (d *Driver) tagVolume(parentCtx context.Context, vol *godo.Volume) error {
 	defer cancel()
 	_, err = d.tags.TagResources(ctx, d.doTag, tagReq)
 	return err
+}
+
+func filterSnapshotEntriesForVolumeID(listResp *csi.ListSnapshotsResponse, sourceVolumeID string) {
+	if sourceVolumeID == "" {
+		return
+	}
+
+	var filteredEntries []*csi.ListSnapshotsResponse_Entry
+	for _, entry := range listResp.Entries {
+		if entry.Snapshot.SourceVolumeId == sourceVolumeID {
+			filteredEntries = append(filteredEntries, entry)
+		}
+	}
+	listResp.Entries = filteredEntries
 }
