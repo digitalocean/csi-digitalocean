@@ -1,5 +1,7 @@
 ## unreleased
 
+* Fix ListSnapshots paging
+  [[GH-300]](https://github.com/digitalocean/csi-digitalocean/pull/300)
 * Support filtering snapshots by ID
   [[GH-299]](https://github.com/digitalocean/csi-digitalocean/pull/299)
 * Return minimum disk size field from snapshot response

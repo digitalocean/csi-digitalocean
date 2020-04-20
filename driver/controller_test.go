@@ -19,6 +19,7 @@ package driver
 import (
 	"context"
 	"errors"
+	"fmt"
 	"net/http"
 	"strconv"
 	"strings"
@@ -472,6 +473,150 @@ func TestWaitAction(t *testing.T) {
 			)
 			if err != test.wantErr {
 				t.Errorf("got error %q, want %q", err, test.wantErr)
+			}
+		})
+	}
+}
+
+func TestListSnapshot(t *testing.T) {
+	createID := func(id int) string {
+		return fmt.Sprintf("%03d", id)
+	}
+
+	tests := []struct {
+		name             string
+		inNumSnapshots   int
+		maxEntries       int32
+		startingToken    int
+		wantNumSnapshots int
+		wantNextToken    int
+	}{
+		{
+			name:             "no constraints",
+			inNumSnapshots:   10,
+			wantNumSnapshots: 10,
+		},
+		{
+			name:             "max entries set",
+			inNumSnapshots:   10,
+			maxEntries:       5,
+			wantNumSnapshots: 5,
+			wantNextToken:    6,
+		},
+		{
+			name:             "starting token lower than number of snapshots",
+			inNumSnapshots:   10,
+			startingToken:    8,
+			wantNumSnapshots: 3,
+		},
+		{
+			name:             "starting token larger than number of snapshots",
+			inNumSnapshots:   10,
+			startingToken:    50,
+			wantNumSnapshots: 0,
+		},
+		{
+			name:             "starting token and max entries set with extra snapshots available",
+			inNumSnapshots:   10,
+			maxEntries:       5,
+			startingToken:    4,
+			wantNumSnapshots: 5,
+			wantNextToken:    9,
+		},
+		{
+			name:             "starting token and max entries set with no extra snapshots available",
+			inNumSnapshots:   10,
+			maxEntries:       15,
+			startingToken:    8,
+			wantNumSnapshots: 3,
+		},
+		{
+			name:             "single paging with extra snapshots available",
+			inNumSnapshots:   50,
+			maxEntries:       12,
+			startingToken:    30,
+			wantNumSnapshots: 12,
+			wantNextToken:    42,
+		},
+		{
+			name:             "single paging with no extra snapshots available",
+			inNumSnapshots:   32,
+			maxEntries:       12,
+			startingToken:    30,
+			wantNumSnapshots: 3,
+		},
+		{
+			name:             "multi-paging with extra snapshots available",
+			inNumSnapshots:   50,
+			maxEntries:       30,
+			startingToken:    12,
+			wantNumSnapshots: 30,
+			wantNextToken:    42,
+		},
+		{
+			name:             "multi-paging with exact fit",
+			inNumSnapshots:   42,
+			maxEntries:       30,
+			startingToken:    13,
+			wantNumSnapshots: 30,
+		},
+		{
+			name:             "maxEntries exceeding maximum page size limit",
+			inNumSnapshots:   300,
+			maxEntries:       250,
+			wantNumSnapshots: 250,
+			wantNextToken:    251,
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			snapshots := map[string]*godo.Snapshot{}
+			for i := 1; i <= test.inNumSnapshots; i++ {
+				id := createID(i)
+				snap := createGodoSnapshot(id, fmt.Sprintf("snapshot-%d", i), "")
+				snapshots[id] = snap
+			}
+
+			d := Driver{
+				snapshots: &fakeSnapshotsDriver{
+					snapshots: snapshots,
+				},
+				log: logrus.New().WithField("test_enabed", true),
+			}
+
+			resp, err := d.ListSnapshots(context.Background(), &csi.ListSnapshotsRequest{
+				MaxEntries:    test.maxEntries,
+				StartingToken: strconv.Itoa(test.startingToken),
+			})
+			if err != nil {
+				t.Fatalf("got error: %s", err)
+			}
+
+			if len(resp.Entries) != test.wantNumSnapshots {
+				t.Errorf("got %d snapshot(s), want %d", len(resp.Entries), test.wantNumSnapshots)
+			} else {
+				runningID := test.startingToken
+				if runningID == 0 {
+					runningID = 1
+				}
+				for i, entry := range resp.Entries {
+					wantID := createID(runningID)
+					gotID := entry.Snapshot.GetSnapshotId()
+					if gotID != wantID {
+						t.Errorf("got snapshot ID %q at position %d, want %q", gotID, i, wantID)
+					}
+					runningID++
+				}
+			}
+
+			if test.wantNextToken > 0 {
+				wantNextTokenStr := strconv.Itoa(test.wantNextToken)
+				if resp.NextToken != wantNextTokenStr {
+					t.Errorf("got next token %q, want %q", resp.NextToken, wantNextTokenStr)
+				}
+			} else if resp.NextToken != "" {
+				t.Errorf("got non-empty next token %q", resp.NextToken)
 			}
 		})
 	}

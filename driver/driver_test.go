@@ -19,9 +19,11 @@ package driver
 import (
 	"context"
 	"errors"
+	"fmt"
 	"math/rand"
 	"net/http"
 	"os"
+	"sort"
 	"strconv"
 	"testing"
 	"time"
@@ -31,6 +33,8 @@ import (
 	"github.com/sirupsen/logrus"
 	"golang.org/x/sync/errgroup"
 )
+
+const maxAPIPageSize = 200
 
 func init() {
 	rand.Seed(time.Now().UnixNano())
@@ -229,12 +233,7 @@ func (f *fakeStorageDriver) CreateSnapshot(crx context.Context, req *godo.Snapsh
 	}
 
 	id := randString(10)
-	snap := &godo.Snapshot{
-		ID:         id,
-		Name:       req.Name,
-		ResourceID: req.VolumeID,
-		Created:    time.Now().UTC().Format(time.RFC3339),
-	}
+	snap := createGodoSnapshot(id, req.Name, req.VolumeID)
 
 	f.snapshots[id] = snap
 
@@ -344,12 +343,47 @@ func (f *fakeSnapshotsDriver) List(context.Context, *godo.ListOptions) ([]godo.S
 }
 
 func (f *fakeSnapshotsDriver) ListVolume(ctx context.Context, opts *godo.ListOptions) ([]godo.Snapshot, *godo.Response, error) {
-	var snapshots []godo.Snapshot
-	for _, snap := range f.snapshots {
-		snapshots = append(snapshots, *snap)
+	if opts == nil {
+		opts = &godo.ListOptions{}
+	}
+	if opts.Page == 0 {
+		opts.Page = 1
 	}
 
-	return snapshots, godoResponseWithMeta(len(snapshots)), nil
+	// Convert snapshot map into ordered slice for deterministic
+	// output.
+	var names []string
+	for name := range f.snapshots {
+		names = append(names, name)
+	}
+	sort.Strings(names)
+
+	var snapshots []godo.Snapshot
+	for _, name := range names {
+		snapshots = append(snapshots, *f.snapshots[name])
+	}
+
+	// Mimic the maximum page size of the API.
+	if opts.PerPage == 0 || opts.PerPage > maxAPIPageSize {
+		opts.PerPage = maxAPIPageSize
+	}
+
+	start := (opts.Page - 1) * opts.PerPage
+	if start >= len(snapshots) {
+		// Requested page is larger than the snapshots we have, so return empty
+		// result.
+		return []godo.Snapshot{}, godoResponseWithLinks(opts.Page, false), nil
+	}
+
+	snapshots = snapshots[start:]
+
+	hasNextPage := false
+	if len(snapshots) > opts.PerPage {
+		snapshots = snapshots[:opts.PerPage]
+		hasNextPage = true
+	}
+
+	return snapshots, godoResponseWithLinks(opts.Page, hasNextPage), nil
 }
 
 func (f *fakeSnapshotsDriver) ListDroplet(context.Context, *godo.ListOptions) ([]godo.Snapshot, *godo.Response, error) {
@@ -419,6 +453,15 @@ func (f *fakeMounter) IsBlockDevice(volumePath string) (bool, error) {
 	return false, nil
 }
 
+func createGodoSnapshot(id, name, volumeID string) *godo.Snapshot {
+	return &godo.Snapshot{
+		ID:         id,
+		Name:       name,
+		ResourceID: volumeID,
+		Created:    time.Now().UTC().Format(time.RFC3339),
+	}
+}
+
 func godoResponse() *godo.Response {
 	return godoResponseWithMeta(0)
 }
@@ -431,6 +474,30 @@ func godoResponseWithMeta(total int) *godo.Response {
 			Total: total,
 		},
 	}
+}
+
+func godoResponseWithLinks(currentPage int, hasNextPage bool) *godo.Response {
+	buildPagedURL := func(page int) string {
+		return fmt.Sprintf("https://api.digitalocean.com/v2/bogus?page=%d", page)
+	}
+
+	var prev, next string
+	if currentPage > 1 {
+		prev = buildPagedURL(currentPage - 1)
+	}
+	if hasNextPage {
+		next = buildPagedURL(currentPage + 1)
+	}
+
+	resp := godoResponseWithMeta(-1)
+	resp.Links = &godo.Links{
+		Pages: &godo.Pages{
+			Prev: prev,
+			Next: next,
+		},
+	}
+
+	return resp
 }
 
 func randString(n int) string {
