@@ -776,12 +776,14 @@ func (d *Driver) ListSnapshots(ctx context.Context, req *csi.ListSnapshotsReques
 	log := d.log.WithFields(logrus.Fields{
 		"snapshot_id":        req.SnapshotId,
 		"source_volume_id":   req.SourceVolumeId,
+		"max_entries":        req.MaxEntries,
 		"req_starting_token": req.StartingToken,
 		"method":             "list_snapshots",
 	})
 	log.Info("list snapshots is called")
 
 	if req.SnapshotId != "" {
+		// Fetch snapshot directly by ID.
 		snapshot, resp, err := d.snapshots.Get(ctx, req.SnapshotId)
 		if err != nil {
 			if resp == nil || resp.StatusCode != http.StatusNotFound {
@@ -802,44 +804,97 @@ func (d *Driver) ListSnapshots(ctx context.Context, req *csi.ListSnapshotsReques
 			}
 		}
 	} else {
-		// Pagination in the CSI world works different than at DO. CSI sends the
-		// `req.MaxEntries` to indicate how much snapshots it wants. The
-		// req.StartingToken is returned by us, if we somehow need to indicate that
-		// we couldn't fetch and need to fetch again. But it's NOT the page number.
-		// I.e: suppose CSI wants us to fetch 50 entries, we only fetch 30, we need to
-		// return NextToken as 31 (so req.StartingToken will be set to 31 when CSI
-		// calls us again), to indicate that we want to continue returning from the
-		// index 31 up to 50.
+		// Paginate through snapshots and return results.
 
-		var nextToken int
-		var err error
+		// Pagination is controlled by two request parameters:
+		// MaxEntries indicates how many entries should be returned at most. If
+		// more results are available, we must return a NextToken value
+		// indicating the index for the next snapshot to request.
+		// StartingToken defines the index of the first snapshot to return.
+		// The CSI request parameters are defined in terms of number of
+		// snapshots, not pages. It is up to the driver to translate the
+		// parameters into paged requests accordingly.
+
+		var (
+			startingToken         int32
+			originalStartingToken int32
+		)
 		if req.StartingToken != "" {
-			nextToken, err = strconv.Atoi(req.StartingToken)
+			parsedToken, err := strconv.ParseInt(req.StartingToken, 10, 32)
 			if err != nil {
-				return nil, status.Errorf(codes.Aborted, "ListSnapshots starting token %s is not valid : %s",
-					req.StartingToken, err.Error())
+				return nil, status.Errorf(codes.Aborted, "ListSnapshots starting token %q is not valid: %s", req.StartingToken, err)
 			}
+			startingToken = int32(parsedToken)
+			originalStartingToken = startingToken
 		}
 
-		if nextToken != 0 && req.MaxEntries != 0 {
-			return nil, status.Errorf(codes.Aborted,
-				"ListSnapshots invalid arguments starting token: %d and max entries: %d can't be non null at the same time", nextToken, req.MaxEntries)
-		}
-
-		// fetch all entries
+		// Fetch snapshots until we have either collected req.MaxEntries (if
+		// positive) or all available ones, whichever comes first.
 		listOpts := &godo.ListOptions{
+			Page:    1,
 			PerPage: int(req.MaxEntries),
 		}
-		var snapshots []godo.Snapshot
+		if req.MaxEntries > 0 {
+			// MaxEntries also defines the page size so that we can skip over
+			// snapshots before the StartingToken and minimize the number of
+			// paged requests we need.
+			listOpts.Page = int(startingToken/req.MaxEntries) + 1
+			// Offset StartingToken to skip snapshots we do not want. This is
+			// needed when MaxEntries does not divide StartingToken without
+			// remainder.
+			startingToken = startingToken % req.MaxEntries
+		}
+
+		log = log.WithFields(logrus.Fields{
+			"page":                    listOpts.Page,
+			"computed_starting_token": startingToken,
+		})
+
+		var (
+			// remainingEntries keeps track of how much room is left to return
+			// as many as MaxEntries snapshots.
+			remainingEntries int = int(req.MaxEntries)
+			// hasMore indicates if NextToken must be set.
+			hasMore   bool
+			snapshots []godo.Snapshot
+		)
 		for {
+			hasMore = false
 			snaps, resp, err := d.snapshots.ListVolume(ctx, listOpts)
 			if err != nil {
-				return nil, status.Errorf(codes.Aborted, "ListSnapshots listing volume snapshots has failed: %s", err.Error())
+				return nil, status.Errorf(codes.Internal, "ListSnapshots listing volume snapshots has failed: %s", err)
+			}
+
+			// Skip pre-StartingToken snapshots. This is required on the first
+			// page at most.
+			if startingToken > 0 {
+				if startingToken > int32(len(snaps)) {
+					startingToken = int32(len(snaps))
+				} else {
+					startingToken--
+				}
+				snaps = snaps[startingToken:]
+			}
+			startingToken = 0
+
+			// Do not return more than MaxEntries across pages.
+			if req.MaxEntries > 0 && len(snaps) > remainingEntries {
+				snaps = snaps[:remainingEntries]
+				hasMore = true
 			}
 
 			snapshots = append(snapshots, snaps...)
+			remainingEntries -= len(snaps)
 
-			if resp.Links == nil || resp.Links.IsLastPage() {
+			isLastPage := resp.Links == nil || resp.Links.IsLastPage()
+			hasMore = hasMore || !isLastPage
+
+			// Stop paging if we have used up all of MaxEntries.
+			if req.MaxEntries > 0 && remainingEntries == 0 {
+				break
+			}
+
+			if isLastPage {
 				break
 			}
 
@@ -849,20 +904,18 @@ func (d *Driver) ListSnapshots(ctx context.Context, req *csi.ListSnapshotsReques
 			}
 
 			listOpts.Page = page + 1
-			listOpts.PerPage = len(snaps)
 		}
 
-		if nextToken > len(snapshots) {
-			return nil, status.Error(codes.Aborted, "ListSnapshots starting token is greater than total number of snapshots")
-		}
-
-		if nextToken != 0 {
-			snapshots = snapshots[nextToken:]
-		}
-
-		if req.MaxEntries != 0 {
-			nextToken = len(snapshots) - int(req.MaxEntries) - 1
-			snapshots = snapshots[:req.MaxEntries]
+		var nextToken int32
+		if hasMore {
+			// Compute NextToken, which is at least StartingToken plus
+			// MaxEntries. If StartingToken was zero, we need to add one because
+			// StartingToken defines the n-th snapshot we want but is not
+			// zero-based.
+			nextToken = originalStartingToken + req.MaxEntries
+			if originalStartingToken == 0 {
+				nextToken++
+			}
 		}
 
 		entries := make([]*csi.ListSnapshotsResponse_Entry, 0, len(snapshots))
@@ -878,8 +931,10 @@ func (d *Driver) ListSnapshots(ctx context.Context, req *csi.ListSnapshotsReques
 			})
 		}
 		listResp = &csi.ListSnapshotsResponse{
-			Entries:   entries,
-			NextToken: strconv.Itoa(nextToken),
+			Entries: entries,
+		}
+		if nextToken > 0 {
+			listResp.NextToken = strconv.FormatInt(int64(nextToken), 10)
 		}
 	}
 
