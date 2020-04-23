@@ -29,7 +29,7 @@ import (
 	"time"
 
 	"github.com/digitalocean/godo"
-	"github.com/kubernetes-csi/csi-test/pkg/sanity"
+	"github.com/kubernetes-csi/csi-test/v3/pkg/sanity"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/sync/errgroup"
 )
@@ -94,11 +94,8 @@ func TestDriverSuite(t *testing.T) {
 		return driver.Run(ctx)
 	})
 
-	cfg := &sanity.Config{
-		TargetPath:  os.TempDir() + "/csi-target",
-		StagingPath: os.TempDir() + "/csi-staging",
-		Address:     endpoint,
-	}
+	cfg := sanity.NewTestConfig()
+	cfg.Address = endpoint
 	sanity.Test(t, cfg)
 
 	cancel()

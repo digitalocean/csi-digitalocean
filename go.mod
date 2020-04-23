@@ -7,19 +7,19 @@ require (
 	github.com/digitalocean/godo v1.29.0
 	github.com/docker/docker v1.13.1
 	github.com/golang/groupcache v0.0.0-20181024230925-c65c006176ff // indirect
-	github.com/golang/protobuf v1.3.1
+	github.com/golang/protobuf v1.3.2
 	github.com/google/go-cmp v0.3.0
 	github.com/googleapis/gnostic v0.2.0 // indirect
 	github.com/imdario/mergo v0.3.6 // indirect
-	github.com/kubernetes-csi/csi-test v2.2.0+incompatible
+	github.com/kubernetes-csi/csi-test/v3 v3.1.1-0.20200422103951-b91f2543e6e7
 	github.com/kubernetes-csi/external-snapshotter v0.4.1
 	github.com/magiconair/properties v1.8.1
-	github.com/sirupsen/logrus v1.2.0
+	github.com/sirupsen/logrus v1.4.2
 	github.com/stretchr/testify v1.4.0 // indirect
 	golang.org/x/oauth2 v0.0.0-20190604053449-0f29369cfe45
 	golang.org/x/sync v0.0.0-20190423024810-112230192c58
-	golang.org/x/sys v0.0.0-20190616124812-15dcb6c0061f
-	google.golang.org/grpc v1.23.0
+	golang.org/x/sys v0.0.0-20191113165036-4c7a9d0fe056
+	google.golang.org/grpc v1.25.1
 	gopkg.in/inf.v0 v0.9.1 // indirect
 	k8s.io/api v0.0.0
 	k8s.io/apimachinery v0.0.0
@@ -56,3 +56,5 @@ replace (
 )
 
 go 1.14
+
+replace github.com/kubernetes-csi/csi-test/v3 => github.com/digitalocean/csi-test/v3 v3.1.1-0.20200422215505-20e87c55f1f6
