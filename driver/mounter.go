@@ -248,9 +248,8 @@ func (m *mounter) IsFormatted(source string) (bool, error) {
 		exitCode = ws.ExitStatus()
 		if exitCode == blkidExitStatusNoIdentifiers {
 			return false, nil
-		} else {
-			return false, fmt.Errorf("checking formatting failed: %v cmd: %q, args: %q", err, blkidCmd, blkidArgs)
 		}
+		return false, fmt.Errorf("checking formatting failed: %v cmd: %q, args: %q", err, blkidCmd, blkidArgs)
 	}
 
 	return true, nil
