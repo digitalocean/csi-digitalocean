@@ -63,6 +63,10 @@ const (
 	// doAPITimeout sets the timeout we will use when communicating with the
 	// Digital Ocean API. NOTE: some queries inherit the context timeout
 	doAPITimeout = 10 * time.Second
+
+	// maxVolumesPerDropletErrorMessage is the error message returned by the DO
+	// API when the per-droplet volume limit would be exceeded.
+	maxVolumesPerDropletErrorMessage = "cannot attach more than 7 volumes to a single Droplet"
 )
 
 var (
@@ -361,6 +365,10 @@ func (d *Driver) ControllerPublishVolume(ctx context.Context, req *csi.Controlle
 				}).Warn("cannot attach because droplet has pending volume action")
 				// sending an abort makes sure the csi-attacher retries with the next backoff tick
 				return nil, status.Errorf(codes.Aborted, "cannot attach because droplet %d has pending action for volume %q", dropletID, req.VolumeId)
+			}
+
+			if strings.Contains(err.Error(), maxVolumesPerDropletErrorMessage) {
+				return nil, status.Errorf(codes.ResourceExhausted, err.Error())
 			}
 		}
 		return nil, err
