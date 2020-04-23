@@ -997,8 +997,7 @@ func (d *Driver) ControllerExpandVolume(ctx context.Context, req *csi.Controller
 
 	nodeExpansionRequired := true
 	if req.GetVolumeCapability() != nil {
-		switch req.GetVolumeCapability().GetAccessType().(type) {
-		case *csi.VolumeCapability_Block:
+		if _, ok := req.GetVolumeCapability().GetAccessType().(*csi.VolumeCapability_Block); ok {
 			log.Info("node expansion is not required for block volumes")
 			nodeExpansionRequired = false
 		}
@@ -1087,9 +1086,9 @@ func formatBytes(inputBytes int64) string {
 }
 
 // waitAction waits until the given action for the volume is completed
-func (d *Driver) waitAction(ctx context.Context, log *logrus.Entry, volumeId string, actionId int) error {
+func (d *Driver) waitAction(ctx context.Context, log *logrus.Entry, volumeID string, actionID int) error {
 	log = log.WithFields(logrus.Fields{
-		"action_id": actionId,
+		"action_id": actionID,
 	})
 
 	// This timeout should not strike given all sidecars use a timeout that is
@@ -1099,7 +1098,7 @@ func (d *Driver) waitAction(ctx context.Context, log *logrus.Entry, volumeId str
 	defer cancel()
 
 	err := wait.PollUntil(1*time.Second, wait.ConditionFunc(func() (done bool, err error) {
-		action, _, err := d.storageActions.Get(ctx, volumeId, actionId)
+		action, _, err := d.storageActions.Get(ctx, volumeID, actionID)
 		if err != nil {
 			ctxCanceled := ctx.Err() != nil
 			if !ctxCanceled {
@@ -1107,7 +1106,7 @@ func (d *Driver) waitAction(ctx context.Context, log *logrus.Entry, volumeId str
 				return false, nil
 			}
 
-			return false, fmt.Errorf("failed to get action %d for volume %s: %s", actionId, volumeId, err)
+			return false, fmt.Errorf("failed to get action %d for volume %s: %s", actionID, volumeID, err)
 		}
 
 		log.WithField("action_status", action.Status).Info("action received")
