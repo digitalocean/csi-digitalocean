@@ -1,5 +1,7 @@
 ## unreleased
 
+* Build using Go 1.14
+  [[GH-302]](https://github.com/digitalocean/csi-digitalocean/pull/302)
 * Fix ListSnapshots paging
   [[GH-300]](https://github.com/digitalocean/csi-digitalocean/pull/300)
 * Support filtering snapshots by ID
