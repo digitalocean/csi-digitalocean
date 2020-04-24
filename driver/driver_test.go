@@ -96,6 +96,8 @@ func TestDriverSuite(t *testing.T) {
 
 	cfg := sanity.NewTestConfig()
 	cfg.Address = endpoint
+	cfg.IdempotentCount = 5
+	cfg.TestNodeVolumeAttachLimit = true
 	sanity.Test(t, cfg)
 
 	cancel()
@@ -248,11 +250,72 @@ type fakeStorageActionsDriver struct {
 }
 
 func (f *fakeStorageActionsDriver) Attach(ctx context.Context, volumeID string, dropletID int) (*godo.Action, *godo.Response, error) {
-	return nil, godoResponse(), nil
+	resp := godoResponse()
+
+	if _, ok := f.volumes[volumeID]; !ok {
+		resp.Response = &http.Response{
+			StatusCode: http.StatusNotFound,
+		}
+		return nil, resp, errors.New("volume was not found")
+	}
+
+	droplet, ok := f.droplets[dropletID]
+	if !ok {
+		resp.Response = &http.Response{
+			StatusCode: http.StatusNotFound,
+		}
+		return nil, resp, errors.New("droplet was not found")
+	}
+
+	if len(droplet.VolumeIDs) >= maxVolumesPerNode {
+		resp.Response = &http.Response{
+			StatusCode: http.StatusUnprocessableEntity,
+		}
+		return nil, resp, errors.New(maxVolumesPerDropletErrorMessage)
+	}
+	droplet.VolumeIDs = append(droplet.VolumeIDs, volumeID)
+
+	return nil, resp, nil
 }
 
 func (f *fakeStorageActionsDriver) DetachByDropletID(ctx context.Context, volumeID string, dropletID int) (*godo.Action, *godo.Response, error) {
-	return nil, godoResponse(), nil
+	resp := godoResponse()
+
+	if _, ok := f.volumes[volumeID]; !ok {
+		resp.Response = &http.Response{
+			StatusCode: http.StatusNotFound,
+		}
+		return nil, resp, errors.New("volume was not found")
+	}
+
+	droplet, ok := f.droplets[dropletID]
+	if !ok {
+		resp.Response = &http.Response{
+			StatusCode: http.StatusNotFound,
+		}
+		return nil, resp, errors.New("droplet was not found")
+	}
+
+	var found bool
+	var updatedAttachedVolIDs []string
+	for _, attachedVolID := range droplet.VolumeIDs {
+		if attachedVolID == volumeID {
+			found = true
+		} else {
+			updatedAttachedVolIDs = append(updatedAttachedVolIDs, attachedVolID)
+		}
+	}
+
+	if !found {
+		resp.Response = &http.Response{
+			StatusCode: http.StatusNotFound,
+		}
+		return nil, resp, errors.New("volume is not attached to droplet")
+	}
+
+	droplet.VolumeIDs = updatedAttachedVolIDs
+
+	return nil, resp, nil
 }
 
 func (f *fakeStorageActionsDriver) Get(ctx context.Context, volumeID string, actionID int) (*godo.Action, *godo.Response, error) {

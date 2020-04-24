@@ -1,5 +1,7 @@
 ## unreleased
 
+* Handle per-node volume limit exceeding error during ControllerPublishVolume
+  [[GH-303]](https://github.com/digitalocean/csi-digitalocean/pull/303)
 * Build using Go 1.14
   [[GH-302]](https://github.com/digitalocean/csi-digitalocean/pull/302)
 * Fix ListSnapshots paging
