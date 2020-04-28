@@ -1,5 +1,7 @@
 ## unreleased
 
+* Add initContainer to delete automount udev rule file
+  [[GH-305]](https://github.com/digitalocean/csi-digitalocean/pull/305)
 * Handle per-node volume limit exceeding error during ControllerPublishVolume
   [[GH-303]](https://github.com/digitalocean/csi-digitalocean/pull/303)
 * Build using Go 1.14

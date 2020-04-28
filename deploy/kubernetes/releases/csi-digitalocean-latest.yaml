@@ -418,6 +418,19 @@ spec:
       priorityClassName: system-node-critical
       serviceAccount: csi-do-node-sa
       hostNetwork: true
+      initContainers:
+        # Delete automount udev rule running on all DO droplets. The rule mounts
+        # devices briefly and may conflict with CSI-managed droplets (leading to
+        # "resource busy" errors). We can safely delete it in DOKS.
+        - name: automount-udev-deleter
+          image: alpine:3
+          args:
+            - "rm"
+            - "-f"
+            - "/etc/udev/rules.d/99-digitalocean-automount.rules"
+          volumeMounts:
+            - name: udev-rules-dir
+              mountPath: /etc/udev/rules.d/
       containers:
         - name: csi-node-driver-registrar
           image: quay.io/k8scsi/csi-node-driver-registrar:v1.1.0
@@ -485,6 +498,9 @@ spec:
         - name: device-dir
           hostPath:
             path: /dev
+        - name: udev-rules-dir
+          hostPath:
+            path: /etc/udev/rules.d/
 ---
 
 apiVersion: v1
