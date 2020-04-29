@@ -1,5 +1,7 @@
 ## unreleased
 
+* Upgrade Kubernetes dependencies to 1.17
+  [[GH-307]](https://github.com/digitalocean/csi-digitalocean/pull/307)
 * Add initContainer to delete automount udev rule file
   [[GH-305]](https://github.com/digitalocean/csi-digitalocean/pull/305)
 * Handle per-node volume limit exceeding error during ControllerPublishVolume

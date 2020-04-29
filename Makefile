@@ -29,6 +29,7 @@ ifneq ($(VERSION),)
 else
   VERSION ?= $(shell cat VERSION)
 endif
+KUBERNETES_VERSION ?= 1.17.5
 DOCKER_REPO ?= digitalocean/do-csi-plugin
 CANONICAL_RUNNER_IMAGE = digitalocean/k8s-e2e-test-runner
 RUNNER_IMAGE ?= $(CANONICAL_RUNNER_IMAGE)
@@ -44,6 +45,10 @@ endif
 all: check-unused test
 
 publish: compile build push clean
+
+.PHONY: update-k8s
+update-k8s:
+	env KUBERNETES_VERSION=$(KUBERNETES_VERSION) scripts/update-k8s.sh
 
 .PHONY: bump-version
 bump-version:
