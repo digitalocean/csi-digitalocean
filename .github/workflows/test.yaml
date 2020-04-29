@@ -59,6 +59,17 @@ jobs:
       - name: Log into container registry
         run: echo "${{ secrets.DockerHubToken }}" | docker login --username ${DOCKER_USER} --password-stdin
 
+      # Github Actions provides a limited amount of disk space only that we
+      # exceed during the Docker build (https://help.github.com/en/actions/reference/virtual-environments-for-github-hosted-runners#supported-runners-and-hardware-resources).
+      # Free up as much disk space as possible.
+      - name: free disk space
+        run: |
+          sudo swapoff -a
+          sudo rm -f /swapfile
+          sudo apt clean
+          docker rmi $(docker image ls -aq)
+          df -h
+
       - name: build and push runner image
         env:
           # ${{ github.head_ref }} is empty for non-pull requests, which is
