@@ -14,8 +14,9 @@
 
 StorageClass:
   FromName: true
-SnapshotClass:
-  FromName: true
+# Disable snapshot tests until we have migrateed to the beta Snapshot API
+#SnapshotClass:
+   #FromName: true
 DriverInfo:
   Name: dobs.csi.digitalocean.com-dev
   SupportedSizeRange:
@@ -26,7 +27,8 @@ DriverInfo:
     block: true
     fsGroup: true
     exec: true
-    snapshotDataSource: true
+    # Disable snapshot tests until we have migrateed to the beta Snapshot API
+    snapshotDataSource: false
     multipods: true
     controllerExpansion: true
     nodeExpansion: true
