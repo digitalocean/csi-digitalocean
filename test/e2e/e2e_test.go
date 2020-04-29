@@ -65,17 +65,19 @@ var (
 )
 
 type params struct {
-	long           bool
-	driverImage    string
-	runnerImage    string
-	focus          string
-	kubeconfig     string
-	nameSuffix     string
-	retainClusters bool
-	kubeVersions   []string
-	skipParallel   bool
-	skipSequential bool
-	ginkgoNodes    int
+	long              bool
+	driverImage       string
+	runnerImage       string
+	runnerKubeVersion string
+	testdriver        string
+	focus             string
+	kubeconfig        string
+	nameSuffix        string
+	retainClusters    bool
+	kubeVersions      []string
+	skipParallel      bool
+	skipSequential    bool
+	ginkgoNodes       int
 }
 
 func init() {
@@ -150,6 +152,8 @@ func TestMain(m *testing.M) {
 	flag.BoolVar(&p.long, "long", false, "Run long tests")
 	flag.StringVar(&p.driverImage, "driver-image", "", "The driver container image to use. Triggers a deployment of the \"latest\"-suffixed development manifest into the cluster if given. Otherwise, the built-in driver of the cluster is used.")
 	flag.StringVar(&p.runnerImage, "runner-image", testRunnerImage, "The end-to-end runner image to use.")
+	flag.StringVar(&p.runnerKubeVersion, "runner-kube-version", "", "The Kubernetes version of the E2E tests to use. If not specified, use version matching the given Kubernetes version")
+	flag.StringVar(&p.testdriver, "testdriver", "", "The testdriver base to use. If not specified, it will be derived from the given Kubernetes version")
 	flag.StringVar(&p.focus, "focus", "", "A custom ginkgo focus to use for external storage tests. Defaults to running all external tests.")
 	flag.StringVar(&p.kubeconfig, "kubeconfig", "", "The kubeconfig file to use. For DOKS clusters where the kubeconfig has been retrieved via doctl, the DIGITALOCEAN_ACCESS_TOKEN environment variable must be set. If not specified, add-hoc DOKS clusters will be created and cleaned up afterwards for each tested Kubernetes version (unless the test failed and -retain is specified).")
 	flag.StringVar(&p.nameSuffix, "name-suffix", "", "A suffix to append to the cluster name. If not specified, a random suffix will be chosen. Ignored if -kubeconfig is specified.")
@@ -192,23 +196,27 @@ func TestE2E(t *testing.T) {
 
 	for _, kubeVer := range p.kubeVersions {
 		t.Run(kubeVer, func(t *testing.T) {
-			var found bool
 			parsedKubeVer, err := semver.ParseTolerant(kubeVer)
 			if err != nil {
 				t.Fatalf("failed to parse Kubernetes version %q: %s", kubeVer, err)
 			}
+
 			majorMinorVer := fmt.Sprintf("%d.%d", parsedKubeVer.Major, parsedKubeVer.Minor)
-			for _, supportedKubeVer := range supportedKubernetesVersions {
-				if majorMinorVer == supportedKubeVer {
-					found = true
-					break
-				}
-			}
-			if !found {
-				t.Fatalf("unsupported Kubernetes version: %s", kubeVer)
+			if !isSupportedKubernetesVersion(majorMinorVer) {
+				t.Fatalf("unsupported Kubernetes version for cluster: %s", kubeVer)
 			}
 
-			testdriverFilename := filepath.Join(testdriverDirectoryAbsolutePath, fmt.Sprintf("%s.yaml", majorMinorVer))
+			if p.runnerKubeVersion == "" {
+				p.runnerKubeVersion = majorMinorVer
+			}
+			if !isSupportedKubernetesVersion(p.runnerKubeVersion) {
+				t.Fatalf("unsupported Kubernetes version for E2E runner: %s", p.runnerKubeVersion)
+			}
+
+			if p.testdriver == "" {
+				p.testdriver = majorMinorVer
+			}
+			testdriverFilename := filepath.Join(testdriverDirectoryAbsolutePath, fmt.Sprintf("%s.yaml", p.testdriver))
 			if _, err := os.Stat(testdriverFilename); os.IsNotExist(err) {
 				t.Fatalf("testdriver file %q does not exist in %q", testdriverFilename, testdriverDirectoryAbsolutePath)
 			}
@@ -268,12 +276,21 @@ func TestE2E(t *testing.T) {
 				}
 			}
 
-			err = runE2ETests(ctx, kubeVer, p.runnerImage, testdriverFilename, p.focus, kubeconfig, token, p.skipParallel, p.skipSequential, p.ginkgoNodes)
+			err = runE2ETests(ctx, p.runnerKubeVersion, p.runnerImage, testdriverFilename, p.focus, kubeconfig, token, p.skipParallel, p.skipSequential, p.ginkgoNodes)
 			if err != nil {
 				t.Fatalf("end-to-end tests failed: %s", err)
 			}
 		})
 	}
+}
+
+func isSupportedKubernetesVersion(majorMinorVer string) bool {
+	for _, supportedKubeVer := range supportedKubernetesVersions {
+		if supportedKubeVer == majorMinorVer {
+			return true
+		}
+	}
+	return false
 }
 
 func createDOClient(ctx context.Context, token string) (client *godo.Client, err error) {
