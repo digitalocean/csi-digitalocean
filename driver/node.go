@@ -34,8 +34,9 @@ import (
 	"github.com/sirupsen/logrus"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
-	"k8s.io/kubernetes/pkg/util/mount"
 	"k8s.io/kubernetes/pkg/util/resizefs"
+	utilexec "k8s.io/utils/exec"
+	"k8s.io/utils/mount"
 )
 
 const (
@@ -456,7 +457,7 @@ func (d *Driver) NodeExpandVolume(ctx context.Context, req *csi.NodeExpandVolume
 
 	r := resizefs.NewResizeFs(&mount.SafeFormatAndMount{
 		Interface: mounter,
-		Exec:      mount.NewOSExec(),
+		Exec:      utilexec.New(),
 	})
 
 	log = log.WithFields(logrus.Fields{
