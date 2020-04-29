@@ -51,7 +51,7 @@ const (
 )
 
 var (
-	tokenMissingErr = errors.New("token must be specified in DIGITALOCEAN_ACCESS_TOKEN environment variable")
+	errTokenMissing = errors.New("token must be specified in DIGITALOCEAN_ACCESS_TOKEN environment variable")
 
 	// De-facto global variables that require initialization at runtime.
 	supportedKubernetesVersions     = []string{"1.16", "1.15", "1.14"}
@@ -278,7 +278,7 @@ func TestE2E(t *testing.T) {
 
 func createDOClient(ctx context.Context, token string) (client *godo.Client, err error) {
 	if token == "" {
-		return nil, tokenMissingErr
+		return nil, errTokenMissing
 	}
 
 	tokenSource := oauth2.StaticTokenSource(&oauth2.Token{
@@ -409,7 +409,7 @@ func deleteCluster(ctx context.Context, client *godo.Client, clusterID string) e
 // deployDriver invokes our deploy script with the right set of parameters.
 func deployDriver(ctx context.Context, driverImage string, kubeconfigFile, token string) error {
 	if token == "" {
-		return tokenMissingErr
+		return errTokenMissing
 	}
 
 	return runCommand(ctx, deployScriptPath, cmdParams{
