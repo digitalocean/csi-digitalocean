@@ -358,7 +358,7 @@ func createCluster(ctx context.Context, client *godo.Client, nameSuffix, kubeMaj
 		VersionSlug: versionSlug,
 		Tags:        []string{"csi-e2e-test", versionTag},
 		NodePools: []*godo.KubernetesNodePoolCreateRequest{
-			&godo.KubernetesNodePoolCreateRequest{
+			{
 				Name:  clusterName + "-pool",
 				Size:  "s-4vcpu-8gb",
 				Count: 3,
@@ -366,7 +366,7 @@ func createCluster(ctx context.Context, client *godo.Client, nameSuffix, kubeMaj
 		},
 	})
 	if err != nil {
-		return nil, nil, fmt.Errorf("failed to create cluster: %s", err)
+		return nil, nil, fmt.Errorf("failed to create cluster %s: %s", clusterName, err)
 	}
 	fmt.Printf("Created cluster %s (%s) (response code: %d)\n", cluster.ID, cluster.Name, resp.StatusCode)
 
@@ -379,12 +379,13 @@ func createCluster(ctx context.Context, client *godo.Client, nameSuffix, kubeMaj
 		return nil
 	}
 
-	pollCtx, cancel := context.WithTimeout(ctx, 10*time.Minute)
+	pollCtx, cancel := context.WithTimeout(ctx, 15*time.Minute)
 	defer cancel()
 	fmt.Printf("Waiting for cluster %s (%s) to become running\n", cluster.ID, cluster.Name)
 	err = wait.PollUntil(10*time.Second, func() (done bool, waitErr error) {
 		c, resp, err := client.Kubernetes.Get(pollCtx, cluster.ID)
 		if err != nil {
+			fmt.Fprintf(os.Stderr, "Transient error while getting cluster %s (%s): %s\n", cluster.Name, cluster.ID, err)
 			if resp != nil && resp.StatusCode >= 500 {
 				return false, nil
 			}
