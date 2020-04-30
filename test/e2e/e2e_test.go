@@ -331,12 +331,41 @@ func createCluster(ctx context.Context, client *godo.Client, nameSuffix, kubeMaj
 			return nil, nil, fmt.Errorf("failed to list clusters: %s", err)
 		}
 
+	ClusterLoop:
 		for _, cluster := range clusters {
 			for _, tag := range cluster.Tags {
 				if tag == versionTag && cluster.Name == clusterName {
 					if err := deleteCluster(ctx, client, cluster.ID); err != nil {
 						return nil, nil, fmt.Errorf("failed to delete previous cluster %s (%s): %s", cluster.ID, cluster.Name, err)
 					}
+
+					pollCtx, cancel := context.WithTimeout(ctx, 3*time.Minute)
+					defer cancel()
+					fmt.Printf("Waiting for previous cluster %s (%s) to be deleted\n", cluster.ID, cluster.Name)
+					err = wait.PollImmediateUntil(5*time.Second, func() (done bool, waitErr error) {
+						c, resp, err := client.Kubernetes.Get(pollCtx, cluster.ID)
+						if err == nil {
+							cluster = c
+							fmt.Printf("Cluster %s (%s) is not yet deleted\n", cluster.ID, cluster.Name)
+							return false, nil
+						}
+
+						if resp != nil {
+							if resp.StatusCode == http.StatusNotFound {
+								return true, nil
+							}
+
+							fmt.Fprintf(os.Stderr, "Transient error while getting cluster %s (%s): %s\n", cluster.Name, cluster.ID, err)
+							return false, nil
+						}
+
+						return false, err
+					}, ctx.Done())
+					if err != nil {
+						return nil, nil, fmt.Errorf("cluster %s (%s) never became deleted -- last status: %s (message: %s): %s", cluster.ID, cluster.Name, cluster.Status.State, cluster.Status.Message, err)
+					}
+					fmt.Printf("Cluster %s (%s) has been deleted\n", cluster.ID, cluster.Name)
+					break ClusterLoop
 				}
 			}
 		}
