@@ -520,67 +520,45 @@ func (d *Driver) ValidateVolumeCapabilities(ctx context.Context, req *csi.Valida
 
 // ListVolumes returns a list of all requested volumes
 func (d *Driver) ListVolumes(ctx context.Context, req *csi.ListVolumesRequest) (*csi.ListVolumesResponse, error) {
-	var page int
-	var err error
-	if req.StartingToken != "" {
-		page, err = strconv.Atoi(req.StartingToken)
-		if err != nil {
-			return nil, status.Errorf(codes.Aborted, "starting_token is invalid: %s", err)
-		}
-	}
-
-	listOpts := &godo.ListVolumeParams{
-		ListOptions: &godo.ListOptions{
-			PerPage: int(req.MaxEntries),
-			Page:    page,
-		},
-		Region: d.region,
-	}
-
 	log := d.log.WithFields(logrus.Fields{
-		"list_opts":          listOpts,
+		"max_entries":        req.MaxEntries,
 		"req_starting_token": req.StartingToken,
 		"method":             "list_volumes",
 	})
 	log.Info("list volumes called")
 
-	var volumes []godo.Volume
-	lastPage := 0
-	for {
-		vols, resp, err := d.storage.ListVolumes(ctx, listOpts)
+	var startingToken int32
+	if req.StartingToken != "" {
+		parsedToken, err := strconv.ParseInt(req.StartingToken, 10, 32)
 		if err != nil {
-			return nil, err
+			return nil, status.Errorf(codes.Aborted, "ListVolumes starting token %q is not valid: %s", req.StartingToken, err)
 		}
+		startingToken = int32(parsedToken)
+	}
 
-		volumes = append(volumes, vols...)
-
-		if page > len(volumes) {
-			return nil, status.Error(codes.Aborted, "starting_token is is greater than total number of vols")
+	untypedVolumes, nextToken, err := listResources(ctx, log, startingToken, req.MaxEntries, func(ctx context.Context, listOpts *godo.ListOptions) ([]interface{}, *godo.Response, error) {
+		volListOpts := &godo.ListVolumeParams{
+			ListOptions: listOpts,
+			Region:      d.region,
 		}
-
-		if len(volumes) == int(req.MaxEntries) {
-			lastPage = int(req.MaxEntries)
-			break
-		}
-
-		if resp.Links == nil || resp.Links.IsLastPage() {
-			if resp.Links != nil {
-				page, err := resp.Links.CurrentPage()
-				if err != nil {
-					return nil, err
-				}
-				// save this for the response
-				lastPage = page
-			}
-			break
-		}
-
-		page, err := resp.Links.CurrentPage()
+		volumes, resp, err := d.storage.ListVolumes(ctx, volListOpts)
 		if err != nil {
-			return nil, err
+			return nil, resp, err
 		}
 
-		listOpts.ListOptions.Page = page + 1
+		untypedVolumes := make([]interface{}, 0, len(volumes))
+		for _, volume := range volumes {
+			untypedVolumes = append(untypedVolumes, volume)
+		}
+		return untypedVolumes, resp, err
+	})
+	if err != nil {
+		return nil, fmt.Errorf("ListVolumes failed to list resources: %w", err)
+	}
+
+	volumes := make([]godo.Volume, 0, len(untypedVolumes))
+	for _, untypedVolume := range untypedVolumes {
+		volumes = append(volumes, untypedVolume.(godo.Volume))
 	}
 
 	var entries []*csi.ListVolumesResponse_Entry
@@ -593,10 +571,12 @@ func (d *Driver) ListVolumes(ctx context.Context, req *csi.ListVolumesRequest) (
 		})
 	}
 
-	// TODO(arslan): check that the NextToken logic works fine, might be racy
 	resp := &csi.ListVolumesResponse{
-		Entries:   entries,
-		NextToken: strconv.Itoa(lastPage),
+		Entries: entries,
+	}
+
+	if nextToken > 0 {
+		resp.NextToken = strconv.FormatInt(int64(nextToken), 10)
 	}
 
 	log.WithField("response", resp).Info("volumes listed")
