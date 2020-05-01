@@ -1,5 +1,7 @@
 ## unreleased
 
+* Fix ListVolumes paging
+  [[GH-310]](https://github.com/digitalocean/csi-digitalocean/pull/310)
 * Upgrade Kubernetes dependencies to 1.17
   [[GH-307]](https://github.com/digitalocean/csi-digitalocean/pull/307)
 * Add initContainer to delete automount udev rule file
