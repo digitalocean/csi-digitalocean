@@ -54,7 +54,7 @@ var (
 	errTokenMissing = errors.New("token must be specified in DIGITALOCEAN_ACCESS_TOKEN environment variable")
 
 	// De-facto global variables that require initialization at runtime.
-	supportedKubernetesVersions     = []string{"1.16", "1.15", "1.14"}
+	supportedKubernetesVersions     = []string{"1.17", "1.16", "1.15", "1.14"}
 	sourceFileDir                   string
 	testdriverDirectoryAbsolutePath string
 	deployScriptPath                string
@@ -65,17 +65,19 @@ var (
 )
 
 type params struct {
-	long           bool
-	driverImage    string
-	runnerImage    string
-	focus          string
-	kubeconfig     string
-	nameSuffix     string
-	retainClusters bool
-	kubeVersions   []string
-	skipParallel   bool
-	skipSequential bool
-	ginkgoNodes    int
+	long              bool
+	driverImage       string
+	runnerImage       string
+	runnerKubeVersion string
+	testdriver        string
+	focus             string
+	kubeconfig        string
+	nameSuffix        string
+	retainClusters    bool
+	kubeVersions      []string
+	skipParallel      bool
+	skipSequential    bool
+	ginkgoNodes       int
 }
 
 func init() {
@@ -150,6 +152,8 @@ func TestMain(m *testing.M) {
 	flag.BoolVar(&p.long, "long", false, "Run long tests")
 	flag.StringVar(&p.driverImage, "driver-image", "", "The driver container image to use. Triggers a deployment of the \"latest\"-suffixed development manifest into the cluster if given. Otherwise, the built-in driver of the cluster is used.")
 	flag.StringVar(&p.runnerImage, "runner-image", testRunnerImage, "The end-to-end runner image to use.")
+	flag.StringVar(&p.runnerKubeVersion, "runner-kube-version", "", "The Kubernetes version of the E2E tests to use. If not specified, use version matching the given Kubernetes version")
+	flag.StringVar(&p.testdriver, "testdriver", "", "The testdriver base to use. If not specified, it will be derived from the given Kubernetes version")
 	flag.StringVar(&p.focus, "focus", "", "A custom ginkgo focus to use for external storage tests. Defaults to running all external tests.")
 	flag.StringVar(&p.kubeconfig, "kubeconfig", "", "The kubeconfig file to use. For DOKS clusters where the kubeconfig has been retrieved via doctl, the DIGITALOCEAN_ACCESS_TOKEN environment variable must be set. If not specified, add-hoc DOKS clusters will be created and cleaned up afterwards for each tested Kubernetes version (unless the test failed and -retain is specified).")
 	flag.StringVar(&p.nameSuffix, "name-suffix", "", "A suffix to append to the cluster name. If not specified, a random suffix will be chosen. Ignored if -kubeconfig is specified.")
@@ -192,23 +196,27 @@ func TestE2E(t *testing.T) {
 
 	for _, kubeVer := range p.kubeVersions {
 		t.Run(kubeVer, func(t *testing.T) {
-			var found bool
 			parsedKubeVer, err := semver.ParseTolerant(kubeVer)
 			if err != nil {
 				t.Fatalf("failed to parse Kubernetes version %q: %s", kubeVer, err)
 			}
+
 			majorMinorVer := fmt.Sprintf("%d.%d", parsedKubeVer.Major, parsedKubeVer.Minor)
-			for _, supportedKubeVer := range supportedKubernetesVersions {
-				if majorMinorVer == supportedKubeVer {
-					found = true
-					break
-				}
-			}
-			if !found {
-				t.Fatalf("unsupported Kubernetes version: %s", kubeVer)
+			if !isSupportedKubernetesVersion(majorMinorVer) {
+				t.Fatalf("unsupported Kubernetes version for cluster: %s", kubeVer)
 			}
 
-			testdriverFilename := filepath.Join(testdriverDirectoryAbsolutePath, fmt.Sprintf("%s.yaml", majorMinorVer))
+			if p.runnerKubeVersion == "" {
+				p.runnerKubeVersion = majorMinorVer
+			}
+			if !isSupportedKubernetesVersion(p.runnerKubeVersion) {
+				t.Fatalf("unsupported Kubernetes version for E2E runner: %s", p.runnerKubeVersion)
+			}
+
+			if p.testdriver == "" {
+				p.testdriver = majorMinorVer
+			}
+			testdriverFilename := filepath.Join(testdriverDirectoryAbsolutePath, fmt.Sprintf("%s.yaml", p.testdriver))
 			if _, err := os.Stat(testdriverFilename); os.IsNotExist(err) {
 				t.Fatalf("testdriver file %q does not exist in %q", testdriverFilename, testdriverDirectoryAbsolutePath)
 			}
@@ -268,12 +276,21 @@ func TestE2E(t *testing.T) {
 				}
 			}
 
-			err = runE2ETests(ctx, kubeVer, p.runnerImage, testdriverFilename, p.focus, kubeconfig, token, p.skipParallel, p.skipSequential, p.ginkgoNodes)
+			err = runE2ETests(ctx, p.runnerKubeVersion, p.runnerImage, testdriverFilename, p.focus, kubeconfig, token, p.skipParallel, p.skipSequential, p.ginkgoNodes)
 			if err != nil {
 				t.Fatalf("end-to-end tests failed: %s", err)
 			}
 		})
 	}
+}
+
+func isSupportedKubernetesVersion(majorMinorVer string) bool {
+	for _, supportedKubeVer := range supportedKubernetesVersions {
+		if supportedKubeVer == majorMinorVer {
+			return true
+		}
+	}
+	return false
 }
 
 func createDOClient(ctx context.Context, token string) (client *godo.Client, err error) {
@@ -314,12 +331,41 @@ func createCluster(ctx context.Context, client *godo.Client, nameSuffix, kubeMaj
 			return nil, nil, fmt.Errorf("failed to list clusters: %s", err)
 		}
 
+	ClusterLoop:
 		for _, cluster := range clusters {
 			for _, tag := range cluster.Tags {
 				if tag == versionTag && cluster.Name == clusterName {
 					if err := deleteCluster(ctx, client, cluster.ID); err != nil {
 						return nil, nil, fmt.Errorf("failed to delete previous cluster %s (%s): %s", cluster.ID, cluster.Name, err)
 					}
+
+					pollCtx, cancel := context.WithTimeout(ctx, 3*time.Minute)
+					defer cancel()
+					fmt.Printf("Waiting for previous cluster %s (%s) to be deleted\n", cluster.ID, cluster.Name)
+					err = wait.PollImmediateUntil(5*time.Second, func() (done bool, waitErr error) {
+						c, resp, err := client.Kubernetes.Get(pollCtx, cluster.ID)
+						if err == nil {
+							cluster = c
+							fmt.Printf("Cluster %s (%s) is not yet deleted\n", cluster.ID, cluster.Name)
+							return false, nil
+						}
+
+						if resp != nil {
+							if resp.StatusCode == http.StatusNotFound {
+								return true, nil
+							}
+
+							fmt.Fprintf(os.Stderr, "Transient error while getting cluster %s (%s): %s\n", cluster.Name, cluster.ID, err)
+							return false, nil
+						}
+
+						return false, err
+					}, ctx.Done())
+					if err != nil {
+						return nil, nil, fmt.Errorf("cluster %s (%s) never became deleted -- last status: %s (message: %s): %s", cluster.ID, cluster.Name, cluster.Status.State, cluster.Status.Message, err)
+					}
+					fmt.Printf("Cluster %s (%s) has been deleted\n", cluster.ID, cluster.Name)
+					break ClusterLoop
 				}
 			}
 		}
@@ -341,7 +387,7 @@ func createCluster(ctx context.Context, client *godo.Client, nameSuffix, kubeMaj
 		VersionSlug: versionSlug,
 		Tags:        []string{"csi-e2e-test", versionTag},
 		NodePools: []*godo.KubernetesNodePoolCreateRequest{
-			&godo.KubernetesNodePoolCreateRequest{
+			{
 				Name:  clusterName + "-pool",
 				Size:  "s-4vcpu-8gb",
 				Count: 3,
@@ -349,7 +395,7 @@ func createCluster(ctx context.Context, client *godo.Client, nameSuffix, kubeMaj
 		},
 	})
 	if err != nil {
-		return nil, nil, fmt.Errorf("failed to create cluster: %s", err)
+		return nil, nil, fmt.Errorf("failed to create cluster %s: %s", clusterName, err)
 	}
 	fmt.Printf("Created cluster %s (%s) (response code: %d)\n", cluster.ID, cluster.Name, resp.StatusCode)
 
@@ -362,12 +408,13 @@ func createCluster(ctx context.Context, client *godo.Client, nameSuffix, kubeMaj
 		return nil
 	}
 
-	pollCtx, cancel := context.WithTimeout(ctx, 10*time.Minute)
+	pollCtx, cancel := context.WithTimeout(ctx, 15*time.Minute)
 	defer cancel()
 	fmt.Printf("Waiting for cluster %s (%s) to become running\n", cluster.ID, cluster.Name)
 	err = wait.PollUntil(10*time.Second, func() (done bool, waitErr error) {
 		c, resp, err := client.Kubernetes.Get(pollCtx, cluster.ID)
 		if err != nil {
+			fmt.Fprintf(os.Stderr, "Transient error while getting cluster %s (%s): %s\n", cluster.Name, cluster.ID, err)
 			if resp != nil && resp.StatusCode >= 500 {
 				return false, nil
 			}

@@ -27,6 +27,16 @@ RUN apt-get update && \
 RUN mkdir -p /go/src/k8s.io
 WORKDIR /go/src/k8s.io
 
+### Kubernetes 1.17
+FROM builder AS tests-1.17
+ARG SHA_1_17=0634ed8
+
+RUN git clone --depth 1 --branch do-doks-1.17 https://github.com/digitalocean/kubernetes.git
+RUN cd kubernetes && \
+    git checkout ${SHA_1_17} && \
+    make WHAT=test/e2e/e2e.test && \
+    cp _output/bin/e2e.test /e2e.1.17.test
+
 ### Kubernetes 1.16
 FROM builder AS tests-1.16
 ARG SHA_1_16=c9bc6a0
@@ -67,7 +77,7 @@ ARG DOCTL_VERSION=1.36.0
 # ginkgo is needed to run the upstream end-to-end tests.
 ARG GINKGO_VERSION=1.10.3
 # kubectl is needed by some tests.
-ARG KUBECTL_VERSION=1.16.3
+ARG KUBECTL_VERSION=1.17.5
 
 RUN curl --fail --location --output /tini https://github.com/krallin/tini/releases/download/v${TINI_VERSION}/tini
 RUN chmod u+x /tini
@@ -87,6 +97,7 @@ FROM bitnami/minideb:buster AS runtime
 # Certificates needed to trust the CA for any HTTPS connections to the DO API.
 RUN apt-get update && \
     DEBIAN_FRONTEND=noninteractive apt-get install --yes --no-install-recommends ca-certificates
+COPY --from=tests-1.17 /e2e.1.17.test /
 COPY --from=tests-1.16 /e2e.1.16.test /
 COPY --from=tests-1.15 /e2e.1.15.test /
 COPY --from=tests-1.14 /e2e.1.14.test /

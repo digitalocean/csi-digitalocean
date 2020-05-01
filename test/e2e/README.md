@@ -59,16 +59,30 @@ Command-line arguments are passed as-in to the test tool. Run `e2e.sh -h` for us
 ### Run the end-to-end tests
 
 1. If necessary, update the test runner image (see below for instructions)
-2. If necessary, add or update the testdriver file definitions (see the [related section above](#testdrivers) for details)
-3. Execute `e2e.sh`, passing in parameters as needed
+1. If necessary, add or update the testdriver file definitions (see the [related section above](#testdrivers) for details)
+1. Execute `e2e.sh`, passing in parameters as needed
 
-### Update the test runner image
+### Update an existing test runner image
 
 1. Make and push any necessary updates to our Kubernetes fork
-2. If the fork was updated: Update the `SHA_*` build argument(s) in the Dockerfile to point to the new commit hash(es)
-3. Run `handle-image.sh build`
-4. Run `handle-image.sh push`
+1. If the fork was updated: Update the `SHA_*` build argument(s) in the runner image Dockerfile to point to the new commit hash(es)
+1. Add the build argument
 
-For testing purposes, you may also overwrite a commit hash on-the-fly by defining the corresponding environment variable(s) `SHA_*`, e.g.: `SHA_1_16=deadbeef ./handle-image.sh build`.
+### Add support for a new Kubernetes release
+
+1. Make and push any necessary updates to our Kubernetes fork
+1. Add a new Kubernetes version-specific block to the runner image Dockerfile; make sure to update the `SHA_*` variable as well
+1. Update the kubectl version in the test runner Dockerfile
+1. Update the Makefile `runner-build` and `runner-push` targets
+1. Extend the `SHA_*` variables in the `handle-images.sh` script
+1. Add a new testdriver YAML configuration file
+1. Extend the list of supported Kubernetes releases in `e2e_test.go`
+1. Extend the list of tested Kubernetes releases in `.github/workflows/test.yaml`
+
+### handle-image.sh
+
+The `handle-image.sh` script can be used to either `build` or `push` a runner image. It should only be needed for testing images hosted on a personal Docker Hub account because the CI manages the canonical images under the `digitalocean` organization.
+
+You may also overwrite a commit hash on-the-fly by defining the corresponding environment variable(s) `SHA_*`, e.g.: `SHA_1_16=deadbeef ./handle-image.sh build`.
 
 The image to be built may be overwritten by defining the `IMAGE` variable, e.g.: `IMAGE=timoreimann/k8s-e2e-test-runner ./handle-image.sh build`.
