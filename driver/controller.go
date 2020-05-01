@@ -812,118 +812,34 @@ func (d *Driver) ListSnapshots(ctx context.Context, req *csi.ListSnapshotsReques
 			}
 		}
 	} else {
-		// Paginate through snapshots and return results.
-
-		// Pagination is controlled by two request parameters:
-		// MaxEntries indicates how many entries should be returned at most. If
-		// more results are available, we must return a NextToken value
-		// indicating the index for the next snapshot to request.
-		// StartingToken defines the index of the first snapshot to return.
-		// The CSI request parameters are defined in terms of number of
-		// snapshots, not pages. It is up to the driver to translate the
-		// parameters into paged requests accordingly.
-
-		var (
-			startingToken         int32
-			originalStartingToken int32
-		)
+		var startingToken int32
 		if req.StartingToken != "" {
 			parsedToken, err := strconv.ParseInt(req.StartingToken, 10, 32)
 			if err != nil {
 				return nil, status.Errorf(codes.Aborted, "ListSnapshots starting token %q is not valid: %s", req.StartingToken, err)
 			}
 			startingToken = int32(parsedToken)
-			originalStartingToken = startingToken
 		}
 
-		// Fetch snapshots until we have either collected req.MaxEntries (if
-		// positive) or all available ones, whichever comes first.
-		listOpts := &godo.ListOptions{
-			Page:    1,
-			PerPage: int(req.MaxEntries),
-		}
-		if req.MaxEntries > 0 {
-			// MaxEntries also defines the page size so that we can skip over
-			// snapshots before the StartingToken and minimize the number of
-			// paged requests we need.
-			listOpts.Page = int(startingToken/req.MaxEntries) + 1
-			// Offset StartingToken to skip snapshots we do not want. This is
-			// needed when MaxEntries does not divide StartingToken without
-			// remainder.
-			startingToken = startingToken % req.MaxEntries
-		}
+		untypedSnapshots, nextToken, err := listResources(ctx, log, startingToken, req.MaxEntries, func(ctx context.Context, listOpts *godo.ListOptions) ([]interface{}, *godo.Response, error) {
+			snapshots, resp, err := d.snapshots.ListVolume(ctx, listOpts)
+			if err != nil {
+				return nil, resp, err
+			}
 
-		log = log.WithFields(logrus.Fields{
-			"page":                    listOpts.Page,
-			"computed_starting_token": startingToken,
+			untypedSnapshots := make([]interface{}, 0, len(snapshots))
+			for _, snap := range snapshots {
+				untypedSnapshots = append(untypedSnapshots, snap)
+			}
+			return untypedSnapshots, resp, err
 		})
-
-		var (
-			// remainingEntries keeps track of how much room is left to return
-			// as many as MaxEntries snapshots.
-			remainingEntries int = int(req.MaxEntries)
-			// hasMore indicates if NextToken must be set.
-			hasMore   bool
-			snapshots []godo.Snapshot
-		)
-		for {
-			hasMore = false
-			snaps, resp, err := d.snapshots.ListVolume(ctx, listOpts)
-			if err != nil {
-				return nil, status.Errorf(codes.Internal, "ListSnapshots listing volume snapshots has failed: %s", err)
-			}
-
-			// Skip pre-StartingToken snapshots. This is required on the first
-			// page at most.
-			if startingToken > 0 {
-				if startingToken > int32(len(snaps)) {
-					startingToken = int32(len(snaps))
-				} else {
-					startingToken--
-				}
-				snaps = snaps[startingToken:]
-			}
-			startingToken = 0
-
-			// Do not return more than MaxEntries across pages.
-			if req.MaxEntries > 0 && len(snaps) > remainingEntries {
-				snaps = snaps[:remainingEntries]
-				hasMore = true
-			}
-
-			snapshots = append(snapshots, snaps...)
-			remainingEntries -= len(snaps)
-
-			isLastPage := resp.Links == nil || resp.Links.IsLastPage()
-			hasMore = hasMore || !isLastPage
-
-			// Stop paging if we have used up all of MaxEntries.
-			if req.MaxEntries > 0 && remainingEntries == 0 {
-				break
-			}
-
-			if isLastPage {
-				break
-			}
-
-			page, err := resp.Links.CurrentPage()
-			if err != nil {
-				return nil, err
-			}
-
-			listOpts.Page = page + 1
+		if err != nil {
+			return nil, fmt.Errorf("ListSnapshots failed to list resources: %w", err)
 		}
 
-		var nextToken int32
-		if hasMore {
-			// Compute NextToken, which is at least StartingToken plus
-			// MaxEntries. If StartingToken was zero, we need to add one because
-			// StartingToken defines the n-th snapshot we want but is not
-			// zero-based.
-			nextToken = originalStartingToken + req.MaxEntries
-			if originalStartingToken == 0 {
-				nextToken++
-			}
+		snapshots := make([]godo.Snapshot, 0, len(untypedSnapshots))
+		for _, untypedSnapshot := range untypedSnapshots {
+			snapshots = append(snapshots, untypedSnapshot.(godo.Snapshot))
 		}
 
 		entries := make([]*csi.ListSnapshotsResponse_Entry, 0, len(snapshots))
