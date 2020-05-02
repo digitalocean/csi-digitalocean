@@ -520,67 +520,45 @@ func (d *Driver) ValidateVolumeCapabilities(ctx context.Context, req *csi.Valida
 
 // ListVolumes returns a list of all requested volumes
 func (d *Driver) ListVolumes(ctx context.Context, req *csi.ListVolumesRequest) (*csi.ListVolumesResponse, error) {
-	var page int
-	var err error
-	if req.StartingToken != "" {
-		page, err = strconv.Atoi(req.StartingToken)
-		if err != nil {
-			return nil, status.Errorf(codes.Aborted, "starting_token is invalid: %s", err)
-		}
-	}
-
-	listOpts := &godo.ListVolumeParams{
-		ListOptions: &godo.ListOptions{
-			PerPage: int(req.MaxEntries),
-			Page:    page,
-		},
-		Region: d.region,
-	}
-
 	log := d.log.WithFields(logrus.Fields{
-		"list_opts":          listOpts,
+		"max_entries":        req.MaxEntries,
 		"req_starting_token": req.StartingToken,
 		"method":             "list_volumes",
 	})
 	log.Info("list volumes called")
 
-	var volumes []godo.Volume
-	lastPage := 0
-	for {
-		vols, resp, err := d.storage.ListVolumes(ctx, listOpts)
+	var startingToken int32
+	if req.StartingToken != "" {
+		parsedToken, err := strconv.ParseInt(req.StartingToken, 10, 32)
 		if err != nil {
-			return nil, err
+			return nil, status.Errorf(codes.Aborted, "ListVolumes starting token %q is not valid: %s", req.StartingToken, err)
 		}
+		startingToken = int32(parsedToken)
+	}
 
-		volumes = append(volumes, vols...)
-
-		if page > len(volumes) {
-			return nil, status.Error(codes.Aborted, "starting_token is is greater than total number of vols")
+	untypedVolumes, nextToken, err := listResources(ctx, log, startingToken, req.MaxEntries, func(ctx context.Context, listOpts *godo.ListOptions) ([]interface{}, *godo.Response, error) {
+		volListOpts := &godo.ListVolumeParams{
+			ListOptions: listOpts,
+			Region:      d.region,
 		}
-
-		if len(volumes) == int(req.MaxEntries) {
-			lastPage = int(req.MaxEntries)
-			break
-		}
-
-		if resp.Links == nil || resp.Links.IsLastPage() {
-			if resp.Links != nil {
-				page, err := resp.Links.CurrentPage()
-				if err != nil {
-					return nil, err
-				}
-				// save this for the response
-				lastPage = page
-			}
-			break
-		}
-
-		page, err := resp.Links.CurrentPage()
+		volumes, resp, err := d.storage.ListVolumes(ctx, volListOpts)
 		if err != nil {
-			return nil, err
+			return nil, resp, err
 		}
 
-		listOpts.ListOptions.Page = page + 1
+		untypedVolumes := make([]interface{}, 0, len(volumes))
+		for _, volume := range volumes {
+			untypedVolumes = append(untypedVolumes, volume)
+		}
+		return untypedVolumes, resp, err
+	})
+	if err != nil {
+		return nil, fmt.Errorf("ListVolumes failed to list resources: %w", err)
+	}
+
+	volumes := make([]godo.Volume, 0, len(untypedVolumes))
+	for _, untypedVolume := range untypedVolumes {
+		volumes = append(volumes, untypedVolume.(godo.Volume))
 	}
 
 	var entries []*csi.ListVolumesResponse_Entry
@@ -593,10 +571,12 @@ func (d *Driver) ListVolumes(ctx context.Context, req *csi.ListVolumesRequest) (
 		})
 	}
 
-	// TODO(arslan): check that the NextToken logic works fine, might be racy
 	resp := &csi.ListVolumesResponse{
-		Entries:   entries,
-		NextToken: strconv.Itoa(lastPage),
+		Entries: entries,
+	}
+
+	if nextToken > 0 {
+		resp.NextToken = strconv.FormatInt(int64(nextToken), 10)
 	}
 
 	log.WithField("response", resp).Info("volumes listed")
@@ -812,118 +792,34 @@ func (d *Driver) ListSnapshots(ctx context.Context, req *csi.ListSnapshotsReques
 			}
 		}
 	} else {
-		// Paginate through snapshots and return results.
-
-		// Pagination is controlled by two request parameters:
-		// MaxEntries indicates how many entries should be returned at most. If
-		// more results are available, we must return a NextToken value
-		// indicating the index for the next snapshot to request.
-		// StartingToken defines the index of the first snapshot to return.
-		// The CSI request parameters are defined in terms of number of
-		// snapshots, not pages. It is up to the driver to translate the
-		// parameters into paged requests accordingly.
-
-		var (
-			startingToken         int32
-			originalStartingToken int32
-		)
+		var startingToken int32
 		if req.StartingToken != "" {
 			parsedToken, err := strconv.ParseInt(req.StartingToken, 10, 32)
 			if err != nil {
 				return nil, status.Errorf(codes.Aborted, "ListSnapshots starting token %q is not valid: %s", req.StartingToken, err)
 			}
 			startingToken = int32(parsedToken)
-			originalStartingToken = startingToken
 		}
 
-		// Fetch snapshots until we have either collected req.MaxEntries (if
-		// positive) or all available ones, whichever comes first.
-		listOpts := &godo.ListOptions{
-			Page:    1,
-			PerPage: int(req.MaxEntries),
-		}
-		if req.MaxEntries > 0 {
-			// MaxEntries also defines the page size so that we can skip over
-			// snapshots before the StartingToken and minimize the number of
-			// paged requests we need.
-			listOpts.Page = int(startingToken/req.MaxEntries) + 1
-			// Offset StartingToken to skip snapshots we do not want. This is
-			// needed when MaxEntries does not divide StartingToken without
-			// remainder.
-			startingToken = startingToken % req.MaxEntries
-		}
+		untypedSnapshots, nextToken, err := listResources(ctx, log, startingToken, req.MaxEntries, func(ctx context.Context, listOpts *godo.ListOptions) ([]interface{}, *godo.Response, error) {
+			snapshots, resp, err := d.snapshots.ListVolume(ctx, listOpts)
+			if err != nil {
+				return nil, resp, err
+			}
 
-		log = log.WithFields(logrus.Fields{
-			"page":                    listOpts.Page,
-			"computed_starting_token": startingToken,
+			untypedSnapshots := make([]interface{}, 0, len(snapshots))
+			for _, snap := range snapshots {
+				untypedSnapshots = append(untypedSnapshots, snap)
+			}
+			return untypedSnapshots, resp, err
 		})
-
-		var (
-			// remainingEntries keeps track of how much room is left to return
-			// as many as MaxEntries snapshots.
-			remainingEntries int = int(req.MaxEntries)
-			// hasMore indicates if NextToken must be set.
-			hasMore   bool
-			snapshots []godo.Snapshot
-		)
-		for {
-			hasMore = false
-			snaps, resp, err := d.snapshots.ListVolume(ctx, listOpts)
-			if err != nil {
-				return nil, status.Errorf(codes.Internal, "ListSnapshots listing volume snapshots has failed: %s", err)
-			}
-
-			// Skip pre-StartingToken snapshots. This is required on the first
-			// page at most.
-			if startingToken > 0 {
-				if startingToken > int32(len(snaps)) {
-					startingToken = int32(len(snaps))
-				} else {
-					startingToken--
-				}
-				snaps = snaps[startingToken:]
-			}
-			startingToken = 0
-
-			// Do not return more than MaxEntries across pages.
-			if req.MaxEntries > 0 && len(snaps) > remainingEntries {
-				snaps = snaps[:remainingEntries]
-				hasMore = true
-			}
-
-			snapshots = append(snapshots, snaps...)
-			remainingEntries -= len(snaps)
-
-			isLastPage := resp.Links == nil || resp.Links.IsLastPage()
-			hasMore = hasMore || !isLastPage
-
-			// Stop paging if we have used up all of MaxEntries.
-			if req.MaxEntries > 0 && remainingEntries == 0 {
-				break
-			}
-
-			if isLastPage {
-				break
-			}
-
-			page, err := resp.Links.CurrentPage()
-			if err != nil {
-				return nil, err
-			}
-
-			listOpts.Page = page + 1
+		if err != nil {
+			return nil, fmt.Errorf("ListSnapshots failed to list resources: %w", err)
 		}
 
-		var nextToken int32
-		if hasMore {
-			// Compute NextToken, which is at least StartingToken plus
-			// MaxEntries. If StartingToken was zero, we need to add one because
-			// StartingToken defines the n-th snapshot we want but is not
-			// zero-based.
-			nextToken = originalStartingToken + req.MaxEntries
-			if originalStartingToken == 0 {
-				nextToken++
-			}
+		snapshots := make([]godo.Snapshot, 0, len(untypedSnapshots))
+		for _, untypedSnapshot := range untypedSnapshots {
+			snapshots = append(snapshots, untypedSnapshot.(godo.Snapshot))
 		}
 
 		entries := make([]*csi.ListSnapshotsResponse_Entry, 0, len(snapshots))
