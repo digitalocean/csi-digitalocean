@@ -20,7 +20,7 @@ DriverInfo:
   Name: dobs.csi.digitalocean.com-dev
   Capabilities:
     persistence: false
-    block: false
+    block: true
     fsGroup: false
     exec: false
     snapshotDataSource: true
