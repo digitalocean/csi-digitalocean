@@ -1,5 +1,7 @@
 ## unreleased
 
+## v1.3.0 - 2020.05.05
+
 * Fix ListVolumes paging
   [[GH-310]](https://github.com/digitalocean/csi-digitalocean/pull/310)
 * Upgrade Kubernetes dependencies to 1.17
