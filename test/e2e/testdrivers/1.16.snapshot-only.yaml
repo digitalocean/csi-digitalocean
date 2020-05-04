@@ -19,15 +19,15 @@ SnapshotClass:
 DriverInfo:
   Name: dobs.csi.digitalocean.com-dev
   Capabilities:
-    persistence: false
+    persistence: true
     block: true
-    fsGroup: false
+    fsGroup: true
     exec: false
     snapshotDataSource: true
-    multipods: false
+    multipods: true
     controllerExpansion: false
     nodeExpansion: false
     volumeLimits: false
-    singleNodeVolume: false
+    singleNodeVolume: true
   SupportedFsType:
     ext4:

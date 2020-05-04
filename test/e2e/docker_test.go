@@ -47,6 +47,8 @@ type containerParams struct {
 // container under the same name is deleted first and tries to ensure that the
 // running container is removed after exection. Stdout/stderr is shown during
 // the execution of the container.
+// It returns an error when the container startup or cleanup fails, or when the
+// container returns a non-zero exit code.
 func runContainer(ctx context.Context, p containerParams) (retErr error) {
 	cli, err := client.NewEnvClient()
 	if err != nil {
@@ -194,11 +196,15 @@ Summaries:
 	}()
 
 	// Wait for container completion.
-	_, err = cli.ContainerWait(ctx, cont.ID)
+	statusCode, err := cli.ContainerWait(ctx, cont.ID)
 	if err != nil {
 		return fmt.Errorf("failed to wait for container: %s", err)
 	}
 	isDeleted = true
+
+	if statusCode != 0 {
+		return fmt.Errorf("container exited with code %d", statusCode)
+	}
 
 	return nil
 }

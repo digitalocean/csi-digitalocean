@@ -473,7 +473,7 @@ func deployDriver(ctx context.Context, driverImage string, kubeconfigFile, token
 // runE2ETests invokes our test container.
 // It passes in bind-mount parameters for the kubeconfig and the location of the
 // testdriver YAML files.
-func runE2ETests(ctx context.Context, kubeVersion, runnerImage, testdriverFilename, focus, kubeconfigFile, token string, skipParallel, skipSequential bool, ginkgoNodes int) (retErr error) {
+func runE2ETests(ctx context.Context, kubeVersion, runnerImage, testdriverFilename, focus, kubeconfigFile, token string, skipParallel, skipSequential bool, ginkgoNodes int) error {
 	testdriverDirectoryInContainer := "/testdrivers"
 	testdriverFilenameInContainer := filepath.Join(testdriverDirectoryInContainer, filepath.Base(testdriverFilename))
 
