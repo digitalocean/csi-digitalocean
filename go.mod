@@ -11,7 +11,7 @@ require (
 	github.com/google/go-cmp v0.3.0
 	github.com/googleapis/gnostic v0.2.0 // indirect
 	github.com/imdario/mergo v0.3.6 // indirect
-	github.com/kubernetes-csi/csi-test/v3 v3.1.1-0.20200422103951-b91f2543e6e7
+	github.com/kubernetes-csi/csi-test/v3 v3.1.1
 	github.com/kubernetes-csi/external-snapshotter v0.4.1
 	github.com/magiconair/properties v1.8.1
 	github.com/sirupsen/logrus v1.4.2
