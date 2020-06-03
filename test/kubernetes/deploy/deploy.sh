@@ -16,6 +16,7 @@
 
 set -euo pipefail
 
+SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 readonly DEFAULT_PLUGIN_IMAGE='digitalocean/do-csi-plugin:dev'
 
 YES=
@@ -58,17 +59,37 @@ fi
 kubectl -n kube-system create secret generic digitalocean --from-literal="access-token=${DIGITALOCEAN_ACCESS_TOKEN}" --dry-run -o yaml |
     kubectl apply -f -
 
+# Delete alpha snapshots if found.
+if kubectl api-versions | grep -q snapshot.storage.k8s.io/v1alpha1; then
+    kubectl delete crd volumesnapshotclasses.snapshot.storage.k8s.io volumesnapshotcontents.snapshot.storage.k8s.io volumesnapshots.snapshot.storage.k8s.io
+fi
+
 # Configure kustomize to use the specified dev image (default to the one created
 # by `VERSION=dev make publish`).
 : "${DEV_IMAGE:=$DEFAULT_PLUGIN_IMAGE}"
+(
+cd "${SCRIPT_DIR}"
 kustomize edit set image digitalocean/do-csi-plugin="${DEV_IMAGE}"
 # Undo any image updates done to kustomization.yaml to prevent git pollution.
 # shellcheck disable=SC2064
 trap "kustomize edit set image digitalocean/do-csi-plugin=$DEFAULT_PLUGIN_IMAGE" EXIT
 
+# Apply the CRDs.
+kubectl apply -f "${SCRIPT_DIR}/../../../deploy/kubernetes/releases/csi-digitalocean-latest/crds.yaml"
+
+echo -n 'Waiting for CRDs to become established'
+while [[ $(kubectl get crd volumesnapshotclasses.snapshot.storage.k8s.io -o jsonpath='{.status.conditions[?(@.type == "Established")].status}') != "True" ]]; do
+    echo -n '.'
+    sleep 2
+done
+echo
+
 # Apply the customization to the dev manifest, and apply it to the cluster.
 kustomize build . --load_restrictor none | kubectl apply -f -
+)
+kubectl apply -f "${SCRIPT_DIR}/../../../deploy/kubernetes/releases/csi-digitalocean-latest/snapshot-controller.yaml"
 # Wait for the deployment to complete.
 kubectl -n kube-system wait --timeout=5m --for=condition=Ready pod -l app=csi-do-controller-dev
 kubectl -n kube-system wait --timeout=5m --for=condition=Ready pod -l app=csi-do-node-dev
+kubectl -n kube-system wait --timeout=5m --for=condition=Ready pod -l app=snapshot-controller
 kubectl -n kube-system get all

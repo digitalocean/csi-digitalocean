@@ -1,6 +1,8 @@
-# Deploying and Testing a Development Version
+# Deploying a Development Version Manually
 
-The most convenient way to test changes to csi-digitalocean is on a
+For most tasks, the [e2e test shell wrapper](/test/e2e) should be used to run tests. It leverages the deploy script described below which can also be invoked manually.
+
+The best way to test changes to csi-digitalocean is on a
 [DigitalOcean Kubernetes (DOKS)](https://www.digitalocean.com/products/kubernetes/)
 cluster. However, since DOKS clusters run the DigitalOcean CSI controller as a
 managed component that cannot be modified by the user, deploying with the
@@ -32,17 +34,6 @@ To test a development version on a DOKS cluster, do the following:
    ```
 
    (You can also pass `-y` or `--yes` as a parameter to `deploy.sh` to skip the prompt.)
-
-4. Run the integration tests from the repository root specifying a DigitalOcean API token
-   against the dev storage class:
-
-   ```shell
-   CSI_DIGITALOCEAN_ACCESS_TOKEN=aa823a5a07d5aa7c TEST_STORAGE_CLASS=do-block-storage-dev make test-integration
-   ```
-
-   **Note:** If the `CSI_DIGITALOCEAN_ACCESS_TOKEN` environment variable does not specify
-   a token, the standard `DIGITALOCEAN_ACCESS_TOKEN` environment variable will be tried before
-   returning an error.
 
 ## Alternative Image Locations
 

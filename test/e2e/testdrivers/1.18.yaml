@@ -15,7 +15,7 @@
 StorageClass:
   FromName: true
 SnapshotClass:
-   FromName: true
+  FromName: true
 DriverInfo:
   Name: dobs.csi.digitalocean.com-dev
   SupportedSizeRange:
@@ -27,6 +27,7 @@ DriverInfo:
     fsGroup: true
     exec: true
     snapshotDataSource: true
+    pvcDataSource: false
     multipods: true
     controllerExpansion: true
     nodeExpansion: true
