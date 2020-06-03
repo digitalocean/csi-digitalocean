@@ -77,7 +77,9 @@ Snapshots can be created and restored through `VolumeSnapshot` objects.
 ---
 **Note:**
 
-Since version 2, the CSI plugin support v1beta1 Volume Snapshots only. Support for the v1alpha1 has been dropped. Users that intend to migrate need to remove all v1alpha1 Volume Snapshot CRDs before installing the v1beta1 CRDs.
+Since version 2, the CSI plugin support v1beta1 Volume Snapshots only. Support for the v1alpha1 has been dropped.
+
+Users that want to migrate their v1alpha1 Volume Snapshots into a v1beta1 cluster can leverage [this migration tool](/cmd/migrate-snapshots). (For DOKS customers, the migration will be applied automatically during cluster upgrades.)
 
 ---
 
