@@ -78,6 +78,7 @@ Command-line arguments are passed as-in to the test tool. Run `e2e.sh -h` for us
 1. Add a new testdriver YAML configuration file
 1. Extend the list of supported Kubernetes releases in `e2e_test.go`
 1. Extend the list of tested Kubernetes releases in `.github/workflows/test.yaml`
+1. Extend the list of deleted container images in `.github/workflows/delete.yaml`
 
 ### handle-image.sh
 
