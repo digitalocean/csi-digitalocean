@@ -1,5 +1,6 @@
-# github.com/Microsoft/go-winio v0.4.11
+# github.com/Microsoft/go-winio v0.4.14
 github.com/Microsoft/go-winio
+github.com/Microsoft/go-winio/pkg/guid
 # github.com/blang/semver v3.5.1+incompatible
 ## explicit
 github.com/blang/semver
@@ -41,7 +42,7 @@ github.com/docker/go-connections/sockets
 github.com/docker/go-connections/tlsconfig
 # github.com/docker/go-units v0.4.0
 github.com/docker/go-units
-# github.com/gogo/protobuf v1.2.2-0.20190723190241-65acae22fc9d
+# github.com/gogo/protobuf v1.3.1
 github.com/gogo/protobuf/proto
 github.com/gogo/protobuf/sortkeys
 # github.com/golang/groupcache v0.0.0-20181024230925-c65c006176ff
@@ -64,7 +65,7 @@ github.com/google/go-cmp/cmp/internal/function
 github.com/google/go-cmp/cmp/internal/value
 # github.com/google/go-querystring v1.0.0
 github.com/google/go-querystring/query
-# github.com/google/gofuzz v1.0.0
+# github.com/google/gofuzz v1.1.0
 github.com/google/gofuzz
 # github.com/google/uuid v1.1.1
 github.com/google/uuid
@@ -106,7 +107,7 @@ github.com/magiconair/properties/assert
 github.com/modern-go/concurrent
 # github.com/modern-go/reflect2 v1.0.1
 github.com/modern-go/reflect2
-# github.com/onsi/ginkgo v1.10.3
+# github.com/onsi/ginkgo v1.11.0
 github.com/onsi/ginkgo
 github.com/onsi/ginkgo/config
 github.com/onsi/ginkgo/internal/codelocation
@@ -207,9 +208,10 @@ google.golang.org/appengine/internal/urlfetch
 google.golang.org/appengine/urlfetch
 # google.golang.org/genproto v0.0.0-20191114150713-6bbd007550de
 google.golang.org/genproto/googleapis/rpc/status
-# google.golang.org/grpc v1.25.1
+# google.golang.org/grpc v1.26.0
 ## explicit
 google.golang.org/grpc
+google.golang.org/grpc/attributes
 google.golang.org/grpc/backoff
 google.golang.org/grpc/balancer
 google.golang.org/grpc/balancer/base
@@ -252,7 +254,7 @@ gopkg.in/inf.v0
 gopkg.in/tomb.v1
 # gopkg.in/yaml.v2 v2.2.8
 gopkg.in/yaml.v2
-# k8s.io/api v0.17.5 => k8s.io/api v0.17.5
+# k8s.io/api v0.18.3 => k8s.io/api v0.18.3
 ## explicit
 k8s.io/api/admissionregistration/v1
 k8s.io/api/admissionregistration/v1beta1
@@ -294,7 +296,7 @@ k8s.io/api/settings/v1alpha1
 k8s.io/api/storage/v1
 k8s.io/api/storage/v1alpha1
 k8s.io/api/storage/v1beta1
-# k8s.io/apimachinery v0.17.5 => k8s.io/apimachinery v0.17.6-beta.0
+# k8s.io/apimachinery v0.18.3 => k8s.io/apimachinery v0.18.4-rc.0
 ## explicit
 k8s.io/apimachinery/pkg/api/errors
 k8s.io/apimachinery/pkg/api/meta
@@ -336,7 +338,7 @@ k8s.io/apimachinery/pkg/util/yaml
 k8s.io/apimachinery/pkg/version
 k8s.io/apimachinery/pkg/watch
 k8s.io/apimachinery/third_party/forked/golang/reflect
-# k8s.io/client-go v0.17.5 => k8s.io/client-go v0.17.5
+# k8s.io/client-go v0.18.3 => k8s.io/client-go v0.18.3
 ## explicit
 k8s.io/client-go/discovery
 k8s.io/client-go/kubernetes
@@ -403,13 +405,13 @@ k8s.io/client-go/util/connrotation
 k8s.io/client-go/util/flowcontrol
 k8s.io/client-go/util/homedir
 k8s.io/client-go/util/keyutil
-k8s.io/client-go/util/retry
+k8s.io/client-go/util/workqueue
 # k8s.io/klog v1.0.0
 k8s.io/klog
-# k8s.io/kubernetes v1.16.2 => k8s.io/kubernetes v1.17.5
+# k8s.io/kubernetes v1.16.2 => k8s.io/kubernetes v1.18.3
 ## explicit
 k8s.io/kubernetes/pkg/util/resizefs
-# k8s.io/utils v0.0.0-20191218082557-f07c713de883
+# k8s.io/utils v0.0.0-20200324210504-a9aa75ae1b89
 ## explicit
 k8s.io/utils/buffer
 k8s.io/utils/exec
@@ -419,31 +421,33 @@ k8s.io/utils/keymutex
 k8s.io/utils/mount
 k8s.io/utils/path
 k8s.io/utils/trace
-# sigs.k8s.io/yaml v1.1.0
+# sigs.k8s.io/structured-merge-diff/v3 v3.0.0
+sigs.k8s.io/structured-merge-diff/v3/value
+# sigs.k8s.io/yaml v1.2.0
 sigs.k8s.io/yaml
-# k8s.io/api => k8s.io/api v0.17.5
-# k8s.io/apiextensions-apiserver => k8s.io/apiextensions-apiserver v0.17.5
-# k8s.io/apimachinery => k8s.io/apimachinery v0.17.6-beta.0
-# k8s.io/apiserver => k8s.io/apiserver v0.17.5
-# k8s.io/cli-runtime => k8s.io/cli-runtime v0.17.5
-# k8s.io/client-go => k8s.io/client-go v0.17.5
-# k8s.io/cloud-provider => k8s.io/cloud-provider v0.17.5
-# k8s.io/cluster-bootstrap => k8s.io/cluster-bootstrap v0.17.5
-# k8s.io/code-generator => k8s.io/code-generator v0.17.6-beta.0
-# k8s.io/component-base => k8s.io/component-base v0.17.5
-# k8s.io/cri-api => k8s.io/cri-api v0.17.6-beta.0
-# k8s.io/csi-translation-lib => k8s.io/csi-translation-lib v0.17.5
-# k8s.io/kube-aggregator => k8s.io/kube-aggregator v0.17.5
-# k8s.io/kube-controller-manager => k8s.io/kube-controller-manager v0.17.5
-# k8s.io/kube-proxy => k8s.io/kube-proxy v0.17.5
-# k8s.io/kube-scheduler => k8s.io/kube-scheduler v0.17.5
-# k8s.io/kubectl => k8s.io/kubectl v0.17.5
-# k8s.io/kubelet => k8s.io/kubelet v0.17.5
-# k8s.io/legacy-cloud-providers => k8s.io/legacy-cloud-providers v0.17.5
-# k8s.io/metrics => k8s.io/metrics v0.17.5
+# k8s.io/api => k8s.io/api v0.18.3
+# k8s.io/apiextensions-apiserver => k8s.io/apiextensions-apiserver v0.18.3
+# k8s.io/apimachinery => k8s.io/apimachinery v0.18.4-rc.0
+# k8s.io/apiserver => k8s.io/apiserver v0.18.3
+# k8s.io/cli-runtime => k8s.io/cli-runtime v0.18.3
+# k8s.io/client-go => k8s.io/client-go v0.18.3
+# k8s.io/cloud-provider => k8s.io/cloud-provider v0.18.3
+# k8s.io/cluster-bootstrap => k8s.io/cluster-bootstrap v0.18.3
+# k8s.io/code-generator => k8s.io/code-generator v0.18.4-rc.0
+# k8s.io/component-base => k8s.io/component-base v0.18.3
+# k8s.io/cri-api => k8s.io/cri-api v0.18.4-rc.0
+# k8s.io/csi-translation-lib => k8s.io/csi-translation-lib v0.18.3
+# k8s.io/kube-aggregator => k8s.io/kube-aggregator v0.18.3
+# k8s.io/kube-controller-manager => k8s.io/kube-controller-manager v0.18.3
+# k8s.io/kube-proxy => k8s.io/kube-proxy v0.18.3
+# k8s.io/kube-scheduler => k8s.io/kube-scheduler v0.18.3
+# k8s.io/kubectl => k8s.io/kubectl v0.18.3
+# k8s.io/kubelet => k8s.io/kubelet v0.18.3
+# k8s.io/legacy-cloud-providers => k8s.io/legacy-cloud-providers v0.18.3
+# k8s.io/metrics => k8s.io/metrics v0.18.3
 # k8s.io/node-api => k8s.io/node-api v0.0.0-20190805144819-9dd62e4d5327
-# k8s.io/sample-apiserver => k8s.io/sample-apiserver v0.17.5
+# k8s.io/sample-apiserver => k8s.io/sample-apiserver v0.18.3
 # k8s.io/sample-cli-plugin => k8s.io/sample-cli-plugin v0.0.0-20190805143616-1485e5142db3
 # k8s.io/sample-controller => k8s.io/sample-controller v0.0.0-20190805142825-b16fad786282
 # github.com/kubernetes-csi/csi-test/v3 => github.com/digitalocean/csi-test/v3 v3.1.1-0.20200422215505-20e87c55f1f6
-# k8s.io/kubernetes => k8s.io/kubernetes v1.17.5
+# k8s.io/kubernetes => k8s.io/kubernetes v1.18.3
