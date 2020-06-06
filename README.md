@@ -96,9 +96,10 @@ Kubernetes Release | DigitalOcean CSI Driver Version
 1.11               | v0.2.x
 1.12               | v0.4.x
 1.13               | v1.0.x
-1.14               | v1.2.x
-1.15               | v1.2.x
-1.16               | v1.2.x
+1.14               | v1.3.x
+1.15               | v1.3.x
+1.16               | v1.3.x
+1.17               | v1.3.x
 
 Note: The [`DigitalOcean Kubernetes`](https://www.digitalocean.com/products/kubernetes/) products comes
 with the CSI driver pre-installed and no further steps are required.
