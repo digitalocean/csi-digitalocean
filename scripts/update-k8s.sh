@@ -39,5 +39,5 @@ go mod tidy
 go mod vendor
 set +x
 
-sed -i -e "s/^KUBERNETES_VERSION.*/KUBERNETES_VERSION ?= $KUBERNETES_VERSION/" Makefile
-rm Makefile-e
+sed -i.sedbak "s/^KUBERNETES_VERSION.*/KUBERNETES_VERSION ?= $KUBERNETES_VERSION/" Makefile
+rm -f Makefile.sedbak

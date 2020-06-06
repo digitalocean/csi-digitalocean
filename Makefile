@@ -57,13 +57,13 @@ bump-version:
 	@echo "Bumping VERSION from $(VERSION) to $(NEW_VERSION)"
 	@echo $(NEW_VERSION) > VERSION
 	@cp deploy/kubernetes/releases/csi-digitalocean-latest.yaml deploy/kubernetes/releases/csi-digitalocean-${NEW_VERSION}.yaml
-	@sed -i'' -e 's#digitalocean/do-csi-plugin:dev#digitalocean/do-csi-plugin:${NEW_VERSION}#g' deploy/kubernetes/releases/csi-digitalocean-${NEW_VERSION}.yaml
+	@sed -i.sedbak 's#digitalocean/do-csi-plugin:dev#digitalocean/do-csi-plugin:${NEW_VERSION}#g' deploy/kubernetes/releases/csi-digitalocean-${NEW_VERSION}.yaml
 	@git add --intent-to-add deploy/kubernetes/releases/csi-digitalocean-${NEW_VERSION}.yaml
-	@sed -i'' -e '/^# This file is only for development use/d' deploy/kubernetes/releases/csi-digitalocean-${NEW_VERSION}.yaml
+	@sed -i.sedbak '/^# This file is only for development use/d' deploy/kubernetes/releases/csi-digitalocean-${NEW_VERSION}.yaml
 	$(eval NEW_DATE = $(shell date +%Y.%m.%d))
-	@sed -i'' -e 's/## unreleased/## ${NEW_VERSION} - ${NEW_DATE}/g' CHANGELOG.md
+	@sed -i.sedbak 's/## unreleased/## ${NEW_VERSION} - ${NEW_DATE}/g' CHANGELOG.md
 	@ echo '## unreleased\n' | cat - CHANGELOG.md > temp && mv temp CHANGELOG.md
-	@rm -f deploy/kubernetes/releases/csi-digitalocean-${NEW_VERSION}.yaml-e CHANGELOG.md-e
+	@rm -f deploy/kubernetes/releases/csi-digitalocean-${NEW_VERSION}.yaml.sedbak CHANGELOG.md.sedbak
 
 .PHONY: compile
 compile:
