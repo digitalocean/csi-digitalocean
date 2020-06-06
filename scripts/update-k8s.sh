@@ -40,3 +40,4 @@ go mod vendor
 set +x
 
 sed -i -e "s/^KUBERNETES_VERSION.*/KUBERNETES_VERSION ?= $KUBERNETES_VERSION/" Makefile
+rm Makefile-e
