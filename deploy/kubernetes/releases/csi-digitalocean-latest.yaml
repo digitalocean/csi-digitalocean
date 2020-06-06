@@ -143,6 +143,7 @@ spec:
       serviceAccount: csi-do-controller-sa
       containers:
         - name: csi-provisioner
+          # csi-provisioner v1.5.0+ requires support for beta snapshots
           image: quay.io/k8scsi/csi-provisioner:v1.4.0
           args:
             - "--csi-address=$(ADDRESS)"
@@ -155,7 +156,7 @@ spec:
             - name: socket-dir
               mountPath: /var/lib/csi/sockets/pluginproxy/
         - name: csi-attacher
-          image: quay.io/k8scsi/csi-attacher:v2.0.0
+          image: quay.io/k8scsi/csi-attacher:v2.2.0
           args:
             - "--v=5"
             - "--csi-address=$(ADDRESS)"
@@ -167,6 +168,7 @@ spec:
             - name: socket-dir
               mountPath: /var/lib/csi/sockets/pluginproxy/
         - name: csi-snapshotter
+          # csi-snapshotter v2+ requires support for beta snapshots
           image: quay.io/k8scsi/csi-snapshotter:v1.2.2
           args:
             - "--csi-address=$(ADDRESS)"
@@ -178,7 +180,7 @@ spec:
             - name: socket-dir
               mountPath: /var/lib/csi/sockets/pluginproxy/
         - name: csi-resizer
-          image: quay.io/k8scsi/csi-resizer:v0.3.0
+          image: quay.io/k8scsi/csi-resizer:v0.4.0
           args:
             - "--v=5"
             - "--csi-address=$(ADDRESS)"
