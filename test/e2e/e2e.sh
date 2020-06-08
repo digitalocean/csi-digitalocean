@@ -20,7 +20,7 @@ set -o pipefail
 
 SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
 
-TIMEOUT="${TIMEOUT:-30m}"
+TIMEOUT="${TIMEOUT:-1h}"
 
 (
   cd "${SCRIPT_DIR}"

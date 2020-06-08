@@ -48,6 +48,7 @@ const (
 	testdriverDirectoryRelativePath = "testdrivers"
 	deployScriptName                = "deploy.sh"
 	e2eContainerName                = "do-k8s-e2e"
+	tooManyRequestsWaitingTime      = 1 * time.Minute
 )
 
 var (
@@ -408,15 +409,23 @@ func createCluster(ctx context.Context, client *godo.Client, nameSuffix, kubeMaj
 		return nil
 	}
 
-	pollCtx, cancel := context.WithTimeout(ctx, 15*time.Minute)
+	pollCtx, cancel := context.WithTimeout(ctx, 25*time.Minute)
 	defer cancel()
 	fmt.Printf("Waiting for cluster %s (%s) to become running\n", cluster.ID, cluster.Name)
-	err = wait.PollUntil(10*time.Second, func() (done bool, waitErr error) {
+	err = wait.PollUntil(30*time.Second, func() (done bool, waitErr error) {
 		c, resp, err := client.Kubernetes.Get(pollCtx, cluster.ID)
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "Transient error while getting cluster %s (%s): %s\n", cluster.Name, cluster.ID, err)
-			if resp != nil && resp.StatusCode >= 500 {
-				return false, nil
+			if resp != nil {
+				code := resp.StatusCode
+				switch {
+				case code >= 500:
+					return false, nil
+				case code == http.StatusTooManyRequests:
+					fmt.Printf("Waiting %s to replenish API request budget\n", tooManyRequestsWaitingTime)
+					time.Sleep(tooManyRequestsWaitingTime)
+					return false, nil
+				}
 			}
 			return false, err
 		}
