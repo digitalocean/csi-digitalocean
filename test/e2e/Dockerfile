@@ -29,7 +29,7 @@ WORKDIR /go/src/k8s.io
 
 ### Kubernetes 1.17
 FROM builder AS tests-1.17
-ARG SHA_1_17=0634ed8
+ARG SHA_1_17=e0fd701
 
 RUN git clone --depth 1 --branch do-doks-1.17 https://github.com/digitalocean/kubernetes.git
 RUN cd kubernetes && \
@@ -39,7 +39,7 @@ RUN cd kubernetes && \
 
 ### Kubernetes 1.16
 FROM builder AS tests-1.16
-ARG SHA_1_16=c9bc6a0
+ARG SHA_1_16=7cce97f
 
 RUN git clone --depth 1 --branch do-doks-1.16 https://github.com/digitalocean/kubernetes.git
 RUN cd kubernetes && \
@@ -49,7 +49,7 @@ RUN cd kubernetes && \
 
 ### Kubernetes 1.15
 FROM builder-pre-1.16 AS tests-1.15
-ARG SHA_1_15=f1b547a
+ARG SHA_1_15=aae415d
 
 RUN git clone --depth 1 --branch do-doks-1.15 https://github.com/digitalocean/kubernetes.git
 RUN cd kubernetes && \
@@ -59,7 +59,7 @@ RUN cd kubernetes && \
 
 ### Kubernetes 1.14
 FROM builder-pre-1.16 AS tests-1.14
-ARG SHA_1_14=fa04cb8
+ARG SHA_1_14=e4bbe51
 
 RUN git clone --depth 1 --branch do-doks-1.14 https://github.com/digitalocean/kubernetes.git
 RUN cd kubernetes && \
