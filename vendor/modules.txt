@@ -90,7 +90,7 @@ github.com/imdario/mergo
 github.com/json-iterator/go
 # github.com/konsorten/go-windows-terminal-sequences v1.0.2
 github.com/konsorten/go-windows-terminal-sequences
-# github.com/kubernetes-csi/csi-test/v3 v3.1.1-0.20200422103951-b91f2543e6e7 => github.com/digitalocean/csi-test/v3 v3.1.1-0.20200422215505-20e87c55f1f6
+# github.com/kubernetes-csi/csi-test/v3 v3.1.1 => github.com/digitalocean/csi-test/v3 v3.1.1-0.20200422215505-20e87c55f1f6
 ## explicit
 github.com/kubernetes-csi/csi-test/v3/pkg/sanity
 github.com/kubernetes-csi/csi-test/v3/utils
