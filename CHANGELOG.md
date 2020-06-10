@@ -2,6 +2,8 @@
 
 * Update csi-resizer sidecar to v0.5.0
   [[GH-324]](https://github.com/digitalocean/csi-digitalocean/pull/324)
+* Upgrade Kubernetes dependencies to 1.18.3
+  [[GH-318]](https://github.com/digitalocean/csi-digitalocean/pull/318)
 
 ## v1.3.0 - 2020.05.05
 
