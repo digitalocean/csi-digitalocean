@@ -85,15 +85,15 @@
 
 **IMPORTANT**: This release is only compatible with Kubernetes **`v1.14.+`**
 
-* Update CSI Spec to `v1.1.0`. This includes many new changes, make sure 
+* Update CSI Spec to `v1.1.0`. This includes many new changes, make sure
   to read the Github PR for more information
   [[GH-144]](https://github.com/digitalocean/csi-digitalocean/pull/144)
-* Update csi-test library to `v2.0.0`. 
+* Update csi-test library to `v2.0.0`.
   [[GH-144]](https://github.com/digitalocean/csi-digitalocean/pull/144)
 * Updated sidecars to the following versions:
   [[GH-144]](https://github.com/digitalocean/csi-digitalocean/pull/144)
 
-```
+```text
 quay.io/k8scsi/csi-provisioner:v1.1.0
 quay.io/k8scsi/csi-attacher:v1.1.1
 quay.io/k8scsi/csi-snapshotter:v1.1.0
@@ -190,7 +190,6 @@ quay.io/k8scsi/csi-node-driver-registrar:v1.1.0
   and returning more human friendly errors.
   [[GH-101]](https://github.com/digitalocean/csi-digitalocean/pull/101)
 
-
 ## v0.3.1 - 2018.10.31
 
 * Fix driver name in CSIDriver, StorageClass and GetNodeInfo()
@@ -210,7 +209,7 @@ quay.io/k8scsi/csi-node-driver-registrar:v1.1.0
 
 ## v0.2.0 - 2018.09.05
 
-* Add support to CSI Spec `v0.3.0`. This includes many new changes, make sure 
+* Add support to CSI Spec `v0.3.0`. This includes many new changes, make sure
   to read the Github PR for more information
   [[GH-72]](https://github.com/digitalocean/csi-digitalocean/pull/72)
 * Check volume limits before provisioning calls
@@ -220,7 +219,7 @@ quay.io/k8scsi/csi-node-driver-registrar:v1.1.0
   [[GH-74]](https://github.com/digitalocean/csi-digitalocean/pull/74)
 
 **IMPORTANT**:This release contains breaking changes, mainly about how thing
-are deployed. The minimum Kubernetes version needs to be now **v1.10.5**. 
+are deployed. The minimum Kubernetes version needs to be now **v1.10.5**.
 To upgrade from a prior `v0.1.x` versions please remove the old CSI plugin
 completely and re-install the new one:
 
@@ -231,7 +230,6 @@ kubectl delete -f https://raw.githubusercontent.com/digitalocean/csi-digitalocea
 # install v0.2.0
 kubectl apply -f https://raw.githubusercontent.com/digitalocean/csi-digitalocean/master/deploy/kubernetes/releases/csi-digitalocean-v0.2.0.yaml
 ```
-
 
 ## v0.1.5 - 2018.08.27
 
@@ -267,7 +265,7 @@ kubectl apply -f https://raw.githubusercontent.com/digitalocean/csi-digitalocean
 ## v0.1.2 - 2018.08.02
 
 * Check if mounts are propagated (`MountPropagation` is enabled on the host) in
-  Node plugin to prevent silent failing. 
+  Node plugin to prevent silent failing.
   [[GH-46]](https://github.com/digitalocean/csi-digitalocean/pull/46)
 * Fix `IsMounted()` for bind mounts where it was returning false positives.
   [[GH-46]](https://github.com/digitalocean/csi-digitalocean/pull/46)
@@ -281,7 +279,7 @@ kubectl apply -f https://raw.githubusercontent.com/digitalocean/csi-digitalocean
 
 ## v0.1.0 (alpha) - 2018.05.15
 
-* Add method names to each log entry 
+* Add method names to each log entry
   [[GH-22]](https://github.com/digitalocean/csi-digitalocean/pull/22)
 * Kubernetes deployment uses the `kube-system` namespace instead of the prior
   `default` namespace. Please make sure to delete and re-deploy the plugin.
