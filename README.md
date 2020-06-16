@@ -110,12 +110,12 @@ with the CSI driver pre-installed and no further steps are required.
 * `--feature-gates=VolumeSnapshotDataSource=true,KubeletPluginsWatcher=true,CSINodeInfo=true,CSIDriverRegistry=true` feature gate flags must be set to true for both the API server and the kubelet
 * Mount Propagation needs to be enabled. If you use Docker, the Docker daemon of the cluster nodes must allow shared mounts.
 
-#### 1. Create a secret with your DigitalOcean API Access Token:
+#### 1. Create a secret with your DigitalOcean API Access Token
 
 Replace the placeholder string starting with `a05...` with your own secret and
-save it as `secret.yml`: 
+save it as `secret.yml`:
 
-```
+```yaml
 apiVersion: v1
 kind: Secret
 metadata:
@@ -127,21 +127,21 @@ stringData:
 
 and create the secret using kubectl:
 
-```
+```shell
 $ kubectl create -f ./secret.yml
 secret "digitalocean" created
 ```
 
 You should now see the digitalocean secret in the `kube-system` namespace along with other secrets
 
-```
+```shell
 $ kubectl -n kube-system get secrets
 NAME                  TYPE                                  DATA      AGE
 default-token-jskxx   kubernetes.io/service-account-token   3         18h
 digitalocean          Opaque                                1         18h
 ```
 
-#### 2. Deploy the CSI plugin and sidecars:
+#### 2. Deploy the CSI plugin and sidecars
 
 Before you continue, be sure to checkout to a [tagged
 release](https://github.com/digitalocean/csi-digitalocean/releases). Always use the [latest version](https://github.com/digitalocean/csi-digitalocean/releases) compatible with your Kubernetes release (see the [compatibility information](#kubernetes-compatibility)).
@@ -158,12 +158,11 @@ If you see any issues during the installation, this could be because the newly
 created CRDs haven't been established yet. If you call `kubectl apply -f` again
 on the same file, the missing resources will be applied again.
 
-
-#### 3. Test and verify:
+#### 3. Test and verify
 
 Create a PersistentVolumeClaim. This makes sure a volume is created and provisioned on your behalf:
 
-```
+```yaml
 apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
@@ -179,7 +178,7 @@ spec:
 
 Check that a new `PersistentVolume` is created based on your claim:
 
-```
+```shell
 $ kubectl get pv
 NAME                                       CAPACITY   ACCESS MODES   RECLAIM POLICY   STATUS    CLAIM             STORAGECLASS       REASON    AGE
 pvc-0879b207-9558-11e8-b6b4-5218f75c62b9   5Gi        RWO            Delete           Bound     default/csi-pvc   do-block-storage             3m
@@ -194,7 +193,7 @@ workload (i.e: pod) is scheduled to a specific node. Now let us create a Pod
 that refers to the above volume. When the Pod is created, the volume will be
 attached, formatted and mounted to the specified Container:
 
-```
+```yaml
 kind: Pod
 apiVersion: v1
 metadata:
@@ -210,19 +209,18 @@ spec:
   volumes:
     - name: my-do-volume
       persistentVolumeClaim:
-        claimName: csi-pvc 
+        claimName: csi-pvc
 ```
 
 Check if the pod is running successfully:
 
-
-```
-$ kubectl describe pods/my-csi-app
+```shell
+kubectl describe pods/my-csi-app
 ```
 
 Write inside the app container:
 
-```
+```shell
 $ kubectl exec -ti my-csi-app /bin/sh
 / # touch /data/hello-world
 / # exit

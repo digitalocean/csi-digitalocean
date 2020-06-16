@@ -9,11 +9,13 @@ example manifests will not work.
 To test a development version on a DOKS cluster, do the following:
 
 1. Create a DOKS cluster on the latest version:
-   ```console
+
+   ```shell
    $ doctl k8s cluster create csi-integration-test
    Notice: cluster is provisioning, waiting for cluster to be running
    ..
    ```
+
    Wait for it to finish creating; your kubeconfig will automatically be updated.
 
 2. Build and push a dev version of csi-digitalocean by running `VERSION=dev make publish`
@@ -22,7 +24,7 @@ To test a development version on a DOKS cluster, do the following:
 3. Run `deploy.sh` from this directory, providing a DO API access token for your
    account (This requires [`kustomize`](https://github.com/kubernetes-sigs/kustomize) and `kubectl`):
 
-   ```console
+   ```shell
    $ DIGITALOCEAN_ACCESS_TOKEN=<token> ./deploy.sh
    Deploying a dev version of the CSI driver to context do-nyc1-csi-integration-test.
    Continue? (yes/no)
@@ -33,8 +35,9 @@ To test a development version on a DOKS cluster, do the following:
 
 4. Run the integration tests from the repository root specifying a DigitalOcean API token
    against the dev storage class:
-   ```console
-   $ CSI_DIGITALOCEAN_ACCESS_TOKEN=aa823a5a07d5aa7c TEST_STORAGE_CLASS=do-block-storage-dev make test-integration
+
+   ```shell
+   CSI_DIGITALOCEAN_ACCESS_TOKEN=aa823a5a07d5aa7c TEST_STORAGE_CLASS=do-block-storage-dev make test-integration
    ```
 
    **Note:** If the `CSI_DIGITALOCEAN_ACCESS_TOKEN` environment variable does not specify
@@ -50,8 +53,8 @@ necessary to build and test a dev version of the CSI driver.
 To build and publish a test version in your own image repository, do the
 following from the root of the repository:
 
-```console
-$ DOCKER_REPO=<my-image-repository> VERSION=dev make publish
+```shell
+DOCKER_REPO=<my-image-repository> VERSION=dev make publish
 ```
 
 You can then follow the instructions above, setting the `DEV_IMAGE` environment
