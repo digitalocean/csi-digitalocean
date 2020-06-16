@@ -112,7 +112,7 @@ Kubernetes Release | DigitalOcean CSI Driver Version
 ---
 **Note:**
 
-The [DigitalOcean Kubernetes](https://www.digitalocean.com/products/kubernetes/) products comes with the CSI driver pre-installed and no further steps are required.
+The [DigitalOcean Kubernetes](https://www.digitalocean.com/products/kubernetes/) product comes with the CSI driver pre-installed and no further steps are required.
 
 ---
 
