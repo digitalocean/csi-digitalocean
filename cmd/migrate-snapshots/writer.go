@@ -34,6 +34,11 @@ func newVolumeSnapshotWriter(directory string) (*volumeSnapshotWriter, error) {
 		if err != nil {
 			return nil, err
 		}
+
+		if err := veryifyDirectoryPath(directory); err != nil {
+			return nil, err
+		}
+
 	}
 
 	return &volumeSnapshotWriter{
@@ -80,4 +85,21 @@ func (w *volumeSnapshotWriter) writeFile(directory, filename string, data []byte
 	}
 
 	return ioutil.WriteFile(filepath.Join(directory, filename)+".yaml", data, 0644)
+}
+
+func veryifyDirectoryPath(path string) error {
+	fi, err := os.Stat(path)
+	if err != nil {
+		if os.IsNotExist(err) {
+			// This is okay because we invoke MkdirAll later.
+			return nil
+		}
+		return err
+	}
+
+	if !fi.Mode().IsDir() {
+		return fmt.Errorf("given path %q is not a directory", path)
+	}
+
+	return nil
 }
