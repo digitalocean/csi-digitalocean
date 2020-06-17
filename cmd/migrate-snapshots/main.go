@@ -37,7 +37,7 @@ type snapshotClassDefinition struct {
 
 type params struct {
 	kubeconfig string
-	master     string
+	server     string
 	directory  string
 }
 
@@ -56,7 +56,7 @@ func main() {
 	}
 
 	flag.StringVar(&p.kubeconfig, "kubeconfig", defaultKubeConfigPath, "(optional) absolute path to the kubeconfig file")
-	flag.StringVar(&p.master, "master", "", "(optional) address and port of the Kubernetes API server")
+	flag.StringVar(&p.server, "server", "", "(optional) address and port of the Kubernetes API server")
 	flag.StringVar(&p.directory, "directory", "", "the top-level directory to write YAML-marshaled objects into, or stdout if omitted")
 
 	flag.Parse()
@@ -65,7 +65,7 @@ func main() {
 		p.kubeconfig = envVar
 	}
 
-	if p.master != "" {
+	if p.server != "" {
 		p.kubeconfig = ""
 	}
 
@@ -75,7 +75,7 @@ func main() {
 }
 
 func run(p params) error {
-	config, err := clientcmd.BuildConfigFromFlags(p.master, p.kubeconfig)
+	config, err := clientcmd.BuildConfigFromFlags(p.server, p.kubeconfig)
 	if err != nil {
 		return fmt.Errorf("failed to create config from flags: %s", err)
 	}
