@@ -10,7 +10,7 @@ The tool is focused on DigitalOcean's Block Storage snapshot driver only: snapsh
 
 It is assumed that the snapshots in the DigitalOcean storage system won't be deleted even if the snapshots objects in the Kubernetes cluster are, which can be achieved by changing the `deletionPolicy` on all `VolumeSnapshotContent` objects to `Retain`. Afterwards, the snapshots can be reimported by applying the YAML manifests to the upgraded or new cluster.
 
-By default, `migrate-snapshots` reads out the `$HOME/.kube/config` file. A custom kubeconfig can be specified through the `KUBECONFIG` environment variable.
+By default, `migrate-snapshots` reads out the `$HOME/.kube/config` file if it exists. A custom kubeconfig can be specified through the `KUBECONFIG` environment variable. The Kubernetes host can also be specified directly through the `-server` argument.
 
 ## Steps
 
