@@ -7,17 +7,21 @@ require (
 	github.com/digitalocean/godo v1.29.0
 	github.com/docker/docker v1.13.1
 	github.com/golang/protobuf v1.3.2
-	github.com/google/go-cmp v0.3.0
+	github.com/google/go-cmp v0.3.1
 	github.com/kubernetes-csi/csi-test/v3 v3.1.1
+	github.com/kubernetes-csi/external-snapshotter/v2 v2.1.1
 	github.com/magiconair/properties v1.8.1
 	github.com/sirupsen/logrus v1.4.2
 	golang.org/x/oauth2 v0.0.0-20190604053449-0f29369cfe45
 	golang.org/x/sync v0.0.0-20190911185100-cd5d95a43a6e
-	golang.org/x/sys v0.0.0-20191113165036-4c7a9d0fe056
+	golang.org/x/sys v0.0.0-20191220220014-0732a990476f
 	google.golang.org/grpc v1.26.0
+	k8s.io/api v0.18.3
 	k8s.io/apimachinery v0.18.3
+	k8s.io/client-go v0.18.3
 	k8s.io/kubernetes v1.16.2
 	k8s.io/utils v0.0.0-20200324210504-a9aa75ae1b89
+	sigs.k8s.io/yaml v1.2.0
 )
 
 replace (

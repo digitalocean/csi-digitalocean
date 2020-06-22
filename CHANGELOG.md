@@ -1,5 +1,7 @@
 ## unreleased
 
+* Add snapshot migration tool
+  [[GH-325]](https://github.com/digitalocean/csi-digitalocean/pull/325)
 * Update csi-resizer sidecar to v0.5.0
   [[GH-324]](https://github.com/digitalocean/csi-digitalocean/pull/324)
 * Support v1beta1 snapshots
