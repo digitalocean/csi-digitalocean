@@ -89,12 +89,7 @@ jobs:
     needs: push-images
     strategy:
       matrix:
-        testdriver: ['']
-        kube-release: ['1.17.5-do.0', '1.16', '1.15', '1.14']
-        include:
-          - kube-release: '1.17.5-do.0'
-            testdriver: 1.16.snapshot-only
-            runner-kube-version: 1.16
+        kube-release: ['1.18.3-do.0', '1.17']
 
     steps:
       - name: checkout
@@ -123,8 +118,6 @@ jobs:
           # The upstream end-to-end tests are quite demanding in terms of API
           # request volume, and we run them concurrently.
           NUM_GINKGO_NODES: "8"
-          TESTDRIVER: ${{ matrix.testdriver }}
-          RUNNER_KUBE_VERSION: ${{ matrix.runner-kube-version }}
         run: |
           BRANCH=$(echo -n ${BRANCH} | tr -c '[:alnum:]._-' '-')
           NAME_SUFFIX="${BRANCH}"
@@ -139,13 +132,7 @@ jobs:
             TAG=latest
           fi
 
-          if [[ $TESTDRIVER ]]; then
-            NAME_SUFFIX="${NAME_SUFFIX}-snapshot-only"
-            TESTDRIVER="-testdriver $TESTDRIVER"
-            RUNNER_KUBE_VERSION="-runner-kube-version $RUNNER_KUBE_VERSION"
-          fi
-
-          TIMEOUT=60m make test-e2e E2E_ARGS="-ginkgo-nodes ${NUM_GINKGO_NODES} -driver-image ${DOCKER_ORG}/do-csi-plugin-dev:${TAG} -runner-image ${DOCKER_ORG}/k8s-e2e-test-runner:${RUNNER_IMAGE_TAG_PREFIX}latest ${RUNNER_KUBE_VERSION} ${TESTDRIVER} -name-suffix ${NAME_SUFFIX} ${{ matrix.kube-release }}"
+          TIMEOUT=60m make test-e2e E2E_ARGS="-ginkgo-nodes ${NUM_GINKGO_NODES} -driver-image ${DOCKER_ORG}/do-csi-plugin-dev:${TAG} -runner-image ${DOCKER_ORG}/k8s-e2e-test-runner:${RUNNER_IMAGE_TAG_PREFIX}latest -name-suffix ${NAME_SUFFIX} ${{ matrix.kube-release }}"
 
   tag-new-master-image:
     runs-on: ubuntu-18.04

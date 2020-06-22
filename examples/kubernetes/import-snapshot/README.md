@@ -13,18 +13,16 @@ You need the ID of the snapshot that you want to import. It can be discovered vi
 First we need to manually create a `VolumeSnapshotContent` (which can be viewed as the snapshot equivalent of a `PersistentVolume`). It should reference the snapshot ID in the `snapshotHandle` field:
 
 ```yaml
-apiVersion: snapshot.storage.k8s.io/v1alpha1
+apiVersion: snapshot.storage.k8s.io/v1beta1
 kind: VolumeSnapshotContent
 metadata:
   name: snapshotcontent-manual
 spec:
-  csiVolumeSnapshotSource:
-    driver: dobs.csi.digitalocean.com
-    snapshotHandle: 92b46522-4798-4544-9d33-8b74ea56adb7
   deletionPolicy: Retain
+  driver: dobs.csi.digitalocean.com
+  source:
+    snapshotHandle: 92b46522-4798-4544-9d33-8b74ea56adb7
   volumeSnapshotRef:
-    apiVersion: snapshot.storage.k8s.io/v1alpha1
-    kind: VolumeSnapshot
     name: snapshot-manual
     namespace: default
 ```
@@ -42,7 +40,7 @@ kubectl apply -f snapshotcontent.yaml
 Just like a `PersistentVolume` needs a `PersistentVolumeClaim`, we similarly need to create a `VolumeSnapshot`:
 
 ```yaml
-apiVersion: snapshot.storage.k8s.io/v1alpha1
+apiVersion: snapshot.storage.k8s.io/v1beta1
 kind: VolumeSnapshot
 metadata:
   name: snapshot-manual

@@ -74,6 +74,13 @@ expand the filesystem if you have formatted the device.
 
 Snapshots can be created and restored through `VolumeSnapshot` objects.
 
+---
+**Note:**
+
+Since version 2, the CSI plugin support v1beta1 Volume Snapshots only. Support for the v1alpha1 has been dropped. Users that intend to migrate need to remove all v1alpha1 Volume Snapshot CRDs before installing the v1beta1 CRDs.
+
+---
+
 See also [the example](/examples/kubernetes/snapshot).
 
 ### Volume Statistics
@@ -99,15 +106,20 @@ Kubernetes Release | DigitalOcean CSI Driver Version
 1.14               | v1.3.x
 1.15               | v1.3.x
 1.16               | v1.3.x
-1.17               | v1.3.x
+1.17               | v2.0.x (v1.3.x with v1alpha1 snapshots only)
+1.18               | v2.0.x (v1.3.x with v1alpha1 snapshots only)
 
-Note: The [`DigitalOcean Kubernetes`](https://www.digitalocean.com/products/kubernetes/) products comes
-with the CSI driver pre-installed and no further steps are required.
+---
+**Note:**
+
+The [DigitalOcean Kubernetes](https://www.digitalocean.com/products/kubernetes/) product comes with the CSI driver pre-installed and no further steps are required.
+
+---
 
 **Requirements:**
 
 * `--allow-privileged` flag must be set to true for both the API server and the kubelet
-* `--feature-gates=VolumeSnapshotDataSource=true,KubeletPluginsWatcher=true,CSINodeInfo=true,CSIDriverRegistry=true` feature gate flags must be set to true for both the API server and the kubelet
+* `--feature-gates=KubeletPluginsWatcher=true,CSINodeInfo=true,CSIDriverRegistry=true` feature gate flags must be set to true for both the API server and the kubelet
 * Mount Propagation needs to be enabled. If you use Docker, the Docker daemon of the cluster nodes must allow shared mounts.
 
 #### 1. Create a secret with your DigitalOcean API Access Token

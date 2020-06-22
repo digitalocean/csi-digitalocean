@@ -52,8 +52,8 @@ $ kubectl delete -f snapshot.yaml
 
 ---
 
-To understand how snapshotting works, please read the official blog
-announcement with examples:
-https://kubernetes.io/blog/2018/10/09/introducing-volume-snapshot-alpha-for-kubernetes/
+To understand how snapshotting works, please read this official blog post:
+
+https://kubernetes.io/blog/2019/12/09/kubernetes-1-17-feature-cis-volume-snapshot-beta/
 
 

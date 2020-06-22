@@ -55,7 +55,7 @@ var (
 	errTokenMissing = errors.New("token must be specified in DIGITALOCEAN_ACCESS_TOKEN environment variable")
 
 	// De-facto global variables that require initialization at runtime.
-	supportedKubernetesVersions     = []string{"1.17", "1.16", "1.15", "1.14"}
+	supportedKubernetesVersions     = []string{"1.18", "1.17"}
 	sourceFileDir                   string
 	testdriverDirectoryAbsolutePath string
 	deployScriptPath                string
@@ -88,7 +88,9 @@ func init() {
 	deployScriptPath = filepath.Join(sourceFileDir, "..", "kubernetes", "deploy", deployScriptName)
 
 	flag.Usage = func() {
-		fmt.Println(`e2e.test runs containerized, external storage end-to-end tests from upstream Kubernetes against a CSI driver.
+		fmt.Println(`usage: e2e.test [flags] [Kubernetes version]
+
+e2e.test runs containerized, external storage end-to-end tests from upstream Kubernetes against a CSI driver.
 
 It supports dynamically creating (and post-test deleting) a DOKS cluster to run a driver-under-test in. The environment
 variable DIGITALOCEAN_ACCESS_TOKEN must be set to a DigitalOcean API key for this purpose.

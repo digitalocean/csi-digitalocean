@@ -13,19 +13,21 @@
 # limitations under the License.
 
 ### base build containers
-FROM golang:1.12 AS builder-pre-1.16
-
-RUN apt-get update && \
-    DEBIAN_FRONTEND=noninteractive apt-get install --yes --no-install-recommends rsync
-RUN mkdir -p /go/src/k8s.io
-WORKDIR /go/src/k8s.io
-
 FROM golang:1.13 AS builder
 
 RUN apt-get update && \
     DEBIAN_FRONTEND=noninteractive apt-get install --yes --no-install-recommends rsync
 RUN mkdir -p /go/src/k8s.io
 WORKDIR /go/src/k8s.io
+
+### Kubernetes 1.18
+FROM builder AS tests-1.18
+ARG KUBE_VERSION_1_18=1.18.3
+ARG KUBE_VERSION_1_18_E2E_BIN_SHA256_CHECKSUM=07f7582ffddf817b087efc7098cfd2e9eb458eb59ae5b71b8db26e8a8debee16
+
+RUN curl --fail --location https://dl.k8s.io/v${KUBE_VERSION_1_18}/kubernetes-test-linux-amd64.tar.gz | tar xvzf - --strip-components 3 kubernetes/test/bin/e2e.test
+RUN echo "${KUBE_VERSION_1_18_E2E_BIN_SHA256_CHECKSUM}" e2e.test | sha256sum --check
+RUN cp e2e.test /e2e.1.18.test
 
 ### Kubernetes 1.17
 FROM builder AS tests-1.17
@@ -37,36 +39,6 @@ RUN cd kubernetes && \
     make WHAT=test/e2e/e2e.test && \
     cp _output/bin/e2e.test /e2e.1.17.test
 
-### Kubernetes 1.16
-FROM builder AS tests-1.16
-ARG SHA_1_16=7cce97f
-
-RUN git clone --depth 1 --branch do-doks-1.16 https://github.com/digitalocean/kubernetes.git
-RUN cd kubernetes && \
-    git checkout ${SHA_1_16} && \
-    make WHAT=test/e2e/e2e.test && \
-    cp _output/bin/e2e.test /e2e.1.16.test
-
-### Kubernetes 1.15
-FROM builder-pre-1.16 AS tests-1.15
-ARG SHA_1_15=aae415d
-
-RUN git clone --depth 1 --branch do-doks-1.15 https://github.com/digitalocean/kubernetes.git
-RUN cd kubernetes && \
-    git checkout ${SHA_1_15} && \
-    make WHAT=test/e2e/e2e.test && \
-    cp _output/bin/e2e.test /e2e.1.15.test
-
-### Kubernetes 1.14
-FROM builder-pre-1.16 AS tests-1.14
-ARG SHA_1_14=e4bbe51
-
-RUN git clone --depth 1 --branch do-doks-1.14 https://github.com/digitalocean/kubernetes.git
-RUN cd kubernetes && \
-    git checkout ${SHA_1_14} && \
-    make WHAT=test/e2e/e2e.test && \
-    cp _output/bin/e2e.test /e2e.1.14.test
-
 ### ginkgo and tools
 FROM golang:1.13 AS tools
 # See comment at the bottom on why we need tini.
@@ -77,7 +49,7 @@ ARG DOCTL_VERSION=1.36.0
 # ginkgo is needed to run the upstream end-to-end tests.
 ARG GINKGO_VERSION=1.10.3
 # kubectl is needed by some tests.
-ARG KUBECTL_VERSION=1.17.5
+ARG KUBECTL_VERSION=1.18.3
 
 RUN curl --fail --location --output /tini https://github.com/krallin/tini/releases/download/v${TINI_VERSION}/tini
 RUN chmod u+x /tini
@@ -97,10 +69,8 @@ FROM bitnami/minideb:buster AS runtime
 # Certificates needed to trust the CA for any HTTPS connections to the DO API.
 RUN apt-get update && \
     DEBIAN_FRONTEND=noninteractive apt-get install --yes --no-install-recommends ca-certificates
+COPY --from=tests-1.18 /e2e.1.18.test /
 COPY --from=tests-1.17 /e2e.1.17.test /
-COPY --from=tests-1.16 /e2e.1.16.test /
-COPY --from=tests-1.15 /e2e.1.15.test /
-COPY --from=tests-1.14 /e2e.1.14.test /
 COPY --from=tools /tini /sbin/
 COPY --from=tools /doctl /usr/local/bin/
 COPY --from=tools /ginkgo /usr/local/bin/
