@@ -1,5 +1,7 @@
 ## unreleased
 
+## v2.0.0 - 2020.06.22
+
 * Add snapshot migration tool
   [[GH-325]](https://github.com/digitalocean/csi-digitalocean/pull/325)
 * Update csi-resizer sidecar to v0.5.0
