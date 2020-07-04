@@ -1,5 +1,8 @@
 ## unreleased
 
+* Drop privileged flag
+  [[GH-333]](https://github.com/digitalocean/csi-digitalocean/pull/333)
+
 ## v2.0.0 - 2020.06.22
 
 * Add snapshot migration tool

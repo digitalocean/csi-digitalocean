@@ -381,7 +381,6 @@ spec:
               value: https://api.digitalocean.com/
           imagePullPolicy: "Always"
           securityContext:
-            privileged: true
             capabilities:
               add: ["SYS_ADMIN"]
             allowPrivilegeEscalation: true
