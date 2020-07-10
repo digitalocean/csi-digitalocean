@@ -166,7 +166,7 @@ The [releases directory](deploy/kubernetes/releases) holds manifests for all plu
 kubectl apply -fhttps://raw.githubusercontent.com/digitalocean/csi-digitalocean/master/deploy/kubernetes/releases/csi-digitalocean-vX.Y.Z/{crds.yaml,driver.yaml,snapshot-controller.yaml}
 ```
 
-where `vX.Y.Z` is the plugin target version. (Note that for releases older than v2.0.0, the driver was contained in a single YAML file. If you'd like to deploy an older release you need to use `kubectl apply -fdeploy/kubernetes/releases/csi-digitalocean-vX.Y.Z`)
+where `vX.Y.Z` is the plugin target version. (Note that for releases older than v2.0.0, the driver was contained in a single YAML file. If you'd like to deploy an older release you need to use `kubectl apply -fhttps://raw.githubusercontent.com/digitalocean/csi-digitalocean/master/deploy/kubernetes/releases/csi-digitalocean-vX.Y.Z.yaml`)
 
 If you see any issues during the installation, this could be because the newly
 created CRDs haven't been established yet. If you call `kubectl apply -f` again
