@@ -162,8 +162,8 @@ Always use the [latest version](https://github.com/digitalocean/csi-digitalocean
 The [releases directory](deploy/kubernetes/releases) holds manifests for all plugin releases. You can deploy a specific version by executing the command
 
 ```shell
-# Do *not* add a blank after -f
-kubectl apply -fdeploy/kubernetes/releases/csi-digitalocean-vX.Y.Z/{crds.yaml,driver.yaml,snapshot-controller.yaml}
+# Do *not* add a blank space after -f
+kubectl apply -fhttps://raw.githubusercontent.com/digitalocean/csi-digitalocean/master/deploy/kubernetes/releases/csi-digitalocean-vX.Y.Z/{crds.yaml,driver.yaml,snapshot-controller.yaml}
 ```
 
 where `vX.Y.Z` is the plugin target version. (Note that for releases older than v2.0.0, the driver was contained in a single YAML file. If you'd like to deploy an older release you need to use `kubectl apply -fdeploy/kubernetes/releases/csi-digitalocean-vX.Y.Z`)
