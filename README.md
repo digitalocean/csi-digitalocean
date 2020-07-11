@@ -157,16 +157,16 @@ digitalocean          Opaque                                1         18h
 
 #### 2. Deploy the CSI plugin and sidecars
 
-Before you continue, be sure to checkout to a [tagged
-release](https://github.com/digitalocean/csi-digitalocean/releases). Always use the [latest version](https://github.com/digitalocean/csi-digitalocean/releases) compatible with your Kubernetes release (see the [compatibility information](#kubernetes-compatibility)).
+Always use the [latest version](https://github.com/digitalocean/csi-digitalocean/releases) compatible with your Kubernetes release (see the [compatibility information](#kubernetes-compatibility)).
 
-The [releases directory](deploy/kubernetes/releases) directory holds manifests for all plugin releases. You can deploy a specific version by executing the command
+The [releases directory](deploy/kubernetes/releases) holds manifests for all plugin releases. You can deploy a specific version by executing the command
 
 ```shell
-kubectl apply -f https://raw.githubusercontent.com/digitalocean/csi-digitalocean/master/deploy/kubernetes/releases/csi-digitalocean-vX.Y.Z.yaml
+# Do *not* add a blank space after -f
+kubectl apply -fhttps://raw.githubusercontent.com/digitalocean/csi-digitalocean/master/deploy/kubernetes/releases/csi-digitalocean-vX.Y.Z/{crds.yaml,driver.yaml,snapshot-controller.yaml}
 ```
 
-where `vX.Y.Z` is the plugin target version.
+where `vX.Y.Z` is the plugin target version. (Note that for releases older than v2.0.0, the driver was contained in a single YAML file. If you'd like to deploy an older release you need to use `kubectl apply -fhttps://raw.githubusercontent.com/digitalocean/csi-digitalocean/master/deploy/kubernetes/releases/csi-digitalocean-vX.Y.Z.yaml`)
 
 If you see any issues during the installation, this could be because the newly
 created CRDs haven't been established yet. If you call `kubectl apply -f` again
