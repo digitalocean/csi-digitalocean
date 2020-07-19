@@ -514,16 +514,16 @@ type fakeMounter struct {
 	mounted map[string]string
 }
 
-func (f *fakeMounter) Format(source string, fsType string) error {
+func (f *fakeMounter) Format(source string, fsType string, context LuksContext) error {
 	return nil
 }
 
-func (f *fakeMounter) Mount(source string, target string, fsType string, options ...string) error {
+func (f *fakeMounter) Mount(source string, target string, fsType string, context LuksContext, options ...string) error {
 	f.mounted[target] = source
 	return nil
 }
 
-func (f *fakeMounter) Unmount(target string) error {
+func (f *fakeMounter) Unmount(target string, context LuksContext) error {
 	delete(f.mounted, target)
 	return nil
 }
@@ -536,9 +536,10 @@ func (f *fakeMounter) GetDeviceName(_ mount.Interface, mountPath string) (string
 	return "", nil
 }
 
-func (f *fakeMounter) IsFormatted(source string) (bool, error) {
+func (f *fakeMounter) IsFormatted(source string, context LuksContext) (bool, error) {
 	return true, nil
 }
+
 func (f *fakeMounter) IsMounted(target string) (bool, error) {
 	_, ok := f.mounted[target]
 	return ok, nil
