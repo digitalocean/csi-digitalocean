@@ -33,7 +33,7 @@ const (
 	LuksEncryptedAttribute = DefaultDriverName + "/luks-encrypted"
 
 	// LuksCipherAttribute is used to pass the information about the luks encryption
-	// cypher to `NodeStageVolume`
+	// cipher to `NodeStageVolume`
 	LuksCipherAttribute = DefaultDriverName + "/luks-cipher"
 
 	// LuksKeySizeAttribute is used to pass the information about the luks key size
