@@ -56,7 +56,7 @@ bump-version:
 	@(echo ${NEW_VERSION} | grep -E "^v") || ( echo "NEW_VERSION must be a semver ('v' prefix is required)"; exit 1 )
 	@echo "Bumping VERSION from $(VERSION) to $(NEW_VERSION)"
 	@echo $(NEW_VERSION) > VERSION
-	@cp -r deploy/kubernetes/releases/csi-digitalocean-latest deploy/kubernetes/releases/csi-digitalocean-${NEW_VERSION}
+	@cp -r deploy/kubernetes/releases/csi-digitalocean-dev deploy/kubernetes/releases/csi-digitalocean-${NEW_VERSION}
 	@sed -i.sedbak 's#digitalocean/do-csi-plugin:dev#digitalocean/do-csi-plugin:${NEW_VERSION}#g' deploy/kubernetes/releases/csi-digitalocean-${NEW_VERSION}/*
 	@git add --intent-to-add deploy/kubernetes/releases/csi-digitalocean-${NEW_VERSION}
 	@sed -i.sedbak '/^# This file is only for development use/d' deploy/kubernetes/releases/csi-digitalocean-${NEW_VERSION}/*

@@ -157,7 +157,7 @@ digitalocean          Opaque                                1         18h
 
 #### 2. Deploy the CSI plugin and sidecars
 
-Always use the [latest version](https://github.com/digitalocean/csi-digitalocean/releases) compatible with your Kubernetes release (see the [compatibility information](#kubernetes-compatibility)).
+Always use the [latest release](https://github.com/digitalocean/csi-digitalocean/releases) compatible with your Kubernetes release (see the [compatibility information](#kubernetes-compatibility)).
 
 The [releases directory](deploy/kubernetes/releases) holds manifests for all plugin releases. You can deploy a specific version by executing the command
 
