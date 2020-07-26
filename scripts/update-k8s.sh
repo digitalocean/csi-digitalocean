@@ -16,7 +16,12 @@
 
 set -e
 
-KUBERNETES_VERSION=${KUBERNETES_VERSION:?}
+if [[ $# -ne 1 ]]; then
+  echo "usage: $(basename "$0") <Kubernetes semver version x.y.z>" >&2
+  exit 1
+fi
+
+readonly KUBERNETES_VERSION="$1"
 
 deps=()
 
@@ -24,7 +29,7 @@ while read -ra LINE
 do
   depname="${LINE[0]}"
   deps+=("-replace $depname=$depname@kubernetes-$KUBERNETES_VERSION")
-done < <(curl -sSL "https://raw.githubusercontent.com/kubernetes/kubernetes/v$KUBERNETES_VERSION/go.mod" \
+done < <(curl -fsSL "https://raw.githubusercontent.com/kubernetes/kubernetes/v$KUBERNETES_VERSION/go.mod" \
   | grep -E '^[[:space:]]*k8s.io.* v0.0.0$')
 
 deps+=("-replace k8s.io/kubernetes=k8s.io/kubernetes@v$KUBERNETES_VERSION")
@@ -38,6 +43,3 @@ go mod edit ${deps[*]}
 go mod tidy
 go mod vendor
 set +x
-
-sed -i.sedbak "s/^KUBERNETES_VERSION.*/KUBERNETES_VERSION ?= $KUBERNETES_VERSION/" Makefile
-rm -f Makefile.sedbak

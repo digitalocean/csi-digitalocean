@@ -272,7 +272,7 @@ For every green build of the master branch, the container image `digitalocean/do
 
 Steps to run the tests manually are outlined below.
 
-## Unit Tests
+### Unit Tests
 
 To execute the unit tests locally, run:
 
@@ -280,7 +280,7 @@ To execute the unit tests locally, run:
 make test
 ```
 
-## End-to-End Tests
+### End-to-End Tests
 
 To manually run the end-to-end tests, you need to build a container image for your change first and publish it to a registry. Repository owners can publish under `digitalocean/do-csi-plugin:dev`:
 
@@ -304,13 +304,23 @@ make test-e2e E2E_ARGS="-driver-image johndoe/do-csi-plugin:latest-feature 1.16 
 
 See [our documentation](test/e2e/README.md) for an overview on how the end-to-end tests work as well as usage instructions.
 
-## Integration Tests
+### Integration Tests
 
 There is a set of custom integration tests which are mostly useful for Kubernetes pre-1.14 installations as these are not covered by the upstream end-to-end tests.
 
 To run the integration tests on a DOKS cluster, follow [the instructions](test/kubernetes/deploy/README.md).
 
-### Releasing
+## Updating the Kubernetes dependencies
+
+Run
+
+```shell
+make NEW_KUBERNETES_VERSION=X.Y.Z update-k8s
+```
+
+to update the Kubernetes dependencies to version X.Y.Z.
+
+## Releasing
 
 To release a new version `vX.Y.Z`, first bump the version:
 

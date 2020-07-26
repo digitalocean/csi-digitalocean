@@ -48,7 +48,9 @@ publish: compile build push clean
 
 .PHONY: update-k8s
 update-k8s:
-	env KUBERNETES_VERSION=$(KUBERNETES_VERSION) scripts/update-k8s.sh
+	scripts/update-k8s.sh $(NEW_KUBERNETES_VERSION)
+	sed -i.sedbak "s/^KUBERNETES_VERSION.*/KUBERNETES_VERSION ?= $(NEW_KUBERNETES_VERSION)/" Makefile
+	rm -f Makefile.sedbak
 
 .PHONY: bump-version
 bump-version:
