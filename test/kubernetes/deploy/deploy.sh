@@ -75,7 +75,7 @@ kustomize edit set image digitalocean/do-csi-plugin="${DEV_IMAGE}"
 trap "kustomize edit set image digitalocean/do-csi-plugin=$DEFAULT_PLUGIN_IMAGE" EXIT
 
 # Apply the CRDs.
-kubectl apply -f "${SCRIPT_DIR}/../../../deploy/kubernetes/releases/csi-digitalocean-latest/crds.yaml"
+kubectl apply -f "${SCRIPT_DIR}/../../../deploy/kubernetes/releases/csi-digitalocean-dev/crds.yaml"
 
 echo -n 'Waiting for CRDs to become established'
 while [[ $(kubectl get crd volumesnapshotclasses.snapshot.storage.k8s.io -o jsonpath='{.status.conditions[?(@.type == "Established")].status}') != "True" ]]; do
@@ -87,7 +87,7 @@ echo
 # Apply the customization to the dev manifest, and apply it to the cluster.
 kustomize build . --load_restrictor none | kubectl apply -f -
 )
-kubectl apply -f "${SCRIPT_DIR}/../../../deploy/kubernetes/releases/csi-digitalocean-latest/snapshot-controller.yaml"
+kubectl apply -f "${SCRIPT_DIR}/../../../deploy/kubernetes/releases/csi-digitalocean-dev/snapshot-controller.yaml"
 # Wait for the deployment to complete.
 kubectl -n kube-system wait --timeout=5m --for=condition=Ready pod -l app=csi-do-controller-dev
 kubectl -n kube-system wait --timeout=5m --for=condition=Ready pod -l app=csi-do-node-dev
