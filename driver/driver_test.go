@@ -33,6 +33,7 @@ import (
 	"github.com/kubernetes-csi/csi-test/v4/pkg/sanity"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/sync/errgroup"
+	"k8s.io/utils/mount"
 )
 
 const (
@@ -517,6 +518,14 @@ func (f *fakeMounter) Mount(source string, target string, fsType string, options
 func (f *fakeMounter) Unmount(target string) error {
 	delete(f.mounted, target)
 	return nil
+}
+
+func (f *fakeMounter) GetDeviceName(_ mount.Interface, mountPath string) (string, error) {
+	if _, ok := f.mounted[mountPath]; ok {
+		return "/mnt/sda1", nil
+	}
+
+	return "", nil
 }
 
 func (f *fakeMounter) IsFormatted(source string) (bool, error) {

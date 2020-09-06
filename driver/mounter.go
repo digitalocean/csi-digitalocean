@@ -29,6 +29,7 @@ import (
 
 	"github.com/sirupsen/logrus"
 	"golang.org/x/sys/unix"
+	"k8s.io/utils/mount"
 )
 
 type findmntResponse struct {
@@ -73,6 +74,8 @@ type Mounter interface {
 	// propagated). It returns true if it's mounted. An error is returned in
 	// case of system errors or if it's mounted incorrectly.
 	IsMounted(target string) (bool, error)
+
+	GetDeviceName(mounter mount.Interface, mountPath string) (string, error)
 
 	// GetStatistics returns capacity-related volume statistics for the given
 	// volume path.
@@ -312,6 +315,11 @@ func (m *mounter) IsMounted(target string) (bool, error) {
 	}
 
 	return targetFound, nil
+}
+
+func (m *mounter) GetDeviceName(mounter mount.Interface, mountPath string) (string, error) {
+	devicePath, _, err := mount.GetDeviceNameFromMount(mounter, mountPath)
+	return devicePath, err
 }
 
 func (m *mounter) GetStatistics(volumePath string) (volumeStatistics, error) {

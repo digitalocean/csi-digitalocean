@@ -449,10 +449,23 @@ func (d *Driver) NodeExpandVolume(ctx context.Context, req *csi.NodeExpandVolume
 		}
 	}
 
+	mounted, err := d.mounter.IsMounted(volumePath)
+	if err != nil {
+		return nil, status.Errorf(codes.Internal, "NodeExpandVolume failed to check if volume path %q is mounted: %s", volumePath, err)
+	}
+
+	if !mounted {
+		return nil, status.Errorf(codes.NotFound, "NodeExpandVolume volume path %q is not mounted", volumePath)
+	}
+
 	mounter := mount.New("")
-	devicePath, _, err := mount.GetDeviceNameFromMount(mounter, volumePath)
+	devicePath, err := d.mounter.GetDeviceName(mounter, volumePath)
 	if err != nil {
 		return nil, status.Errorf(codes.Internal, "NodeExpandVolume unable to get device path for %q: %v", volumePath, err)
+	}
+
+	if devicePath == "" {
+		return nil, status.Errorf(codes.NotFound, "NodeExpandVolume device path for volume path %q not found", volumePath)
 	}
 
 	r := resizefs.NewResizeFs(&mount.SafeFormatAndMount{
