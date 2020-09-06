@@ -29,15 +29,37 @@ import (
 	"time"
 
 	"github.com/digitalocean/godo"
+	"github.com/google/uuid"
 	"github.com/kubernetes-csi/csi-test/v4/pkg/sanity"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/sync/errgroup"
 )
 
-const maxAPIPageSize = 200
+const (
+	maxAPIPageSize = 200
+	numDroplets    = 100
+)
 
 func init() {
 	rand.Seed(time.Now().UnixNano())
+}
+
+type idGenerator struct{}
+
+func (g *idGenerator) GenerateUniqueValidVolumeID() string {
+	return uuid.New().String()
+}
+
+func (g *idGenerator) GenerateInvalidVolumeID() string {
+	return g.GenerateUniqueValidVolumeID()
+}
+
+func (g *idGenerator) GenerateUniqueValidNodeID() string {
+	return strconv.Itoa(numDroplets * 10)
+}
+
+func (g *idGenerator) GenerateInvalidNodeID() string {
+	return "not-an-integer"
 }
 
 func TestDriverSuite(t *testing.T) {
@@ -96,6 +118,7 @@ func TestDriverSuite(t *testing.T) {
 
 	cfg := sanity.NewTestConfig()
 	cfg.Address = endpoint
+	cfg.IDGen = &idGenerator{}
 	cfg.IdempotentCount = 5
 	cfg.TestNodeVolumeAttachLimit = true
 	sanity.Test(t, cfg)

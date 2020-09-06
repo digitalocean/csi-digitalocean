@@ -8,6 +8,7 @@ require (
 	github.com/docker/docker v1.13.1
 	github.com/golang/protobuf v1.3.3
 	github.com/google/go-cmp v0.3.1
+	github.com/google/uuid v1.1.1
 	github.com/kubernetes-csi/csi-test/v4 v4.0.1
 	github.com/kubernetes-csi/external-snapshotter/v2 v2.1.1
 	github.com/magiconair/properties v1.8.1
