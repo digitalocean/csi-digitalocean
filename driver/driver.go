@@ -65,7 +65,7 @@ type Driver struct {
 
 	endpoint          string
 	debugAddr         string
-	hostID            string
+	hostID            func() string
 	region            string
 	doTag             string
 	isController      bool
@@ -140,7 +140,7 @@ func NewDriver(ep, token, url, doTag, driverName, debugAddr string) (*Driver, er
 		doTag:     doTag,
 		endpoint:  ep,
 		debugAddr: debugAddr,
-		hostID:    hostID,
+		hostID:    func() string { return hostID },
 		region:    region,
 		mounter:   newMounter(log),
 		log:       log,

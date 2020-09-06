@@ -69,20 +69,27 @@ func TestDriverSuite(t *testing.T) {
 		t.Fatalf("failed to remove unix domain socket file %s, error: %s", socket, err)
 	}
 
-	nodeID := 987654
 	doTag := "k8s:cluster-id"
 	volumes := make(map[string]*godo.Volume)
 	snapshots := make(map[string]*godo.Snapshot)
-	droplets := map[int]*godo.Droplet{
-		nodeID: {
-			ID: nodeID,
-		},
+	droplets := make(map[int]*godo.Droplet, numDroplets)
+	for i := 1; i <= numDroplets; i++ {
+		droplets[i] = &godo.Droplet{
+			ID: i,
+		}
 	}
 
+	dropletIdx := 1
 	driver := &Driver{
-		name:              DefaultDriverName,
-		endpoint:          endpoint,
-		hostID:            strconv.Itoa(nodeID),
+		name:     DefaultDriverName,
+		endpoint: endpoint,
+		hostID: func() string {
+			// Distribute requests across multiple nodes so that we do not run
+			// into the max-volumes-per-node limit.
+			i := dropletIdx % numDroplets
+			dropletIdx++
+			return strconv.Itoa(droplets[i+1].ID)
+		},
 		doTag:             doTag,
 		region:            "nyc3",
 		waitActionTimeout: defaultWaitActionTimeout,
