@@ -95,6 +95,12 @@ func TestDriverSuite(t *testing.T) {
 	})
 
 	cfg := sanity.NewTestConfig()
+	if err := os.RemoveAll(cfg.TargetPath); err != nil {
+		t.Fatalf("failed to delete target path %s: %s", cfg.TargetPath, err)
+	}
+	if err := os.RemoveAll(cfg.StagingPath); err != nil {
+		t.Fatalf("failed to delete staging path %s: %s", cfg.StagingPath, err)
+	}
 	cfg.Address = endpoint
 	cfg.IdempotentCount = 5
 	cfg.TestNodeVolumeAttachLimit = true
