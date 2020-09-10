@@ -76,7 +76,7 @@ spec:
       serviceAccount: csi-do-controller-sa
       containers:
         - name: csi-provisioner
-          image: quay.io/k8scsi/csi-provisioner:v1.6.0
+          image: quay.io/k8scsi/csi-provisioner:v2.0.1
           args:
             - "--csi-address=$(ADDRESS)"
             - "--v=5"
@@ -88,7 +88,7 @@ spec:
             - name: socket-dir
               mountPath: /var/lib/csi/sockets/pluginproxy/
         - name: csi-attacher
-          image: quay.io/k8scsi/csi-attacher:v2.2.0
+          image: quay.io/k8scsi/csi-attacher:v3.0.0
           args:
             - "--csi-address=$(ADDRESS)"
             - "--v=5"
@@ -112,11 +112,13 @@ spec:
             - name: socket-dir
               mountPath: /var/lib/csi/sockets/pluginproxy/
         - name: csi-resizer
-          image: quay.io/k8scsi/csi-resizer:v0.5.0
+          image: quay.io/k8scsi/csi-resizer:v1.0.0
           args:
             - "--csi-address=$(ADDRESS)"
-            - "--csiTimeout=30s"
+            - "--timeout=30s"
             - "--v=5"
+            # DO volumes support online resize.
+            - "--handle-volume-inuse-error=false"
           env:
             - name: ADDRESS
               value: /var/lib/csi/sockets/pluginproxy/csi.sock
@@ -183,6 +185,9 @@ rules:
   - apiGroups: ["snapshot.storage.k8s.io"]
     resources: ["volumesnapshotcontents"]
     verbs: ["get", "list"]
+  - apiGroups: ["storage.k8s.io"]
+    resources: ["volumeattachments"]
+    verbs: ["get", "list", "watch"]
 
 ---
 
@@ -218,6 +223,9 @@ rules:
   - apiGroups: ["storage.k8s.io"]
     resources: ["volumeattachments"]
     verbs: ["get", "list", "watch", "update", "patch"]
+  - apiGroups: ["storage.k8s.io"]
+    resources: ["volumeattachments/status"]
+    verbs: ["patch"]
 
 ---
 kind: ClusterRoleBinding
@@ -346,7 +354,7 @@ spec:
               mountPath: /etc/udev/rules.d/
       containers:
         - name: csi-node-driver-registrar
-          image: quay.io/k8scsi/csi-node-driver-registrar:v1.1.0
+          image: quay.io/k8scsi/csi-node-driver-registrar:v2.0.1
           args:
             - "--v=5"
             - "--csi-address=$(ADDRESS)"
