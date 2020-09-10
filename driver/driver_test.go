@@ -29,15 +29,38 @@ import (
 	"time"
 
 	"github.com/digitalocean/godo"
-	"github.com/kubernetes-csi/csi-test/v3/pkg/sanity"
+	"github.com/google/uuid"
+	"github.com/kubernetes-csi/csi-test/v4/pkg/sanity"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/sync/errgroup"
+	"k8s.io/utils/mount"
 )
 
-const maxAPIPageSize = 200
+const (
+	maxAPIPageSize = 200
+	numDroplets    = 100
+)
 
 func init() {
 	rand.Seed(time.Now().UnixNano())
+}
+
+type idGenerator struct{}
+
+func (g *idGenerator) GenerateUniqueValidVolumeID() string {
+	return uuid.New().String()
+}
+
+func (g *idGenerator) GenerateInvalidVolumeID() string {
+	return g.GenerateUniqueValidVolumeID()
+}
+
+func (g *idGenerator) GenerateUniqueValidNodeID() string {
+	return strconv.Itoa(numDroplets * 10)
+}
+
+func (g *idGenerator) GenerateInvalidNodeID() string {
+	return "not-an-integer"
 }
 
 func TestDriverSuite(t *testing.T) {
@@ -47,20 +70,27 @@ func TestDriverSuite(t *testing.T) {
 		t.Fatalf("failed to remove unix domain socket file %s, error: %s", socket, err)
 	}
 
-	nodeID := 987654
 	doTag := "k8s:cluster-id"
 	volumes := make(map[string]*godo.Volume)
 	snapshots := make(map[string]*godo.Snapshot)
-	droplets := map[int]*godo.Droplet{
-		nodeID: {
-			ID: nodeID,
-		},
+	droplets := make(map[int]*godo.Droplet, numDroplets)
+	for i := 1; i <= numDroplets; i++ {
+		droplets[i] = &godo.Droplet{
+			ID: i,
+		}
 	}
 
+	dropletIdx := 1
 	driver := &Driver{
-		name:              DefaultDriverName,
-		endpoint:          endpoint,
-		hostID:            strconv.Itoa(nodeID),
+		name:     DefaultDriverName,
+		endpoint: endpoint,
+		hostID: func() string {
+			// Distribute requests across multiple nodes so that we do not run
+			// into the max-volumes-per-node limit.
+			i := dropletIdx % numDroplets
+			dropletIdx++
+			return strconv.Itoa(droplets[i+1].ID)
+		},
 		doTag:             doTag,
 		region:            "nyc3",
 		waitActionTimeout: defaultWaitActionTimeout,
@@ -96,6 +126,7 @@ func TestDriverSuite(t *testing.T) {
 
 	cfg := sanity.NewTestConfig()
 	cfg.Address = endpoint
+	cfg.IDGen = &idGenerator{}
 	cfg.IdempotentCount = 5
 	cfg.TestNodeVolumeAttachLimit = true
 	sanity.Test(t, cfg)
@@ -487,6 +518,14 @@ func (f *fakeMounter) Mount(source string, target string, fsType string, options
 func (f *fakeMounter) Unmount(target string) error {
 	delete(f.mounted, target)
 	return nil
+}
+
+func (f *fakeMounter) GetDeviceName(_ mount.Interface, mountPath string) (string, error) {
+	if _, ok := f.mounted[mountPath]; ok {
+		return "/mnt/sda1", nil
+	}
+
+	return "", nil
 }
 
 func (f *fakeMounter) IsFormatted(source string) (bool, error) {

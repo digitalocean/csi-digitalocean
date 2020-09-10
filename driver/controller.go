@@ -274,9 +274,7 @@ func (d *Driver) ControllerPublishVolume(ctx context.Context, req *csi.Controlle
 
 	dropletID, err := strconv.Atoi(req.NodeId)
 	if err != nil {
-		// don't return because the CSI tests passes ID's in non-integer format.
-		dropletID = 1 // for testing purposes only. Will fail in real world API
-		d.log.WithField("node_id", req.NodeId).Warn("node ID cannot be converted to an integer")
+		return nil, status.Errorf(codes.InvalidArgument, "ControllerPublishVolume Node ID %q cannot be converted to integer: %s", req.NodeId, err)
 	}
 
 	if req.Readonly {
@@ -397,9 +395,7 @@ func (d *Driver) ControllerUnpublishVolume(ctx context.Context, req *csi.Control
 
 	dropletID, err := strconv.Atoi(req.NodeId)
 	if err != nil {
-		// don't return because the CSI tests passes ID's in non-integer format
-		dropletID = 1 // for testing purposes only. Will fail in real world API
-		d.log.WithField("node_id", req.NodeId).Warn("node ID cannot be converted to an integer")
+		return nil, status.Errorf(codes.InvalidArgument, "ControllerUnpublishVolume Node ID %q cannot be converted to integer: %s", req.NodeId, err)
 	}
 
 	log := d.log.WithFields(logrus.Fields{
@@ -908,6 +904,14 @@ func (d *Driver) ControllerExpandVolume(ctx context.Context, req *csi.Controller
 	}
 
 	return &csi.ControllerExpandVolumeResponse{CapacityBytes: resizeGigaBytes * giB, NodeExpansionRequired: nodeExpansionRequired}, nil
+}
+
+// ControllerGetVolume gets a specific volume.
+// The call is used for the CSI health check feature
+// (https://github.com/kubernetes/enhancements/pull/1077) which we do not
+// support yet.
+func (d *Driver) ControllerGetVolume(ctx context.Context, req *csi.ControllerGetVolumeRequest) (*csi.ControllerGetVolumeResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "")
 }
 
 // extractStorage extracts the storage size in bytes from the given capacity

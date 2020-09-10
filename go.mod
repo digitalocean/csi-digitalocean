@@ -2,20 +2,21 @@ module github.com/digitalocean/csi-digitalocean
 
 require (
 	github.com/blang/semver v3.5.1+incompatible
-	github.com/container-storage-interface/spec v1.2.0
+	github.com/container-storage-interface/spec v1.3.0
 	github.com/digitalocean/go-metadata v0.0.0-20180111002115-15bd36e5f6f7
 	github.com/digitalocean/godo v1.29.0
 	github.com/docker/docker v1.13.1
-	github.com/golang/protobuf v1.3.2
+	github.com/golang/protobuf v1.3.3
 	github.com/google/go-cmp v0.3.1
-	github.com/kubernetes-csi/csi-test/v3 v3.1.1
+	github.com/google/uuid v1.1.1
+	github.com/kubernetes-csi/csi-test/v4 v4.0.1
 	github.com/kubernetes-csi/external-snapshotter/v2 v2.1.1
 	github.com/magiconair/properties v1.8.1
 	github.com/sirupsen/logrus v1.4.2
 	golang.org/x/oauth2 v0.0.0-20190604053449-0f29369cfe45
 	golang.org/x/sync v0.0.0-20190911185100-cd5d95a43a6e
 	golang.org/x/sys v0.0.0-20191220220014-0732a990476f
-	google.golang.org/grpc v1.26.0
+	google.golang.org/grpc v1.29.1
 	k8s.io/api v0.18.3
 	k8s.io/apimachinery v0.18.3
 	k8s.io/client-go v0.18.3
@@ -52,7 +53,5 @@ replace (
 )
 
 go 1.14
-
-replace github.com/kubernetes-csi/csi-test/v3 => github.com/digitalocean/csi-test/v3 v3.1.1-0.20200422215505-20e87c55f1f6
 
 replace k8s.io/kubernetes => k8s.io/kubernetes v1.18.3
