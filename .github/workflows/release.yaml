@@ -41,12 +41,13 @@ jobs:
       - name: Log into container registry
         run: echo "${{ secrets.DockerHubToken }}" | docker login --username ${DOCKER_USER} --password-stdin
 
-      - name: tag new CSI plugin release image
+      # Rebuild plugin instead of just promoting the latest :master image so
+      # that the right version is correctly baked into the release via the -X
+      # flag.
+      - name: Build and push released plugin image
         run: |
-          TAG=$(git describe --tags)
-          docker pull ${DOCKER_ORG}/do-csi-plugin:master
-          docker tag ${DOCKER_ORG}/do-csi-plugin:master ${DOCKER_ORG}/do-csi-plugin:${TAG}
-          docker push ${DOCKER_ORG}/do-csi-plugin:${TAG}
+          VERSION="$(git describe --tags)"
+          DOCKER_REPO=${DOCKER_ORG}/do-csi-plugin make publish
 
       - name: create Github release
         uses: softprops/action-gh-release@v1

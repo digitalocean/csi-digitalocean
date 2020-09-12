@@ -44,7 +44,7 @@ endif
 
 all: check-unused test
 
-publish: compile build push clean
+publish: clean compile build push
 
 .PHONY: update-k8s
 update-k8s:
