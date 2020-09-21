@@ -29,7 +29,7 @@ spec:
 
 Note how the `VolumeSnapshotContent` also references a `VolumeSnapshot` under `volumeSnapshotRef`. The `name` is arbitrary but must match the `VolumeSnapshot` we are going to create later.
 
-Setting the `deletionPolicy` to `Retain` means that the the VolumeSnapshotContent -- and, transitively, the actual DigitalOcean snapshot resource -- will not be deleted when the VolumeSnapshot is deleted. Change the value to `Delete` if you would rather want automatic cleanup to happen.
+Setting the `deletionPolicy` to `Retain` means that the VolumeSnapshotContent -- and, transitively, the actual DigitalOcean snapshot resource -- will not be deleted when the VolumeSnapshot is deleted. Change the value to `Delete` if you would rather want automatic cleanup to happen.
 
 Apply the `VolumeSnapshotContent`:
 
