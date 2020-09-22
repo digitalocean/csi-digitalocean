@@ -1,5 +1,8 @@
 ## unreleased
 
+* Update Kubernetes dependency to 1.19.2 and sidecars to latest
+  [[GH-341]](https://github.com/digitalocean/csi-digitalocean/pull/341)
+
 ## v2.0.0 - 2020.06.22
 
 * Add snapshot migration tool
