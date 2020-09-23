@@ -18,6 +18,10 @@ set -o errexit
 set -o nounset
 set -o pipefail
 
+if [[ "${DEBUG_E2E:-}" ]]; then
+  set -o xtrace
+fi
+
 readonly DEFAULT_GINKGO_NODES=10
 
 if [[ $# -ne 2 ]]; then
