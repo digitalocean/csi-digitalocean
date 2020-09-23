@@ -533,6 +533,7 @@ func runE2ETests(ctx context.Context, kubeVersion, runnerImage, testdriverFilena
 		stopTimeout: 1 * time.Minute,
 	}
 
+	fmt.Printf("Starting test runner image %q for Kubernetes version %q\n", runnerImage, kubeVersion)
 	return runContainer(ctx, p)
 }
 
