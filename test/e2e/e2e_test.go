@@ -492,6 +492,11 @@ func runE2ETests(ctx context.Context, kubeVersion, runnerImage, testdriverFilena
 		"KUBECONFIG=/root/.kube/config",
 	}
 
+	if focus != "" {
+		fmt.Printf("Setting focus to %q\n", focus)
+		envs = append(envs, fmt.Sprintf("FOCUS=%s", focus))
+	}
+
 	if skipParallel {
 		envs = append(envs, fmt.Sprintf("%s=1", envVarSkipTestsParallel))
 	}
