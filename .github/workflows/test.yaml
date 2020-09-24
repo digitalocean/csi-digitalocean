@@ -77,12 +77,12 @@ jobs:
           RUNNER_IMAGE_TAG_PREFIX: ${{ github.head_ref }}
         run: RUNNER_IMAGE=${DOCKER_ORG}/k8s-e2e-test-runner make runner-push
 
-      - name: Build and push plugin image
+      - name: Build and push development plugin image
         env:
           VERSION: ${{ github.head_ref }}
         run: |
           VERSION="${VERSION:-latest}"
-          DOCKER_REPO=${DOCKER_ORG}/do-csi-plugin-dev make compile build push
+          DOCKER_REPO=${DOCKER_ORG}/do-csi-plugin-dev make publish
 
   e2e-test:
     runs-on: ubuntu-18.04
