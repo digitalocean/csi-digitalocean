@@ -34,12 +34,12 @@ jobs:
 
     steps:
       - name: checkout
-        uses: actions/checkout@v2
+        uses: actions/checkout@2036a08  # v2.3.2
         with:
           fetch-depth: 1
 
       - name: Go setup
-        uses: actions/setup-go@v1
+        uses: actions/setup-go@8a3a76c  # v2.1.2
         with:
           go-version: '1.15.2'
 
@@ -52,7 +52,7 @@ jobs:
 
     steps:
       - name: checkout
-        uses: actions/checkout@v2
+        uses: actions/checkout@2036a08  # v2.3.2
         with:
           fetch-depth: 1
 
@@ -93,12 +93,12 @@ jobs:
 
     steps:
       - name: checkout
-        uses: actions/checkout@v2
+        uses: actions/checkout@2036a08  # v2.3.2
         with:
           fetch-depth: 1
 
       - name: Go setup
-        uses: actions/setup-go@v1
+        uses: actions/setup-go@8a3a76c  # v2.1.2
         with:
           go-version: '1.15.2'
 
@@ -141,7 +141,7 @@ jobs:
 
     steps:
       - name: checkout
-        uses: actions/checkout@v2
+        uses: actions/checkout@2036a08  # v2.3.2
         with:
           fetch-depth: 1
 

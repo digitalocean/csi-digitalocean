@@ -34,7 +34,7 @@ jobs:
 
     steps:
       - name: checkout
-        uses: actions/checkout@v2
+        uses: actions/checkout@2036a08  # v2.3.2
         with:
           fetch-depth: 1
 
@@ -50,7 +50,7 @@ jobs:
           DOCKER_REPO=${DOCKER_ORG}/do-csi-plugin make publish
 
       - name: create Github release
-        uses: softprops/action-gh-release@v1
+        uses: softprops/action-gh-release@b7e450d  # v0.1.5
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
