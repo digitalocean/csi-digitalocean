@@ -75,6 +75,9 @@ COPY --from=tools /tini /sbin/
 COPY --from=tools /doctl /usr/local/bin/
 COPY --from=tools /ginkgo /usr/local/bin/
 COPY --from=tools /kubectl /usr/local/bin/
+
+COPY cleanup-clusters.sh /
+
 # Docker comes with built-in tini support (--init parameter) but does not allow
 # to enable child process group killing
 # (https://github.com/krallin/tini#process-group-killing) via "-g". We need this
