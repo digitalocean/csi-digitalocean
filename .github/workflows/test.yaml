@@ -132,7 +132,7 @@ jobs:
             TAG=latest
           fi
 
-          TIMEOUT=60m make test-e2e E2E_ARGS="-ginkgo-nodes ${NUM_GINKGO_NODES} -driver-image ${DOCKER_ORG}/do-csi-plugin-dev:${TAG} -runner-image ${DOCKER_ORG}/k8s-e2e-test-runner:${RUNNER_IMAGE_TAG_PREFIX}latest -name-suffix ${NAME_SUFFIX} ${{ matrix.kube-release }}"
+          TIMEOUT=60m make test-e2e E2E_ARGS="-ginkgo-nodes ${NUM_GINKGO_NODES} -driver-image ${DOCKER_ORG}/do-csi-plugin-dev:${TAG} -runner-image ${DOCKER_ORG}/k8s-e2e-test-runner:${RUNNER_IMAGE_TAG_PREFIX}latest -name-suffix ${NAME_SUFFIX} -retain ${{ matrix.kube-release }}"
 
   tag-new-master-image:
     runs-on: ubuntu-18.04

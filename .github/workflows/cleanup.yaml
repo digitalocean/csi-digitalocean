@@ -1,0 +1,24 @@
+name: cleanup-clusters
+
+env:
+  DOCKER_ORG: digitalocean
+
+on:
+  pull_request:
+    types: [closed]
+
+jobs:
+  cleanup-clusters:
+    name: Clean up clusters from the PR
+    runs-on: ubuntu-latest
+    steps:
+      - name: cleanup
+        env:
+          DIGITALOCEAN_ACCESS_TOKEN: ${{ secrets.CSIDigitalOceanAccessToken }}
+          BRANCH: ${{ github.head_ref }}
+        run: |
+          # Variable definitions and runner image must match things in test.yaml.
+
+          BRANCH="$(echo -n ${BRANCH} | tr -c '[:alnum:]._-' '-')"
+          TAG_IDENTIFIER="$(echo -n ${BRANCH} | sha256sum | cut -c1-7)"
+          docker run --rm --entrypoint /cleanup-clusters.sh ${DOCKER_ORG}/k8s-e2e-test-runner:${BRANCH}-latest "branch-identifier:${TAG_IDENTIFIER}"
