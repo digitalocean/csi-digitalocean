@@ -41,7 +41,7 @@ jobs:
       - name: Go setup
         uses: actions/setup-go@v1
         with:
-          go-version: '1.14.2'
+          go-version: '1.15.2'
 
       - name: Run unit tests
         run: make all
@@ -100,7 +100,7 @@ jobs:
       - name: Go setup
         uses: actions/setup-go@v1
         with:
-          go-version: '1.14.2'
+          go-version: '1.15.2'
 
       - name: Install kustomize
         env:
