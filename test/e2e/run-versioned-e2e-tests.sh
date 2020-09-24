@@ -18,6 +18,10 @@ set -o errexit
 set -o nounset
 set -o pipefail
 
+if [[ "${DEBUG_E2E:-}" ]]; then
+  set -o xtrace
+fi
+
 readonly DEFAULT_GINKGO_NODES=10
 
 if [[ $# -ne 2 ]]; then
@@ -48,7 +52,7 @@ fi
 
 focus=
 if [[ "${FOCUS:-}" ]]; then
-  focus=".*${focus}"
+  focus=".*${FOCUS}"
 fi
 
 if [[ "${SKIP_PARALLEL_TESTS:-}" ]]; then
@@ -57,7 +61,7 @@ else
   echo 'Running parallel tests'
   # Set node count explicitly since node detection does not work properly inside a
   # container.
-  ginkgo -v -p -nodes "${GINKGO_NODES:-$DEFAULT_GINKGO_NODES}" -focus="External.Storage${focus}" -skip='\[Feature:|\[Disruptive\]|\[Serial\]' "${E2E_TEST_FILE}" -- "-storage.testdriver=${TD_FILE}"
+  ginkgo -v -p -nodes "${GINKGO_NODES:-$DEFAULT_GINKGO_NODES}" -focus="External.Storage${focus}.*" -skip='\[Feature:|\[Disruptive\]|\[Serial\]' "${E2E_TEST_FILE}" -- "-storage.testdriver=${TD_FILE}"
 fi
 
 if [[ "${SKIP_SEQUENTIAL_TESTS:-}" ]]; then

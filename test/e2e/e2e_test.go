@@ -492,6 +492,15 @@ func runE2ETests(ctx context.Context, kubeVersion, runnerImage, testdriverFilena
 		"KUBECONFIG=/root/.kube/config",
 	}
 
+	if debug := os.Getenv("DEBUG_E2E"); debug != "" {
+		envs = append(envs, "DEBUG_E2E=1")
+	}
+
+	if focus != "" {
+		fmt.Printf("Setting focus to %q\n", focus)
+		envs = append(envs, fmt.Sprintf("FOCUS=%s", focus))
+	}
+
 	if skipParallel {
 		envs = append(envs, fmt.Sprintf("%s=1", envVarSkipTestsParallel))
 	}
@@ -524,6 +533,7 @@ func runE2ETests(ctx context.Context, kubeVersion, runnerImage, testdriverFilena
 		stopTimeout: 1 * time.Minute,
 	}
 
+	fmt.Printf("Starting test runner image %q for Kubernetes version %q\n", runnerImage, kubeVersion)
 	return runContainer(ctx, p)
 }
 

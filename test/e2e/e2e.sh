@@ -24,5 +24,5 @@ TIMEOUT="${TIMEOUT:-1h}"
 
 (
   cd "${SCRIPT_DIR}"
-  go test -v -tags e2e -test.timeout "${TIMEOUT}" ./... -args -long "$@"
+  DEBUG_E2E="${DEBUG_E2E:-}" go test -v -tags e2e -test.timeout "${TIMEOUT}" ./... -args -long "$@"
 )
