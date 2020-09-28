@@ -18,30 +18,12 @@ set -o errexit
 set -o nounset
 set -o pipefail
 
-readonly IMAGE=${IMAGE:-digitalocean/k8s-e2e-test-runner}
-SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
-
-usage() {
-  echo "$(basename "$0") build | push"
-}
 
 if [[ $# -ne 1 ]]; then
-  usage >&2
+  echo "$(basename "$0") <Kubernetes version, e.g., 1.42.23>" >&2
   exit 1
 fi
 
-readonly OPERATION="$1"
+readonly KUBE_VERSION="$1"
 
-case "${OPERATION}" in
-  build)
-    docker build -t "${IMAGE}" --build-arg KUBE_VERSION_1_19 --build-arg KUBE_VERSION_1_19_E2E_BIN_SHA256_CHECKSUM --build-arg KUBE_VERSION_1_18 --build-arg KUBE_VERSION_1_18_E2E_BIN_SHA256_CHECKSUM --build-arg SHA_1_17 -f "${SCRIPT_DIR}/Dockerfile" "${SCRIPT_DIR}"
-    ;;
-  
-  push)
-    docker push "${IMAGE}"
-    ;;
-
-  *)
-    usage >&2
-    exit 1
-esac
+curl --fail --location "https://dl.k8s.io/v${KUBE_VERSION}/kubernetes-test-linux-amd64.tar.gz" | tar xvzOf - --strip-components 3 kubernetes/test/bin/e2e.test | sha256sum | awk '{print $1}'
