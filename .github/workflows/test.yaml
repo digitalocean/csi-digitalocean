@@ -69,6 +69,7 @@ jobs:
           sudo apt clean
           docker rmi $(docker image ls -aq)
           df -h
+          docker volume prune -f
 
       - name: build and push runner image
         env:
