@@ -67,7 +67,7 @@ jobs:
           sudo swapoff -a
           sudo rm -f /swapfile
           sudo apt clean
-          docker rmi $(docker image ls -aq)
+          docker system prune -af --volumes
           df -h
 
       - name: build and push runner image
