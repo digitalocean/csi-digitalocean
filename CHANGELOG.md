@@ -1,5 +1,17 @@
 ## unreleased
 
+## v2.1.0 - 2020.10.07
+
+* Surface health check failures
+  [[GH-355]](https://github.com/digitalocean/csi-digitalocean/pull/355)
+* Update csi-provisioner to v2.0.2 and csi-snapshotter to v3.0.0
+  [[GH-353]](https://github.com/digitalocean/csi-digitalocean/pull/353)
+* Run e2e tests for 1.19
+  [[GH-349]](https://github.com/digitalocean/csi-digitalocean/pull/349)
+* Update Go to 1.15.2
+  [[GH-344]](https://github.com/digitalocean/csi-digitalocean/pull/344)
+* Fix built-in release version
+  [[GH-342]](https://github.com/digitalocean/csi-digitalocean/pull/342)
 * Update Kubernetes dependency to 1.19.2 and sidecars to latest
   [[GH-341]](https://github.com/digitalocean/csi-digitalocean/pull/341)
 
