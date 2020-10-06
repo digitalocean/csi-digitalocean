@@ -20,10 +20,19 @@ RUN apt-get update && \
 RUN mkdir -p /go/src/k8s.io
 WORKDIR /go/src/k8s.io
 
+### Kubernetes 1.19
+FROM builder AS tests-1.19
+ARG KUBE_VERSION_1_19=1.19.2
+ARG KUBE_VERSION_1_19_E2E_BIN_SHA256_CHECKSUM=0ef80e3f74a9d115b7b2e74f8bcca9e2f93d69cd7b3b45cafc74c13c3799cad7
+
+RUN curl --fail --location https://dl.k8s.io/v${KUBE_VERSION_1_19}/kubernetes-test-linux-amd64.tar.gz | tar xvzf - --strip-components 3 kubernetes/test/bin/e2e.test
+RUN echo "${KUBE_VERSION_1_19_E2E_BIN_SHA256_CHECKSUM}" e2e.test | sha256sum --check
+RUN cp e2e.test /e2e.1.19.test
+
 ### Kubernetes 1.18
 FROM builder AS tests-1.18
-ARG KUBE_VERSION_1_18=1.18.3
-ARG KUBE_VERSION_1_18_E2E_BIN_SHA256_CHECKSUM=07f7582ffddf817b087efc7098cfd2e9eb458eb59ae5b71b8db26e8a8debee16
+ARG KUBE_VERSION_1_18=1.18.9
+ARG KUBE_VERSION_1_18_E2E_BIN_SHA256_CHECKSUM=aa0f78b42580970fbfe29690efff8d386d32819044f7a99f69ec5ffad836e8ac
 
 RUN curl --fail --location https://dl.k8s.io/v${KUBE_VERSION_1_18}/kubernetes-test-linux-amd64.tar.gz | tar xvzf - --strip-components 3 kubernetes/test/bin/e2e.test
 RUN echo "${KUBE_VERSION_1_18_E2E_BIN_SHA256_CHECKSUM}" e2e.test | sha256sum --check
@@ -49,7 +58,7 @@ ARG DOCTL_VERSION=1.36.0
 # ginkgo is needed to run the upstream end-to-end tests.
 ARG GINKGO_VERSION=1.10.3
 # kubectl is needed by some tests.
-ARG KUBECTL_VERSION=1.18.3
+ARG KUBECTL_VERSION=1.19.2
 
 RUN curl --fail --location --output /tini https://github.com/krallin/tini/releases/download/v${TINI_VERSION}/tini
 RUN chmod u+x /tini
@@ -69,6 +78,7 @@ FROM bitnami/minideb:buster AS runtime
 # Certificates needed to trust the CA for any HTTPS connections to the DO API.
 RUN apt-get update && \
     DEBIAN_FRONTEND=noninteractive apt-get install --yes --no-install-recommends ca-certificates
+COPY --from=tests-1.19 /e2e.1.19.test /
 COPY --from=tests-1.18 /e2e.1.18.test /
 COPY --from=tests-1.17 /e2e.1.17.test /
 COPY --from=tools /tini /sbin/
