@@ -93,7 +93,7 @@ type Driver struct {
 
 // NewDriver returns a CSI plugin that contains the necessary gRPC
 // interfaces to interact with Kubernetes over unix domain sockets for
-// managaing DigitalOcean Block Storage
+// managing DigitalOcean Block Storage
 func NewDriver(ep, token, url, doTag, driverName, debugAddr string) (*Driver, error) {
 	if driverName == "" {
 		driverName = DefaultDriverName
