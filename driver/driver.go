@@ -218,7 +218,8 @@ func (d *Driver) Run(ctx context.Context) error {
 			mux.HandleFunc("/health", func(w http.ResponseWriter, r *http.Request) {
 				err := d.healthChecker.Check(r.Context())
 				if err != nil {
-					w.WriteHeader(http.StatusInternalServerError)
+					d.log.WithError(err).Error("executing health check")
+					http.Error(w, err.Error(), http.StatusInternalServerError)
 					return
 				}
 				w.WriteHeader(http.StatusOK)
