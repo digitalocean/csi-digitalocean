@@ -21,7 +21,6 @@ else
   GIT_TREE_STATE=dirty
 endif
 COMMIT ?= $(shell git rev-parse HEAD)
-BRANCH ?= $(shell git rev-parse --abbrev-ref HEAD)
 LDFLAGS ?= -X github.com/digitalocean/csi-digitalocean/driver.version=${VERSION} -X github.com/digitalocean/csi-digitalocean/driver.commit=${COMMIT} -X github.com/digitalocean/csi-digitalocean/driver.gitTreeState=${GIT_TREE_STATE}
 PKG ?= github.com/digitalocean/csi-digitalocean/cmd/do-csi-plugin
 ifneq ($(VERSION),)
@@ -93,18 +92,9 @@ build:
 
 .PHONY: push
 push:
-# Permit releasing to the canonical container repository if we are on master or use the "dev" tag on a non-master
-# branch.
-# Make an exception when the I_KNOW_WHAT_IAM_DOING environment flag is set, which we need when releasing via Github
-# Actions where HEAD (qualifying as a non-master branch) is checked out.
-ifeq ($(I_KNOW_WHAT_IAM_DOING),)
-  ifeq ($(DOCKER_REPO),digitalocean/do-csi-plugin)
-    ifneq ($(BRANCH),master)
-      ifneq ($(VERSION),dev)
-	    $(error "Only the `dev` tag can be published from non-master branches")
-      endif
-    endif
-  endif
+# Permit releasing to the canonical container repository only if VERSION adheres to semver.
+ifeq ($(DOCKER_REPO),digitalocean/do-csi-plugin)
+	@[[ "${VERSION}" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$$ ]] || ( echo "VERSION "${VERSION}" does not adhere to semver"; exit 1 )
 endif
 	@echo "==> Publishing $(DOCKER_REPO):$(VERSION)"
 	@docker push $(DOCKER_REPO):$(VERSION)
