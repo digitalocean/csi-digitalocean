@@ -93,10 +93,16 @@ build:
 
 .PHONY: push
 push:
-ifeq ($(DOCKER_REPO),digitalocean/do-csi-plugin)
-  ifneq ($(BRANCH),master)
-    ifneq ($(VERSION),dev)
-	  $(error "Only the `dev` tag can be published from non-master branches")
+# Permit releasing to the canonical container repository if we are on master or use the "dev" tag on a non-master
+# branch.
+# Make an exception when the I_KNOW_WHAT_IAM_DOING environment flag is set, which we need when releasing via Github
+# Actions where HEAD (qualifying as a non-master branch) is checked out.
+ifeq ($(I_KNOW_WHAT_IAM_DOING),)
+  ifeq ($(DOCKER_REPO),digitalocean/do-csi-plugin)
+    ifneq ($(BRANCH),master)
+      ifneq ($(VERSION),dev)
+	    $(error "Only the `dev` tag can be published from non-master branches")
+      endif
     endif
   endif
 endif
