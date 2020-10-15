@@ -23,8 +23,7 @@ on:
   push:
     tags-ignore:
       # The tags below are for Kubernetes <1.14 which are not supported by the
-      # upstream end-to-end tests. We should find a different way to
-      # automatically test and release them. For now though, ignore them.
+      # upstream end-to-end tests and are not actively maintained anymore.
       - v0.*
       - v1.0.*
 
