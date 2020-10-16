@@ -1,5 +1,8 @@
 ## unreleased
 
+* Match csi-provisioner RBAC rules with upstream
+  [[GH-360]](https://github.com/digitalocean/csi-digitalocean/pull/360)
+
 ## v2.1.0 - 2020.10.07
 
 * Surface health check failures
