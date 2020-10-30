@@ -79,6 +79,7 @@ spec:
           image: quay.io/k8scsi/csi-provisioner:v2.0.2
           args:
             - "--csi-address=$(ADDRESS)"
+            - "--default-fstype=ext4"
             - "--v=5"
           env:
             - name: ADDRESS
