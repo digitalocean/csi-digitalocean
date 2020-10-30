@@ -1,5 +1,7 @@
 ## unreleased
 
+## v2.1.1 - 2020.10.30
+
 * Fix fstype usage
   [[GH-363]](https://github.com/digitalocean/csi-digitalocean/pull/363)
 * Match csi-provisioner RBAC rules with upstream
