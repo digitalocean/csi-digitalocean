@@ -1,5 +1,7 @@
 ## unreleased
 
+* Fix fstype usage
+  [[GH-363]](https://github.com/digitalocean/csi-digitalocean/pull/363)
 * Match csi-provisioner RBAC rules with upstream
   [[GH-360]](https://github.com/digitalocean/csi-digitalocean/pull/360)
 
