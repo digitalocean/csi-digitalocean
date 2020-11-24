@@ -108,9 +108,9 @@ Kubernetes Release | DigitalOcean CSI Driver Version
 1.14               | v1.3.x
 1.15               | v1.3.x
 1.16               | v1.3.x
-1.17               | v2.0.x (v1.3.x with v1alpha1 snapshots only)
-1.18               | v2.0.x (v1.3.x with v1alpha1 snapshots only)
-1.19               | v2.0.x (v1.3.x with v1alpha1 snapshots only)
+1.17               | v2 (v1.3.x with v1alpha1 snapshots only)
+1.18               | v2 (v1.3.x with v1alpha1 snapshots only)
+1.19               | v2 (v1.3.x with v1alpha1 snapshots only)
 
 ---
 **Note:**
