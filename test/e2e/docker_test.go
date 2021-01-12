@@ -196,14 +196,15 @@ Summaries:
 	}()
 
 	// Wait for container completion.
-	statusCode, err := cli.ContainerWait(ctx, cont.ID)
-	if err != nil {
+	resultC, errC := cli.ContainerWait(ctx, cont.ID, container.WaitConditionNextExit)
+	select {
+	case err := <-errC:
 		return fmt.Errorf("failed to wait for container: %s", err)
-	}
-	isDeleted = true
-
-	if statusCode != 0 {
-		return fmt.Errorf("container exited with code %d", statusCode)
+	case result := <-resultC:
+		isDeleted = true
+		if result.StatusCode != 0 {
+			return fmt.Errorf("container exited with code %d", result.StatusCode)
+		}
 	}
 
 	return nil
