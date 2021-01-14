@@ -118,6 +118,19 @@ Kubernetes Release | DigitalOcean CSI Driver Version
 The [DigitalOcean Kubernetes](https://www.digitalocean.com/products/kubernetes/) product comes with the CSI driver pre-installed and no further steps are required.
 
 ---
+**Driver modes:**
+
+By default, driver runs in both controller and node mode. It would create disk Volumes on DigitalOcean infrastructure and mount them on the required node.
+
+Driver can be run in **controller only mode** outside DigitalOcean droplets.
+To use this mode `--region` flag (valid DigitalOcean region slug) must be provided together with `--token` flag (DigitalOcean API token).
+
+Alternatively driver can be run in **node only mode** on DigitalOcean droplets. Driver would only handle node related requests like mount volume.
+To us this mode `--region` and `--token` flags must not be provided.
+
+Skip secret creation (section 1. in following deployment instructions) when using **node only mode** as API token is not required.
+
+---
 
 **Requirements:**
 
