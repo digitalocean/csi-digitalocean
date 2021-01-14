@@ -94,7 +94,7 @@ type Driver struct {
 // NewDriver returns a CSI plugin that contains the necessary gRPC
 // interfaces to interact with Kubernetes over unix domain sockets for
 // managing DigitalOcean Block Storage
-func NewDriver(ep, token, url string, isController, isNode bool, region, doTag, driverName, debugAddr string) (*Driver, error) {
+func NewDriver(ep, token, url, region, doTag, driverName, debugAddr string) (*Driver, error) {
 	if driverName == "" {
 		driverName = DefaultDriverName
 	}
@@ -105,10 +105,10 @@ func NewDriver(ep, token, url string, isController, isNode bool, region, doTag, 
 	oauthClient := oauth2.NewClient(context.Background(), tokenSource)
 
 	var hostID string
-	if isNode || isController && region == "" {
+	if region == "" {
 		all, err := metadata.NewClient().Metadata()
 		if err != nil {
-			return nil, fmt.Errorf("couldn't get metadata: %s (are you running on DigitalOcean droplets? Provide region configuration if running in controller only mode)", err)
+			return nil, fmt.Errorf("getting droplet metadata, 'region' flag must be set when running outside of DigitalOcean: %w", err)
 		}
 
 		region = all.Region
@@ -140,14 +140,15 @@ func NewDriver(ep, token, url string, isController, isNode bool, region, doTag, 
 		name:                  driverName,
 		publishInfoVolumeName: driverName + "/volume-name",
 
-		doTag:             doTag,
-		endpoint:          ep,
-		debugAddr:         debugAddr,
-		hostID:            func() string { return hostID },
-		region:            region,
-		mounter:           newMounter(log),
-		log:               log,
-		isController:      isController,
+		doTag:     doTag,
+		endpoint:  ep,
+		debugAddr: debugAddr,
+		hostID:    func() string { return hostID },
+		region:    region,
+		mounter:   newMounter(log),
+		log:       log,
+		// we're assuming only the controller has a non-empty token.
+		isController:      token != "",
 		waitActionTimeout: defaultWaitActionTimeout,
 
 		storage:        doClient.Storage,
