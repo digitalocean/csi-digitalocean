@@ -2,6 +2,8 @@
 
 * Add xfsprogs-extra to csi-do-plugin container to support xfs grows
   [[GH-405]](https://github.com/digitalocean/csi-digitalocean/pull/405)
+* Update deprecated apiextensions and storage APIs to v1
+  [[GH-379]](https://github.com/digitalocean/csi-digitalocean/pull/379)
 
 ## v2.1.2 - 2021.09.07
 
