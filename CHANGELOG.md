@@ -1,5 +1,7 @@
 ## unreleased
 
+* Bump sidecar versions and add 1.20 e2e tests
+  [[GH-380]](https://github.com/digitalocean/csi-digitalocean/pull/380)
 * Update Kubernetes dependency to 1.20.2
   [[GH-374]](https://github.com/digitalocean/csi-digitalocean/pull/374)
 
