@@ -38,7 +38,7 @@ spec:
       serviceAccount: snapshot-controller
       containers:
         - name: snapshot-controller
-          image: quay.io/k8scsi/snapshot-controller:v3.0.2
+          image: quay.io/k8scsi/snapshot-controller:v3.0.3
           args:
             - "--v=5"
           imagePullPolicy: IfNotPresent
