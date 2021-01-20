@@ -11,11 +11,22 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/client-go/dynamic/fake"
 	"k8s.io/utils/pointer"
 )
 
 const dobsStorageClassName = "do-block-storage"
+
+var (
+	// gvrToListKind maps resources to their list types, which is required by
+	// the fake client in 1.20+.
+	gvrToListKind = map[schema.GroupVersionResource]string{
+		alphaSnapClassRes:   "VolumeSnapshotClassList",
+		alphaSnapContentRes: "VolumeSnapshotContentsList",
+		alphaSnapshotRes:    "VolumeSnapshotList",
+	}
+)
 
 type createVolSnapshotClassOpts struct {
 	snapshotter string
@@ -80,8 +91,9 @@ func TestWriteVolumeSnapshotObjectsClass(t *testing.T) {
 			if test.name != "new style snapshotter" {
 				t.Skip()
 			}
+
 			scheme := runtime.NewScheme()
-			client := fake.NewSimpleDynamicClient(scheme)
+			client := fake.NewSimpleDynamicClientWithCustomListKinds(scheme, gvrToListKind)
 
 			if test.inVolumeSnapClass != nil {
 				_, err := client.Resource(alphaSnapClassRes).Create(context.Background(), test.inVolumeSnapClass, metav1.CreateOptions{})
@@ -272,7 +284,7 @@ func TestWriteVolumeSnapshotObjectsContent(t *testing.T) {
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
 			scheme := runtime.NewScheme()
-			client := fake.NewSimpleDynamicClient(scheme)
+			client := fake.NewSimpleDynamicClientWithCustomListKinds(scheme, gvrToListKind)
 
 			volumeSnapshotClass := createVolSnapshotClass(createVolSnapshotClassOpts{
 				isDefault: test.dobsIsDefaultClass,
@@ -437,7 +449,7 @@ func TestWriteVolumeSnapshotObjects(t *testing.T) {
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
 			scheme := runtime.NewScheme()
-			client := fake.NewSimpleDynamicClient(scheme)
+			client := fake.NewSimpleDynamicClientWithCustomListKinds(scheme, gvrToListKind)
 
 			volumeSnapshotClass := createVolSnapshotClass(createVolSnapshotClassOpts{
 				isDefault: test.dobsIsDefaultClass,

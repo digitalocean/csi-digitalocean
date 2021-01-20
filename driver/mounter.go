@@ -29,7 +29,7 @@ import (
 
 	"github.com/sirupsen/logrus"
 	"golang.org/x/sys/unix"
-	"k8s.io/utils/mount"
+	"k8s.io/mount-utils"
 )
 
 type findmntResponse struct {

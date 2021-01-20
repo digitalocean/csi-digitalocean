@@ -33,7 +33,7 @@ import (
 	"github.com/kubernetes-csi/csi-test/v4/pkg/sanity"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/sync/errgroup"
-	"k8s.io/utils/mount"
+	"k8s.io/mount-utils"
 )
 
 const (
