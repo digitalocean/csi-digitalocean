@@ -33,7 +33,7 @@ func main() {
 		endpoint   = flag.String("endpoint", "unix:///var/lib/kubelet/plugins/"+driver.DefaultDriverName+"/csi.sock", "CSI endpoint.")
 		token      = flag.String("token", "", "DigitalOcean access token.")
 		url        = flag.String("url", "https://api.digitalocean.com/", "DigitalOcean API URL.")
-		region     = flag.String("region", "", "DigitalOcean region slug. Required when running not on DigitalOcean droplet.")
+		region     = flag.String("region", "", "DigitalOcean region slug. Specify only when running in controller mode outside of a DigitalOcean droplet.")
 		doTag      = flag.String("do-tag", "", "Tag DigitalOcean volumes on Create/Attach.")
 		driverName = flag.String("driver-name", driver.DefaultDriverName, "Name for the driver.")
 		debugAddr  = flag.String("debug-addr", "", "Address to serve the HTTP debug server on.")
@@ -47,7 +47,7 @@ func main() {
 	}
 
 	if *token == "" && *region != "" {
-		log.Fatalln("region flag must not be set when driver is running in node mode (with unset token flag)")
+		log.Fatalln("region flag must not be set when driver is running in node mode (i.e., token flag is unset)")
 	}
 
 	drv, err := driver.NewDriver(*endpoint, *token, *url, *region, *doTag, *driverName, *debugAddr)

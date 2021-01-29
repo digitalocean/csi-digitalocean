@@ -108,7 +108,7 @@ func NewDriver(ep, token, url, region, doTag, driverName, debugAddr string) (*Dr
 	if region == "" {
 		all, err := metadata.NewClient().Metadata()
 		if err != nil {
-			return nil, fmt.Errorf("getting droplet metadata, 'region' flag must be set when running outside of DigitalOcean: %w", err)
+			return nil, fmt.Errorf("couldn't get metadata: %s (are you running outside of a DigitalOcean droplet and possibly forgot to specify the 'region' flag?)", err)
 		}
 
 		region = all.Region

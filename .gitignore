@@ -1,3 +1,4 @@
 cmd/do-csi-plugin/do-csi-plugin
 .idea/
 *.sedbak
+.DS_Store
