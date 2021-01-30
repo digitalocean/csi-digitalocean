@@ -129,7 +129,8 @@ When running outside of DigitalOcean droplets, the driver can only function in *
 This requires to set the `--region` flag to a valid DigitalOcean region slug in addition to the other flags.
 The `--region` flag should **not** be set when running the driver on DigitalOcean droplets.
 
-Alternatively driver can be run in **node only mode** on DigitalOcean droplets. Driver would only handle node related requests like mount volume.
+Alternatively driver can be run in **node only mode** on DigitalOcean droplets.
+Driver would only handle node related requests like mount volume. Driver runs in **node only mode** when `--token` flag is not provided.
 
 Skip secret creation (section 1. in following deployment instructions) when using **node only mode** as API token is not required.
 
