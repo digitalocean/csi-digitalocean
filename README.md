@@ -127,12 +127,19 @@ The suggested release manifests provide separate deployments for controller and 
 
 When running outside of DigitalOcean droplets, the driver can only function in **controller mode**.
 This requires to set the `--region` flag to a valid DigitalOcean region slug in addition to the other flags.
-The `--region` flag should **not** be set when running the driver on DigitalOcean droplets.
+
+The `--region` flag **must not** be set when running the driver on DigitalOcean droplets.
 
 Alternatively driver can be run in **node only mode** on DigitalOcean droplets.
 Driver would only handle node related requests like mount volume. Driver runs in **node only mode** when `--token` flag is not provided.
 
 Skip secret creation (section 1. in following deployment instructions) when using **node only mode** as API token is not required.
+
+| Modes                                     |  `--token` flag  |  `--region` flag |
+|-------------------------------------------|:----------------:|:----------------:|
+| Controller and Node mode in DigitalOcean  |:white_check_mark:|        :x:       |
+| Controller only mode not in DigitalOcean  |:white_check_mark:|:white_check_mark:|
+| Node only mode in DigitalOcean            |        :x:       |        :x:       |
 
 ---
 
