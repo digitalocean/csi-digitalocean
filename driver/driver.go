@@ -94,7 +94,7 @@ type Driver struct {
 // NewDriver returns a CSI plugin that contains the necessary gRPC
 // interfaces to interact with Kubernetes over unix domain sockets for
 // managing DigitalOcean Block Storage
-func NewDriver(ep, token, url, doTag, driverName, debugAddr string) (*Driver, error) {
+func NewDriver(ep, token, url, region, doTag, driverName, debugAddr string) (*Driver, error) {
 	if driverName == "" {
 		driverName = DefaultDriverName
 	}
@@ -104,13 +104,16 @@ func NewDriver(ep, token, url, doTag, driverName, debugAddr string) (*Driver, er
 	})
 	oauthClient := oauth2.NewClient(context.Background(), tokenSource)
 
-	all, err := metadata.NewClient().Metadata()
-	if err != nil {
-		return nil, fmt.Errorf("couldn't get metadata: %s (are you running on DigitalOcean droplets?)", err)
-	}
+	var hostID string
+	if region == "" {
+		all, err := metadata.NewClient().Metadata()
+		if err != nil {
+			return nil, fmt.Errorf("couldn't get metadata: %s (are you running outside of a DigitalOcean droplet and possibly forgot to specify the 'region' flag?)", err)
+		}
 
-	region := all.Region
-	hostID := strconv.Itoa(all.DropletID)
+		region = all.Region
+		hostID = strconv.Itoa(all.DropletID)
+	}
 
 	opts := []godo.ClientOpt{}
 	opts = append(opts, godo.SetBaseURL(url))
@@ -144,8 +147,7 @@ func NewDriver(ep, token, url, doTag, driverName, debugAddr string) (*Driver, er
 		region:    region,
 		mounter:   newMounter(log),
 		log:       log,
-		// for now we're assuming only the controller has a non-empty token. In
-		// the future we should pass an explicit flag to the driver.
+		// we're assuming only the controller has a non-empty token.
 		isController:      token != "",
 		waitActionTimeout: defaultWaitActionTimeout,
 
