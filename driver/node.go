@@ -106,7 +106,7 @@ func (d *Driver) NodeStageVolume(ctx context.Context, req *csi.NodeStageVolumeRe
 
 	source := getDeviceByIDPath(volumeName)
 
-	luksContext := getLuksContext(req.Secrets, publishContext, VolumeLifecycleNodeStageVolume)
+	luksContext := getLuksContext(req.Secrets, req.VolumeContext, VolumeLifecycleNodeStageVolume)
 
 	target := req.StagingTargetPath
 
