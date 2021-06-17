@@ -24,6 +24,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/containerd/containerd/platforms"
 	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/api/types/container"
 	"github.com/docker/docker/api/types/mount"
@@ -116,6 +117,7 @@ Summaries:
 		})
 	}
 
+	platform := platforms.DefaultSpec()
 	stopTimeoutSecs := int(p.stopTimeout.Seconds())
 	cont, err := cli.ContainerCreate(ctx,
 		&container.Config{
@@ -133,6 +135,7 @@ Summaries:
 			Mounts:     mounts,
 		},
 		&network.NetworkingConfig{},
+		&platform,
 		e2eContainerName,
 	)
 	if err != nil {
