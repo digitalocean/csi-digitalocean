@@ -32,8 +32,6 @@ do
 done < <(curl -fsSL "https://raw.githubusercontent.com/kubernetes/kubernetes/v$KUBERNETES_VERSION/go.mod" \
   | grep -E '^[[:space:]]*k8s.io.* v0.0.0$')
 
-deps+=("-replace k8s.io/kubernetes=k8s.io/kubernetes@v$KUBERNETES_VERSION")
-
 unset GOROOT GOPATH
 export GO111MODULE=on
 
