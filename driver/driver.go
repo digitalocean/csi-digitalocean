@@ -104,16 +104,19 @@ func NewDriver(ep, token, url, region, doTag, driverName, debugAddr string) (*Dr
 	})
 	oauthClient := oauth2.NewClient(context.Background(), tokenSource)
 
-	var hostID string
+	mdClient := metadata.NewClient()
 	if region == "" {
-		all, err := metadata.NewClient().Metadata()
+		var err error
+		region, err = mdClient.Region()
 		if err != nil {
-			return nil, fmt.Errorf("couldn't get metadata: %s (are you running outside of a DigitalOcean droplet and possibly forgot to specify the 'region' flag?)", err)
+			return nil, fmt.Errorf("couldn't get region from metadata: %s (are you running outside of a DigitalOcean droplet and possibly forgot to specify the 'region' flag?)", err)
 		}
-
-		region = all.Region
-		hostID = strconv.Itoa(all.DropletID)
 	}
+	hostIDInt, err := mdClient.DropletID()
+	if err != nil {
+		return nil, fmt.Errorf("couldn't get droplet ID from metadata: %s (are you running outside of a DigitalOcean droplet?)", err)
+	}
+	hostID := strconv.Itoa(hostIDInt)
 
 	opts := []godo.ClientOpt{}
 	opts = append(opts, godo.SetBaseURL(url))

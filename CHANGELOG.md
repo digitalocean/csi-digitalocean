@@ -2,6 +2,8 @@
 
 * Update Kubernetes dependency to 1.20.2
   [[GH-374]](https://github.com/digitalocean/csi-digitalocean/pull/374)
+* Refactor metadata service access
+  [[GH-385]](https://github.com/digitalocean/csi-digitalocean/pull/385)
 
 ## v2.1.1 - 2020.10.30
 
