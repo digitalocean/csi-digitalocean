@@ -7,7 +7,7 @@ github.com/blang/semver
 # github.com/container-storage-interface/spec v1.3.0
 ## explicit
 github.com/container-storage-interface/spec/lib/go/csi
-# github.com/containerd/containerd v1.5.2
+# github.com/containerd/containerd v1.5.4
 ## explicit
 github.com/containerd/containerd/errdefs
 github.com/containerd/containerd/log
