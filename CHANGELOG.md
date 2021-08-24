@@ -1,7 +1,7 @@
-## unreleased
+## v2.1.2 - 2021.09.07
 
-* Update Kubernetes dependency to 1.20.2
-  [[GH-374]](https://github.com/digitalocean/csi-digitalocean/pull/374)
+* Update Kubernetes dependency to 1.21.3
+  [[GH-389]](https://github.com/digitalocean/csi-digitalocean/pull/389)
 * Refactor metadata service access
   [[GH-385]](https://github.com/digitalocean/csi-digitalocean/pull/385)
 
