@@ -76,7 +76,7 @@ spec:
       serviceAccount: csi-do-controller-sa
       containers:
         - name: csi-provisioner
-          image: quay.io/k8scsi/csi-provisioner:v2.0.4
+          image: quay.io/k8scsi/csi-provisioner:v2.1.0
           args:
             - "--csi-address=$(ADDRESS)"
             - "--default-fstype=ext4"
@@ -89,7 +89,7 @@ spec:
             - name: socket-dir
               mountPath: /var/lib/csi/sockets/pluginproxy/
         - name: csi-attacher
-          image: quay.io/k8scsi/csi-attacher:v3.0.2
+          image: quay.io/k8scsi/csi-attacher:v3.2.1
           args:
             - "--csi-address=$(ADDRESS)"
             - "--v=5"
@@ -101,7 +101,7 @@ spec:
             - name: socket-dir
               mountPath: /var/lib/csi/sockets/pluginproxy/
         - name: csi-snapshotter
-          image: quay.io/k8scsi/csi-snapshotter:v3.0.2
+          image: quay.io/k8scsi/csi-snapshotter:v3.0.3
           args:
             - "--csi-address=$(ADDRESS)"
             - "--v=5"
@@ -113,7 +113,7 @@ spec:
             - name: socket-dir
               mountPath: /var/lib/csi/sockets/pluginproxy/
         - name: csi-resizer
-          image: quay.io/k8scsi/csi-resizer:v1.0.1
+          image: quay.io/k8scsi/csi-resizer:v1.2.0
           args:
             - "--csi-address=$(ADDRESS)"
             - "--timeout=30s"
@@ -358,7 +358,7 @@ spec:
               mountPath: /etc/udev/rules.d/
       containers:
         - name: csi-node-driver-registrar
-          image: quay.io/k8scsi/csi-node-driver-registrar:v2.0.1
+          image: quay.io/k8scsi/csi-node-driver-registrar:v2.3.0
           args:
             - "--v=5"
             - "--csi-address=$(ADDRESS)"
