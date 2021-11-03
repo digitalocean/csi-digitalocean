@@ -3,16 +3,9 @@
 Below you will find the instruction on how to use an existing DigitalOcean Block
 Storage with your Kubernetes cluster.
 
-## Known issues
+## Preconditions
 
-* Deleting a `PVC` will delete the volume if the reclaim policy is set
-to `Delete`, however the bound `PV` will be not deleted. This seems to be a
-bug in K8S.
-* Using an existing, attached volume might cause confusion if the `POD` is
-scheduled to a different node. It's advised to use only existing **detached**
-volumes. If you have an attached volume, please make sure to detach it, so
-Kubernetes attaches it to the correct droplet. The CSI plugin will return an
-error if the volume is attached to a wrong droplet.
+Make sure the volume to be imported is not attached anywhere yet. For a volume that is still attached to a Kubernetes cluster, you need to ensure the reclaim policy on the associated PersistentVolume is set to `Retain`. Afterwards, the workload / PersistentVolumeClaim can be deleted, which will cause the backing volume to be detached without deletion.
 
 ## Example
 
