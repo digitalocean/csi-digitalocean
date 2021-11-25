@@ -256,6 +256,7 @@ func TestWriteVolumeSnapshotObjectsContent(t *testing.T) {
 						Source: v1beta1snapshot.VolumeSnapshotContentSource{
 							SnapshotHandle: pointer.StringPtr("12cb8633-f3b2-422a-bc64-eef690c17f14"),
 						},
+						DeletionPolicy: v1beta1snapshot.VolumeSnapshotContentDelete,
 					},
 				},
 				{
@@ -275,6 +276,7 @@ func TestWriteVolumeSnapshotObjectsContent(t *testing.T) {
 						Source: v1beta1snapshot.VolumeSnapshotContentSource{
 							SnapshotHandle: pointer.StringPtr("69e7bb48-c1a6-41fe-b090-6f17f6bfd862"),
 						},
+						DeletionPolicy: v1beta1snapshot.VolumeSnapshotContentDelete,
 					},
 				},
 			},

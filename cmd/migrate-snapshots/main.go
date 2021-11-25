@@ -201,9 +201,18 @@ func writeVolumeSnapshotContents(ctx context.Context, client dynamic.Namespaceab
 			return 0, fmt.Errorf("failed get v1alpha1/VolumeSnapshotContent.spec.volumeSnapshotRef.namespace for %s: %s", name, err)
 		}
 
-		deletionPolicy, _, err := unstructured.NestedString(alphaSnapContent.Object, "spec", "deletionPolicy")
+		deletionPolicyPtr, _, err := unstructured.NestedFieldNoCopy(alphaSnapContent.Object, "spec", "deletionPolicy")
 		if err != nil {
 			return 0, fmt.Errorf("failed get v1alpha1/VolumeSnapshotContent.spec.deletionPolicy for %s: %s", name, err)
+		}
+		// Delete is the default policy.
+		deletionPolicy := "Delete"
+		if deletionPolicyPtr != nil {
+			deletionPolicyStrPtr, ok := deletionPolicyPtr.(*string)
+			if !ok {
+				return 0, fmt.Errorf("v1alpha1/VolumeSnapshotContent.spec.deletionPolicy is type %T; expected *string", deletionPolicyPtr)
+			}
+			deletionPolicy = *deletionPolicyStrPtr
 		}
 
 		csiVolSnapSourceSnapHandleStr, found, err := unstructured.NestedString(alphaSnapContent.Object, "spec", "csiVolumeSnapshotSource", "snapshotHandle")
