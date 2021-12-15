@@ -29,25 +29,6 @@ RUN curl --fail --location https://dl.k8s.io/v${KUBE_VERSION_1_19}/kubernetes-te
 RUN echo "${KUBE_VERSION_1_19_E2E_BIN_SHA256_CHECKSUM}" e2e.test | sha256sum --check
 RUN cp e2e.test /e2e.1.19.test
 
-### Kubernetes 1.18
-FROM builder AS tests-1.18
-ARG KUBE_VERSION_1_18=1.18.9
-ARG KUBE_VERSION_1_18_E2E_BIN_SHA256_CHECKSUM=aa0f78b42580970fbfe29690efff8d386d32819044f7a99f69ec5ffad836e8ac
-
-RUN curl --fail --location https://dl.k8s.io/v${KUBE_VERSION_1_18}/kubernetes-test-linux-amd64.tar.gz | tar xvzf - --strip-components 3 kubernetes/test/bin/e2e.test
-RUN echo "${KUBE_VERSION_1_18_E2E_BIN_SHA256_CHECKSUM}" e2e.test | sha256sum --check
-RUN cp e2e.test /e2e.1.18.test
-
-### Kubernetes 1.17
-FROM builder AS tests-1.17
-ARG SHA_1_17=e0fd701
-
-RUN git clone --depth 1 --branch do-doks-1.17 https://github.com/digitalocean/kubernetes.git
-RUN cd kubernetes && \
-    git checkout ${SHA_1_17} && \
-    make WHAT=test/e2e/e2e.test && \
-    cp _output/bin/e2e.test /e2e.1.17.test
-
 ### ginkgo and tools
 FROM golang:1.13 AS tools
 # See comment at the bottom on why we need tini.
@@ -79,8 +60,6 @@ FROM bitnami/minideb:buster AS runtime
 RUN apt-get update && \
     DEBIAN_FRONTEND=noninteractive apt-get install --yes --no-install-recommends ca-certificates
 COPY --from=tests-1.19 /e2e.1.19.test /
-COPY --from=tests-1.18 /e2e.1.18.test /
-COPY --from=tests-1.17 /e2e.1.17.test /
 COPY --from=tools /tini /sbin/
 COPY --from=tools /doctl /usr/local/bin/
 COPY --from=tools /ginkgo /usr/local/bin/
