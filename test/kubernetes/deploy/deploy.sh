@@ -56,7 +56,7 @@ fi
 # the dev version of the CSI controller.
 # Piping the dry-run YAML output to kubectl apply is a common trick to implement
 # upsert semantics with secrets specified imperatively.
-kubectl -n kube-system create secret generic digitalocean --from-literal="access-token=${DIGITALOCEAN_ACCESS_TOKEN}" --dry-run -o yaml |
+kubectl -n kube-system create secret generic digitalocean --from-literal="access-token=${DIGITALOCEAN_ACCESS_TOKEN}" --dry-run=client -o yaml |
     kubectl apply -f -
 
 # Delete alpha snapshots if found.
