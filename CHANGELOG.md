@@ -1,5 +1,8 @@
 ## unreleased
 
+* Add xfsprogs-extra to csi-do-plugin container to support xfs grows
+  [[GH-405]](https://github.com/digitalocean/csi-digitalocean/pull/405)
+
 ## v2.1.2 - 2021.09.07
 
 * Update Kubernetes dependency to 1.21.3
