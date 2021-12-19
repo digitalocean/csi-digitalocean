@@ -559,10 +559,18 @@ func (d *Driver) ListVolumes(ctx context.Context, req *csi.ListVolumesRequest) (
 
 	var entries []*csi.ListVolumesResponse_Entry
 	for _, vol := range volumes {
+		attachedDropletIDs := make([]string, 0, len(vol.DropletIDs))
+		for _, dropletID := range vol.DropletIDs {
+			attachedDropletIDs = append(attachedDropletIDs, strconv.Itoa(dropletID))
+		}
+
 		entries = append(entries, &csi.ListVolumesResponse_Entry{
 			Volume: &csi.Volume{
 				VolumeId:      vol.ID,
 				CapacityBytes: vol.SizeGigaBytes * giB,
+			},
+			Status: &csi.ListVolumesResponse_VolumeStatus{
+				PublishedNodeIds: attachedDropletIDs,
 			},
 		})
 	}
@@ -609,6 +617,7 @@ func (d *Driver) ControllerGetCapabilities(ctx context.Context, req *csi.Control
 		csi.ControllerServiceCapability_RPC_CREATE_DELETE_SNAPSHOT,
 		csi.ControllerServiceCapability_RPC_LIST_SNAPSHOTS,
 		csi.ControllerServiceCapability_RPC_EXPAND_VOLUME,
+		csi.ControllerServiceCapability_RPC_LIST_VOLUMES_PUBLISHED_NODES,
 	} {
 		caps = append(caps, newCap(cap))
 	}
