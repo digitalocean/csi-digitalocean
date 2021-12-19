@@ -85,7 +85,7 @@ done
 echo
 
 # Apply the customization to the dev manifest, and apply it to the cluster.
-kustomize build . --load_restrictor none | kubectl apply -f -
+kustomize build . --load-restrictor LoadRestrictionsNone | kubectl apply -f -
 )
 kubectl apply -f "${SCRIPT_DIR}/../../../deploy/kubernetes/releases/csi-digitalocean-dev/snapshot-controller.yaml"
 # Wait for the deployment to complete.

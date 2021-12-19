@@ -104,7 +104,7 @@ jobs:
 
       - name: Install kustomize
         env:
-          KUSTOMIZE_VERSION: '3.5.3'
+          KUSTOMIZE_VERSION: '4.4.1'
         run: curl -fL https://github.com/kubernetes-sigs/kustomize/releases/download/kustomize%2Fv${KUSTOMIZE_VERSION}/kustomize_v${KUSTOMIZE_VERSION}_linux_amd64.tar.gz | sudo tar xzv -C /usr/local/bin kustomize
 
       - name: Run end-to-end tests
