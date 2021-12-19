@@ -30,6 +30,7 @@ import (
 	"github.com/sirupsen/logrus"
 	"golang.org/x/sys/unix"
 	"k8s.io/mount-utils"
+	kexec "k8s.io/utils/exec"
 )
 
 type findmntResponse struct {
@@ -89,13 +90,20 @@ type Mounter interface {
 // architecture specific code in the future, such as mounter_darwin.go,
 // mounter_linux.go, etc..
 type mounter struct {
-	log *logrus.Entry
+	log      *logrus.Entry
+	kMounter *mount.SafeFormatAndMount
 }
 
 // newMounter returns a new mounter instance
 func newMounter(log *logrus.Entry) *mounter {
+	kMounter := &mount.SafeFormatAndMount{
+		Interface: mount.New(""),
+		Exec:      kexec.New(),
+	}
+
 	return &mounter{
-		log: log,
+		kMounter: kMounter,
+		log:      log,
 	}
 }
 
@@ -197,25 +205,7 @@ func (m *mounter) Mount(source, target, fsType string, opts ...string) error {
 }
 
 func (m *mounter) Unmount(target string) error {
-	umountCmd := "umount"
-	if target == "" {
-		return errors.New("target is not specified for unmounting the volume")
-	}
-
-	umountArgs := []string{target}
-
-	m.log.WithFields(logrus.Fields{
-		"cmd":  umountCmd,
-		"args": umountArgs,
-	}).Info("executing umount command")
-
-	out, err := exec.Command(umountCmd, umountArgs...).CombinedOutput()
-	if err != nil {
-		return fmt.Errorf("unmounting failed: %v cmd: '%s %s' output: %q",
-			err, umountCmd, target, string(out))
-	}
-
-	return nil
+	return mount.CleanupMountPoint(target, m.kMounter, true)
 }
 
 func (m *mounter) IsFormatted(source string) (bool, error) {
