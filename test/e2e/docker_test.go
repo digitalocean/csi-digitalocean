@@ -24,7 +24,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/containerd/containerd/platforms"
 	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/api/types/container"
 	"github.com/docker/docker/api/types/mount"
@@ -51,7 +50,7 @@ type containerParams struct {
 // It returns an error when the container startup or cleanup fails, or when the
 // container returns a non-zero exit code.
 func runContainer(ctx context.Context, p containerParams) (retErr error) {
-	cli, err := client.NewEnvClient()
+	cli, err := client.NewClientWithOpts(client.FromEnv)
 	if err != nil {
 		return fmt.Errorf("failed to create Docker client: %s", err)
 	}
@@ -117,7 +116,6 @@ Summaries:
 		})
 	}
 
-	platform := platforms.DefaultSpec()
 	stopTimeoutSecs := int(p.stopTimeout.Seconds())
 	cont, err := cli.ContainerCreate(ctx,
 		&container.Config{
@@ -135,7 +133,7 @@ Summaries:
 			Mounts:     mounts,
 		},
 		&network.NetworkingConfig{},
-		&platform,
+		nil,
 		e2eContainerName,
 	)
 	if err != nil {
