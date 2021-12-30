@@ -181,7 +181,14 @@ default-token-jskxx   kubernetes.io/service-account-token   3         18h
 digitalocean          Opaque                                1         18h
 ```
 
-#### 2. Deploy the CSI plugin and sidecars
+#### 2. Provide authentication data for the snapshot validation webhook
+
+Snapshots are validated through a `ValidatingWebhookConfiguration` which requires proper CA, certificate, and key data. The manifests in `snapshot-validation-webhook.yaml` should provide sufficient scaffolding to inject the data accordingly. However, the details on how to create and manage them is up to the user and dependent on the exact environment the webhook runs in. See the `XXX`-marked comments in the manifests file for user-required injection points. 
+
+The [official snapshot webhook example](https://github.com/kubernetes-csi/external-snapshotter/tree/master/deploy/kubernetes/webhook-example) offers a non-production-ready solution suitable for testing. For full production readiness, something like [cert-manager](https://cert-manager.io/) can be leveraged. 
+
+
+#### 3. Deploy the CSI plugin and sidecars
 
 Always use the [latest release](https://github.com/digitalocean/csi-digitalocean/releases) compatible with your Kubernetes release (see the [compatibility information](#kubernetes-compatibility)).
 
@@ -198,7 +205,7 @@ If you see any issues during the installation, this could be because the newly
 created CRDs haven't been established yet. If you call `kubectl apply -f` again
 on the same file, the missing resources will be applied again.
 
-#### 3. Test and verify
+#### 4. Test and verify
 
 Create a PersistentVolumeClaim. This makes sure a volume is created and provisioned on your behalf:
 
