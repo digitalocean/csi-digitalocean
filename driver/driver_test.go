@@ -81,6 +81,9 @@ func TestDriverSuite(t *testing.T) {
 	}
 
 	dropletIdx := 1
+	fm := &fakeMounter{
+		mounted: map[string]string{},
+	}
 	driver := &Driver{
 		name:     DefaultDriverName,
 		endpoint: endpoint,
@@ -94,10 +97,8 @@ func TestDriverSuite(t *testing.T) {
 		doTag:             doTag,
 		region:            "nyc3",
 		waitActionTimeout: defaultWaitActionTimeout,
-		mounter: &fakeMounter{
-			mounted: map[string]string{},
-		},
-		log: logrus.New().WithField("test_enabed", true),
+		mounter:           fm,
+		log:               logrus.New().WithField("test_enabed", true),
 
 		storage: &fakeStorageDriver{
 			volumes:   volumes,
@@ -135,6 +136,7 @@ func TestDriverSuite(t *testing.T) {
 	cfg.IDGen = &idGenerator{}
 	cfg.IdempotentCount = 5
 	cfg.TestNodeVolumeAttachLimit = true
+	cfg.CheckPath = fm.checkMountPath
 	sanity.Test(t, cfg)
 
 	cancel()
@@ -540,6 +542,17 @@ func (f *fakeMounter) IsFormatted(source string) (bool, error) {
 func (f *fakeMounter) IsMounted(target string) (bool, error) {
 	_, ok := f.mounted[target]
 	return ok, nil
+}
+
+func (f *fakeMounter) checkMountPath(path string) (sanity.PathKind, error) {
+	isMounted, err := f.IsMounted(path)
+	if err != nil {
+		return "", err
+	}
+	if isMounted {
+		return sanity.PathIsDir, nil
+	}
+	return sanity.PathIsNotFound, nil
 }
 
 func (f *fakeMounter) GetStatistics(volumePath string) (volumeStatistics, error) {
