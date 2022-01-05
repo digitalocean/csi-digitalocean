@@ -17,6 +17,8 @@
 set -euo pipefail
 
 SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+readonly REPO_SCRIPTS_DIR="${SCRIPT_DIR}/../../../scripts"
+readonly DEV_RELEASE_DIR="${SCRIPT_DIR}/../../../deploy/kubernetes/releases/csi-digitalocean-dev"
 readonly DEFAULT_PLUGIN_IMAGE='digitalocean/do-csi-plugin:dev'
 
 YES=
@@ -59,6 +61,8 @@ fi
 kubectl -n kube-system create secret generic digitalocean --from-literal="access-token=${DIGITALOCEAN_ACCESS_TOKEN}" --dry-run=client -o yaml |
     kubectl apply -f -
 
+"${REPO_SCRIPTS_DIR}/create-cert.sh" --service snapshot-validation-service --secret snapshot-validation-secret --namespace kube-system
+
 # Delete alpha snapshots if found.
 if kubectl api-versions | grep -q snapshot.storage.k8s.io/v1alpha1; then
     kubectl delete crd volumesnapshotclasses.snapshot.storage.k8s.io volumesnapshotcontents.snapshot.storage.k8s.io volumesnapshots.snapshot.storage.k8s.io
@@ -75,7 +79,7 @@ kustomize edit set image digitalocean/do-csi-plugin="${DEV_IMAGE}"
 trap "kustomize edit set image digitalocean/do-csi-plugin=$DEFAULT_PLUGIN_IMAGE" EXIT
 
 # Apply the CRDs.
-kubectl apply -f "${SCRIPT_DIR}/../../../deploy/kubernetes/releases/csi-digitalocean-dev/crds.yaml"
+kubectl apply -f "${DEV_RELEASE_DIR}/crds.yaml"
 
 echo -n 'Waiting for CRDs to become established'
 while [[ $(kubectl get crd volumesnapshotclasses.snapshot.storage.k8s.io -o jsonpath='{.status.conditions[?(@.type == "Established")].status}') != "True" ]]; do
@@ -84,12 +88,17 @@ while [[ $(kubectl get crd volumesnapshotclasses.snapshot.storage.k8s.io -o json
 done
 echo
 
-# Apply the customization to the dev manifest, and apply it to the cluster.
+# Apply the customization to the dev manifest, and install it into the cluster.
 kustomize build . --load-restrictor LoadRestrictionsNone | kubectl apply -f -
 )
-kubectl apply -f "${SCRIPT_DIR}/../../../deploy/kubernetes/releases/csi-digitalocean-dev/snapshot-controller.yaml"
+# Install the snapshot controller.
+kubectl apply -f "${DEV_RELEASE_DIR}/snapshot-controller.yaml"
+# Install the snapshot validation webhook.
+sed 's/# caBundle:/caBundle:/' "${DEV_RELEASE_DIR}/snapshot-validation-webhook.yaml" | "${REPO_SCRIPTS_DIR}/patch-ca-bundle.sh" | kubectl apply -f -
+
 # Wait for the deployment to complete.
 kubectl -n kube-system wait --timeout=5m --for=condition=Ready pod -l app=csi-do-controller-dev
 kubectl -n kube-system wait --timeout=5m --for=condition=Ready pod -l app=csi-do-node-dev
 kubectl -n kube-system wait --timeout=5m --for=condition=Ready pod -l app=snapshot-controller
+kubectl -n kube-system wait --timeout=5m --for=condition=Ready pod -l app=snapshot-validation
 kubectl -n kube-system get all
