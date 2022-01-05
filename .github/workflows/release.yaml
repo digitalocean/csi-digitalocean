@@ -48,15 +48,6 @@ jobs:
           VERSION="$(git describe --tags)"
           DOCKER_REPO=${DOCKER_ORG}/do-csi-plugin make publish
 
-      - name: Publish Docker Image to ccp-infra
-        run: |
-          VERSION="$(git describe --tags)"
-          echo "${{ secrets.RegistryToken }}" | docker login registry.digitalocean.com --username ${REGISTRY_TOKEN} --password-stdin
-          docker tag ${DOCKER_ORG}/do-csi-plugin:${VERSION} registry.digitalocean.com/ccp-infra/do-csi-plugin:${VERSION}
-          docker push registry.digitalocean.com/ccp-infra/do-csi-plugin:${VERSION}
-        env:
-          REGISTRY_TOKEN: ${{ secrets.RegistryToken }}
-
       - name: create Github release
         uses: softprops/action-gh-release@b7e450da2a4b4cb4bfbae528f788167786cfcedf  # v0.1.5
         env:
