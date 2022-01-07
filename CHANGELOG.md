@@ -1,7 +1,33 @@
 ## unreleased
 
+## v3.0.0 - 2022.01.07
+
+* Mark CSI driver as default container
+  [[GH-415]](https://github.com/digitalocean/csi-digitalocean/pull/415)
+* Update snapshot CRDs to v3.0.3 from upstream
+  [[GH-414]](https://github.com/digitalocean/csi-digitalocean/pull/414)
+* Update snapshot controller to v3.0.3
+  [[GH-412]](https://github.com/digitalocean/csi-digitalocean/pull/412)
+* Update CSI spec to 1.5.0
+  [[GH-411]](https://github.com/digitalocean/csi-digitalocean/pull/411)
+* Populate published node IDs in ListVolumesResponse
+  [[GH-410]](https://github.com/digitalocean/csi-digitalocean/pull/410)
+* Add snapshot validation webhook
+  [[GH-407]](https://github.com/digitalocean/csi-digitalocean/pull/407)
+* Update registrar sidecar to v2.4.0
+  [[GH-408]](https://github.com/digitalocean/csi-digitalocean/pull/408)
+* Bump github.com/containerd/containerd from 1.5.2 to 1.5.8
+  [[GH-402]](https://github.com/digitalocean/csi-digitalocean/pull/402)
 * Add xfsprogs-extra to csi-do-plugin container to support xfs grows
   [[GH-405]](https://github.com/digitalocean/csi-digitalocean/pull/405)
+* Update Go to 1.17.2
+  [[GH-398]](https://github.com/digitalocean/csi-digitalocean/pull/398)
+* Update sidecar dependencies
+  [[GH-396]](https://github.com/digitalocean/csi-digitalocean/pull/396)
+* Add Kubernetes 1.22 support
+  [[GH-395]](https://github.com/digitalocean/csi-digitalocean/pull/395)
+* Use k8s mount library to implement NodeUnpublishVolume
+  [[GH-393]](https://github.com/digitalocean/csi-digitalocean/pull/393)
 
 ## v2.1.2 - 2021.09.07
 
