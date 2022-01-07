@@ -79,8 +79,6 @@ Snapshots can be created and restored through `VolumeSnapshot` objects.
 
 Since version 2, the CSI plugin support v1beta1 Volume Snapshots only. Support for the v1alpha1 has been dropped.
 
-Users that want to migrate their v1alpha1 Volume Snapshots into a v1beta1 cluster can leverage [this migration tool](/cmd/migrate-snapshots). (For DOKS customers, the migration will be applied automatically during cluster upgrades.)
-
 ---
 
 See also [the example](/examples/kubernetes/snapshot).
@@ -97,20 +95,14 @@ Volumes can be transferred across clusters. The exact steps are outlined in [our
 
 ### Kubernetes Compatibility
 
-The following table describes the required DigitalOcean CSI driver version per Kubernetes release.
+The following table describes the required DigitalOcean CSI driver version per supported Kubernetes release.
 
 Kubernetes Release | DigitalOcean CSI Driver Version
 ------------------ | -------------------------------
-1.10 (1.10.5+)     | v0.2.x
-1.11               | v0.2.x
-1.12               | v0.4.x
-1.13               | v1.0.x
-1.14               | v1.3.x
-1.15               | v1.3.x
-1.16               | v1.3.x
-1.17               | v2 (v1.3.x with v1alpha1 snapshots only)
-1.18               | v2 (v1.3.x with v1alpha1 snapshots only)
-1.19               | v2 (v1.3.x with v1alpha1 snapshots only)
+1.19               | v3
+1.20               | v3
+1.21               | v3
+1.22               | v3
 
 ---
 **Note:**
