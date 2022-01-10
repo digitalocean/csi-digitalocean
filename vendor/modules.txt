@@ -154,7 +154,7 @@ golang.org/x/net/trace
 ## explicit
 golang.org/x/oauth2
 golang.org/x/oauth2/internal
-# golang.org/x/sync v0.0.0-20201207232520-09787c993a3a
+# golang.org/x/sync v0.0.0-20210220032951-036812b2e83c
 ## explicit
 golang.org/x/sync/errgroup
 # golang.org/x/sys v0.0.0-20210616094352-59db8d763f22
@@ -183,8 +183,6 @@ golang.org/x/text/secure/bidirule
 golang.org/x/text/transform
 golang.org/x/text/unicode/bidi
 golang.org/x/text/unicode/norm
-# golang.org/x/time v0.0.0-20210723032227-1f47c861a9ac
-## explicit
 # golang.org/x/xerrors v0.0.0-20200804184101-5ec99f83aff1
 golang.org/x/xerrors
 golang.org/x/xerrors/internal
@@ -198,7 +196,7 @@ google.golang.org/appengine/internal/urlfetch
 google.golang.org/appengine/urlfetch
 # google.golang.org/genproto v0.0.0-20201209185603-f92720507ed4
 google.golang.org/genproto/googleapis/rpc/status
-# google.golang.org/grpc v1.34.0
+# google.golang.org/grpc v1.38.0
 ## explicit
 google.golang.org/grpc
 google.golang.org/grpc/attributes
@@ -226,6 +224,7 @@ google.golang.org/grpc/internal/grpclog
 google.golang.org/grpc/internal/grpcrand
 google.golang.org/grpc/internal/grpcsync
 google.golang.org/grpc/internal/grpcutil
+google.golang.org/grpc/internal/metadata
 google.golang.org/grpc/internal/resolver
 google.golang.org/grpc/internal/resolver/dns
 google.golang.org/grpc/internal/resolver/passthrough
@@ -279,7 +278,7 @@ google.golang.org/protobuf/types/known/wrapperspb
 gopkg.in/tomb.v1
 # gopkg.in/yaml.v2 v2.4.0
 gopkg.in/yaml.v2
-# k8s.io/apimachinery v0.22.5
+# k8s.io/apimachinery v0.22.6-rc.0
 ## explicit
 k8s.io/apimachinery/pkg/util/clock
 k8s.io/apimachinery/pkg/util/errors
@@ -289,7 +288,7 @@ k8s.io/apimachinery/pkg/util/sets
 k8s.io/apimachinery/pkg/util/wait
 # k8s.io/klog/v2 v2.9.0
 k8s.io/klog/v2
-# k8s.io/mount-utils v0.22.5
+# k8s.io/mount-utils v0.22.6-rc.0
 ## explicit
 k8s.io/mount-utils
 # k8s.io/utils v0.0.0-20210819203725-bdf08cb9a70a
