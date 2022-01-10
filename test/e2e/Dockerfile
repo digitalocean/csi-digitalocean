@@ -20,6 +20,15 @@ RUN apt-get update && \
 RUN mkdir -p /go/src/k8s.io
 WORKDIR /go/src/k8s.io
 
+### Kubernetes 1.22
+FROM builder AS tests-1.22
+ARG KUBE_VERSION_1_22=1.22.0
+ARG KUBE_VERSION_1_22_E2E_BIN_SHA256_CHECKSUM=todo
+
+RUN curl --fail --location https://dl.k8s.io/v${KUBE_VERSION_1_22}/kubernetes-test-linux-amd64.tar.gz | tar xvzf - --strip-components 3 kubernetes/test/bin/e2e.test
+RUN echo "${KUBE_VERSION_1_22_E2E_BIN_SHA256_CHECKSUM}" e2e.test | sha256sum --check
+RUN cp e2e.test /e2e.1.22.test
+
 ### Kubernetes 1.21
 FROM builder AS tests-1.21
 ARG KUBE_VERSION_1_21=1.21.6
@@ -77,6 +86,7 @@ FROM bitnami/minideb:buster AS runtime
 # Certificates needed to trust the CA for any HTTPS connections to the DO API.
 RUN apt-get update && \
     DEBIAN_FRONTEND=noninteractive apt-get install --yes --no-install-recommends ca-certificates
+COPY --from=tests-1.22 /e2e.1.22.test /
 COPY --from=tests-1.21 /e2e.1.21.test /
 COPY --from=tests-1.20 /e2e.1.20.test /
 COPY --from=tests-1.19 /e2e.1.19.test /
