@@ -89,7 +89,7 @@ jobs:
     needs: push-images
     strategy:
       matrix:
-        kube-release: ['1.21', '1.20', '1.19']
+        kube-release: ['1.22', '1.21', '1.20', '1.19']
 
     steps:
       - name: checkout
