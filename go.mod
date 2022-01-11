@@ -13,20 +13,17 @@ require (
 	github.com/google/uuid v1.2.0
 	github.com/gorilla/mux v1.8.0 // indirect
 	github.com/kubernetes-csi/csi-test/v4 v4.3.0
-	github.com/kubernetes-csi/external-snapshotter/v2 v2.1.1
 	github.com/magiconair/properties v1.8.1
 	github.com/morikuni/aec v1.0.0 // indirect
 	github.com/sirupsen/logrus v1.8.1
 	golang.org/x/oauth2 v0.0.0-20200107190931-bf48bf16ab8d
 	golang.org/x/sync v0.0.0-20201207232520-09787c993a3a
 	golang.org/x/sys v0.0.0-20210426230700-d19ff857e887
+	golang.org/x/time v0.0.0-20210220033141-f8bda1e9f3ba // indirect
 	google.golang.org/grpc v1.34.0
-	k8s.io/api v0.21.3
 	k8s.io/apimachinery v0.21.3
-	k8s.io/client-go v0.21.3
 	k8s.io/mount-utils v0.21.3
 	k8s.io/utils v0.0.0-20201110183641-67b214c5f920
-	sigs.k8s.io/yaml v1.2.0
 )
 
 go 1.15
