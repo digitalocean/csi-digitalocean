@@ -99,7 +99,7 @@ patchesStrategicMerge:
     annotations: null
   provisioner: dobs.csi.digitalocean.com-dev
 - |-
-  apiVersion: snapshot.storage.k8s.io/v1beta1
+  apiVersion: snapshot.storage.k8s.io/v1
   kind: VolumeSnapshotClass
   metadata:
     name: do-block-storage

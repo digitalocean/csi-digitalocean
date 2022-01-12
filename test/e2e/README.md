@@ -38,7 +38,7 @@ External storage tests for CSI drivers require a so-called _testdriver_ specific
 
 For posterity, the steps required to define a testdriver and run the tests [are documented upstream](https://github.com/kubernetes/kubernetes/tree/master/test/e2e/storage/external). The test runner provided here encapsulate all of this, however, so DigitalOcean CSI driver authors only need to care about updating or adding testdriver files in the `tests` sub-directory. Each file is specific to a particular Kubernetes release and must be named `<major version>.<minor version>.yaml`, e.g., `1.16.yaml`.
 
-Frequently, representing newly supported features in a testdriver file means flipping on additional capabilities [which are documented in-code](https://github.com/kubernetes/kubernetes/blob/master/test/e2e/storage/testsuites/testdriver.go).
+Frequently, representing newly supported features in a testdriver file means flipping on additional capabilities [which are documented in-code](https://github.com/kubernetes/kubernetes/blob/master/test/e2e/storage/framework/testdriver.go).
 
 ### Go files
 

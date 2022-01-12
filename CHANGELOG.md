@@ -1,5 +1,8 @@
 ## unreleased
 
+* Support snapshots v1
+  [[GH-397]](https://github.com/digitalocean/csi-digitalocean/pull/397)
+
 ## v3.0.0 - 2022.01.07
 
 * Mark CSI driver as default container
