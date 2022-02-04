@@ -179,7 +179,7 @@ func (m *mounter) Mount(source, target, fsType string, opts ...string) error {
 		// create target, os.Mkdirall is noop if directory exists
 		err := os.MkdirAll(target, 0750)
 		if err != nil {
-			return err
+			return fmt.Errorf("failed to create target for typed block bind mount (%s): %v", fsType, err)
 		}
 	}
 
