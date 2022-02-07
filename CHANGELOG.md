@@ -1,5 +1,9 @@
 ## unreleased
 
+## v4.0.0 - 2022.02.07
+
+* Update Kubernetes dependency to 1.22.5 and add support for 1.22 e2e tests
+  [[GH-420]](https://github.com/digitalocean/csi-digitalocean/pull/420)
 * Support snapshots v1
   [[GH-397]](https://github.com/digitalocean/csi-digitalocean/pull/397)
 

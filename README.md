@@ -101,7 +101,7 @@ Kubernetes Release | DigitalOcean CSI Driver Version
 1.19               | v3
 1.20               | v3
 1.21               | v3
-1.22               | v3
+1.22               | v4
 
 ---
 **Note:**
