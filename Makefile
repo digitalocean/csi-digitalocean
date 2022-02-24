@@ -14,7 +14,7 @@
 
 NAME=do-csi-plugin
 OS ?= linux
-GO_VERSION := 1.15.5
+GO_VERSION := 1.17.7
 ifeq ($(strip $(shell git status --porcelain 2>/dev/null)),)
   GIT_TREE_STATE=clean
 else
