@@ -98,6 +98,8 @@ func NewDriver(ep, token, url, region, doTag, driverName, debugAddr string) (*Dr
 	if driverName == "" {
 		driverName = DefaultDriverName
 	}
+	// we're assuming only the controller has a non-empty token.
+	isController := token != ""
 
 	tokenSource := oauth2.StaticTokenSource(&oauth2.Token{
 		AccessToken: token,
@@ -112,8 +114,9 @@ func NewDriver(ep, token, url, region, doTag, driverName, debugAddr string) (*Dr
 			return nil, fmt.Errorf("couldn't get region from metadata: %s (are you running outside of a DigitalOcean droplet and possibly forgot to specify the 'region' flag?)", err)
 		}
 	}
+
 	hostIDInt, err := mdClient.DropletID()
-	if err != nil {
+	if !isController && err != nil {
 		return nil, fmt.Errorf("couldn't get droplet ID from metadata: %s (are you running outside of a DigitalOcean droplet?)", err)
 	}
 	hostID := strconv.Itoa(hostIDInt)
@@ -143,15 +146,14 @@ func NewDriver(ep, token, url, region, doTag, driverName, debugAddr string) (*Dr
 		name:                  driverName,
 		publishInfoVolumeName: driverName + "/volume-name",
 
-		doTag:     doTag,
-		endpoint:  ep,
-		debugAddr: debugAddr,
-		hostID:    func() string { return hostID },
-		region:    region,
-		mounter:   newMounter(log),
-		log:       log,
-		// we're assuming only the controller has a non-empty token.
-		isController:      token != "",
+		doTag:             doTag,
+		endpoint:          ep,
+		debugAddr:         debugAddr,
+		hostID:            func() string { return hostID },
+		region:            region,
+		mounter:           newMounter(log),
+		log:               log,
+		isController:      isController,
 		waitActionTimeout: defaultWaitActionTimeout,
 
 		storage:        doClient.Storage,
