@@ -287,19 +287,9 @@ func (d *Driver) NodeUnpublishVolume(ctx context.Context, req *csi.NodeUnpublish
 	})
 	log.Info("node unpublish volume called")
 
-	err := d.mounter.Unmount(req.TargetPath)
+	err := d.mounter.Unmount(req.TargetPath, luksContext)
 	if err != nil {
 		return nil, err
-	}
-
-	if mounted {
-		log.Info("unmounting the target path")
-		err := d.mounter.Unmount(req.TargetPath, luksContext)
-		if err != nil {
-			return nil, err
-		}
-	} else {
-		log.Info("target path is already unmounted")
 	}
 
 	log.Info("unmounting volume is finished")
