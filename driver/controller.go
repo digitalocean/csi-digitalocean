@@ -1008,12 +1008,6 @@ func (d *Driver) waitAction(ctx context.Context, log *logrus.Entry, volumeID str
 		"action_id": actionID,
 	})
 
-	// This timeout should not strike given all sidecars use a timeout that is
-	// lower (which should always be the case). Using this as a fail-safe
-	// mechanism in case of a bug or misconfiguration.
-	ctx, cancel := context.WithTimeout(ctx, d.waitActionTimeout)
-	defer cancel()
-
 	err := wait.PollUntil(1*time.Second, wait.ConditionFunc(func() (done bool, err error) {
 		action, _, err := d.storageActions.Get(ctx, volumeID, actionID)
 		if err != nil {
