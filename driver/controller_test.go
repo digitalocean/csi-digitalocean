@@ -457,7 +457,6 @@ func TestWaitAction(t *testing.T) {
 		t.Run(test.name, func(t *testing.T) {
 			t.Parallel()
 			d := Driver{
-				waitActionTimeout: test.timeout,
 				storageActions: &fakeStorageAction{
 					fakeStorageActionsDriver: &fakeStorageActionsDriver{},
 					storageGetValsFunc:       test.storageGetValsFunc,
