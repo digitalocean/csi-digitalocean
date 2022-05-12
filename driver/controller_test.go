@@ -464,8 +464,9 @@ func TestWaitAction(t *testing.T) {
 				log: logrus.New().WithField("test_enabed", true),
 			}
 
+			ctx, _ := context.WithTimeout(context.Background(), test.timeout)
 			err := d.waitAction(
-				context.Background(),
+				ctx,
 				logrus.New().WithField("test_enabed", true),
 				"volumeID",
 				42,
