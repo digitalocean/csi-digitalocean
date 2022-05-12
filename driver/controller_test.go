@@ -457,7 +457,6 @@ func TestWaitAction(t *testing.T) {
 		t.Run(test.name, func(t *testing.T) {
 			t.Parallel()
 			d := Driver{
-				waitActionTimeout: test.timeout,
 				storageActions: &fakeStorageAction{
 					fakeStorageActionsDriver: &fakeStorageActionsDriver{},
 					storageGetValsFunc:       test.storageGetValsFunc,
@@ -465,8 +464,9 @@ func TestWaitAction(t *testing.T) {
 				log: logrus.New().WithField("test_enabed", true),
 			}
 
+			ctx, _ := context.WithTimeout(context.Background(), test.timeout)
 			err := d.waitAction(
-				context.Background(),
+				ctx,
 				logrus.New().WithField("test_enabed", true),
 				"volumeID",
 				42,

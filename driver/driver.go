@@ -41,8 +41,7 @@ import (
 const (
 	// DefaultDriverName defines the name that is used in Kubernetes and the CSI
 	// system for the canonical, official name of this plugin
-	DefaultDriverName        = "dobs.csi.digitalocean.com"
-	defaultWaitActionTimeout = 1 * time.Minute
+	DefaultDriverName = "dobs.csi.digitalocean.com"
 )
 
 var (
@@ -63,13 +62,12 @@ type Driver struct {
 	// `ControllerPublishVolume` to `NodeStageVolume or `NodePublishVolume`
 	publishInfoVolumeName string
 
-	endpoint          string
-	debugAddr         string
-	hostID            func() string
-	region            string
-	doTag             string
-	isController      bool
-	waitActionTimeout time.Duration
+	endpoint     string
+	debugAddr    string
+	hostID       func() string
+	region       string
+	doTag        string
+	isController bool
 
 	srv     *grpc.Server
 	httpSrv *http.Server
@@ -151,8 +149,7 @@ func NewDriver(ep, token, url, region, doTag, driverName, debugAddr string) (*Dr
 		mounter:   newMounter(log),
 		log:       log,
 		// we're assuming only the controller has a non-empty token.
-		isController:      token != "",
-		waitActionTimeout: defaultWaitActionTimeout,
+		isController: token != "",
 
 		storage:        doClient.Storage,
 		storageActions: doClient.StorageActions,

@@ -91,9 +91,8 @@ func TestDriverSuite(t *testing.T) {
 			dropletIdx++
 			return strconv.Itoa(droplets[i+1].ID)
 		},
-		doTag:             doTag,
-		region:            "nyc3",
-		waitActionTimeout: defaultWaitActionTimeout,
+		doTag:  doTag,
+		region: "nyc3",
 		mounter: &fakeMounter{
 			mounted: map[string]string{},
 		},
