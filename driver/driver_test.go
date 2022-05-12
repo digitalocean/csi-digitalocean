@@ -94,11 +94,10 @@ func TestDriverSuite(t *testing.T) {
 			dropletIdx++
 			return strconv.Itoa(droplets[i+1].ID)
 		},
-		doTag:             doTag,
-		region:            "nyc3",
-		waitActionTimeout: defaultWaitActionTimeout,
-		mounter:           fm,
-		log:               logrus.New().WithField("test_enabed", true),
+		doTag:   doTag,
+		region:  "nyc3",
+		mounter: fm,
+		log:     logrus.New().WithField("test_enabed", true),
 
 		storage: &fakeStorageDriver{
 			volumes:   volumes,
