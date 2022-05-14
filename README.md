@@ -76,7 +76,11 @@ Snapshots can be created and restored through `VolumeSnapshot` objects.
 
 **Note:**
 
-Since version 2, the CSI plugin support v1beta1 Volume Snapshots only. Support for the v1alpha1 has been dropped.
+Version 1 of the CSI driver supports v1alpha1 Volume Snapshots only.
+
+Version 2 and 3 of the CSI driver supports v1beta1 Volume Snapshots only.
+
+Version 4 and later of the CSI driver supports v1 Volume Snapshots, which is backwards compatible to v1beta1. However, version 3 renders snapshots unusable that had previously been marked as invalid. See the [csi-snapshotter](https://github.com/kubernetes-csi/external-snapshotter) documentation on the validating webhook and v1beta1 to v1 upgrade notes.
 
 ---
 
@@ -110,17 +114,9 @@ The [DigitalOcean Kubernetes](https://www.digitalocean.com/products/kubernetes/)
 
 ---
 
-#### Snapshot support
+### Driver modes
 
-Version 1 of the CSI driver supports v1alpha1 Volume Snapshots only.
-
-Version 2 and 3 of the CSI driver supports v1beta1 Volume Snapshots only.
-
-Version 4 and later of the CSI driver supports v1 Volume Snapshots, which is backwards compatible to v1beta1. However, version 3 renders snapshots unusable that had previously been marked as invalid. See the [csi-snapshotter](https://github.com/kubernetes-csi/external-snapshotter) documentation on the validating webhook and v1beta1 to v1 upgrade notes.
-
-**Driver modes:**
-
-By default, the driver supports both the [controller and node mode.](https://kubernetes-csi.github.io/docs/deploying.html)
+By default, the driver supports both the [controller and node mode](https://kubernetes-csi.github.io/docs/deploying.html).
 It can manage DigitalOcean Volumes via the cloud API and mount them on the required node.
 The actually used mode is determined by how the driver is deployed and configured.
 The suggested release manifests provide separate deployments for controller and node modes, respectively.
@@ -141,9 +137,7 @@ Skip secret creation (section 1. in following deployment instructions) when usin
 | Controller only mode not in DigitalOcean  |:white_check_mark:|:white_check_mark:|
 | Node only mode in DigitalOcean            |        :x:       |        :x:       |
 
----
-
-**Requirements:**
+### Requirements
 
 * `--allow-privileged` flag must be set to true for the API server
 * `--allow-privileged` flag must be set to true for the kubelet in Kubernetes 1.14 and below (flag does not exist in later releases)
@@ -289,6 +283,23 @@ releases it is `dobs.csi.digitalocean.com`. When upgrading, use the commandline
 flag `--driver-name` to force the new driver to use the old name. Failing to do
 so will cause any existing PVs to be unusable since the new driver will not
 manage them and the old driver is no longer running.
+
+## Configuration
+
+### Default volumes paging size
+
+Some CSI driver operations require paging through the volumes returned from the DO Volumes API. By default, the page size is not defined and causes the DO API to choose a value as specified in the [API reference](https://docs.digitalocean.com/reference/api/api-reference/#section/Introduction/Links-and-Pagination). In the vast majority of cases, this should work fine. However, for accounts with a very large number of volumes, the API server-chosen default page size may be too small to return all volumes within the configured (sidecar-provided) timeout.
+
+For that reason, the default page size can be customized by passing the `--default-volumes-page-size` flag a positive number.
+
+---
+**Notes:**
+
+1. The user is responsible for selecting a value below the maximum limit mandated by the DO API. Please see the API reference link above to see the current limit.
+2. The configured sidecar timeout values may need to be aligned with the chosen page size. In particular, csi-attacher invokes `ListVolumes` to periodically synchronize the API and cluster-local volume states; as such, its timeout must be large enough to account for the expected number of volumes in the given account and region.   
+3. The default page size does not become effective if an explicit page size (more precisely, _max entries_ in CSI spec speak) is passed to a given gRPC method.
+
+---
 
 ## Development
 
