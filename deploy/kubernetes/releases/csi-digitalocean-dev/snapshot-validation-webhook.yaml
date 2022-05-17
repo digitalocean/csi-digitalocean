@@ -58,7 +58,7 @@ spec:
     spec:
       containers:
         - name: snapshot-validation
-          image: k8s.gcr.io/sig-storage/snapshot-validation-webhook:v5.0.0
+          image: k8s.gcr.io/sig-storage/snapshot-validation-webhook:v5.0.1
           imagePullPolicy: IfNotPresent
           args: ['--tls-cert-file=/etc/snapshot-validation-webhook/certs/cert.pem', '--tls-private-key-file=/etc/snapshot-validation-webhook/certs/key.pem']
           ports:
