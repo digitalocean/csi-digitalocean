@@ -417,7 +417,7 @@ func (d *Driver) ControllerUnpublishVolume(ctx context.Context, req *csi.Control
 	}
 
 	// check if droplet exists before trying to detach the volume from the droplet
-	droplet, resp, err := d.droplets.Get(ctx, dropletID)
+	_, resp, err = d.droplets.Get(ctx, dropletID)
 	if err != nil {
 		if resp != nil && resp.StatusCode == http.StatusNotFound {
 			// volumes cannot be attached to deleted droplets
@@ -430,28 +430,23 @@ func (d *Driver) ControllerUnpublishVolume(ctx context.Context, req *csi.Control
 	if err != nil {
 		if resp != nil {
 			if resp.StatusCode == http.StatusNotFound {
-				log := log.WithFields(logrus.Fields{
+				// A 404 response to a detach operation request can refer to the
+				// volume being unknown or a recently started detachment
+				// operation not having propagated to the Storage backend yet.
+				// Since we checked earlier that the volume exists, we can
+				// safely conclude that the detachment is still ongoing. Indicate
+				// to the CO that the request must be retried.
+				// (There is actually an edge case where the volume could be
+				// deleted between the check for its existence above and the
+				// execution of the detachment operation. However, that should
+				// also resolve with a later retry.)
+				log.WithFields(logrus.Fields{
 					"error": err,
 					"resp":  resp,
-				})
-				// We might be hitting the edge case where the volume actually
-				// exists but the detachment operation is not yet known to the
-				// Storage API. Cross-check with the list of attached volumes on
-				// the droplet.
-				for _, volID := range droplet.VolumeIDs {
-					if volID == req.VolumeId {
-						// The volume is still associated to the droplet, which
-						// means it must still exist and the detachment is still
-						// ongoing. Bail out and let the client check again
-						// later for an update on the volume state.
-						log.Warn("cannot detach because droplet still has volume listed")
-						// sending an abort makes sure the csi-attacher retries with the next backoff tick
-						return nil, status.Errorf(codes.Aborted, "cannot detach because droplet %d still has volume %q listed", dropletID, req.VolumeId)
-					}
-				}
-				// No attached volume found, so do assume that it does not exist.
-				log.Warn("volume is not attached to droplet")
-				return &csi.ControllerUnpublishVolumeResponse{}, nil
+				}).Warn("volume is not attached to droplet")
+				// Returning an abort makes sure that csi-attacher retries with
+				// the next backoff tick.
+				return nil, status.Errorf(codes.Aborted, "cannot detach because droplet %d is still pending detachment for volume %q", dropletID, req.VolumeId)
 			}
 
 			if resp.StatusCode == http.StatusUnprocessableEntity {
@@ -468,7 +463,8 @@ func (d *Driver) ControllerUnpublishVolume(ctx context.Context, req *csi.Control
 						"error": err,
 						"resp":  resp,
 					}).Warn("cannot detach because droplet has pending volume action")
-					// sending an abort makes sure the csi-attacher retries with the next backoff tick
+					// Returning an abort makes sure that csi-attacher retries
+					// with the next backoff tick.
 					return nil, status.Errorf(codes.Aborted, "cannot detach because droplet %d has pending action for volume %q", dropletID, req.VolumeId)
 				}
 			}
