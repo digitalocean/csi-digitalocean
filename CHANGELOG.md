@@ -1,5 +1,16 @@
 ## unreleased
 
+* Guarantee that action IDs are logged
+  [[GH-433]](https://github.com/digitalocean/csi-digitalocean/pull/433)
+* Make volumes page size customizable
+  [[GH-431]](https://github.com/digitalocean/csi-digitalocean/pull/431)
+* Upgrade sidecars
+  [[GH-432]](https://github.com/digitalocean/csi-digitalocean/pull/432)
+* Remove unnecessary waitActionTimeout
+  [[GH-429]](https://github.com/digitalocean/csi-digitalocean/pull/429)
+* Update to use Go 1.17.7
+  [[GH-426]](https://github.com/digitalocean/csi-digitalocean/pull/426)
+
 ## v4.0.0 - 2022.02.07
 
 * Update Kubernetes dependency to 1.22.5 and add support for 1.22 e2e tests
