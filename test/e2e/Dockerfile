@@ -62,7 +62,7 @@ FROM golang:1.13 AS tools
 ARG TINI_VERSION=0.18.0
 # doctl is needed to support clusters that had their kubeconfig fetched via the
 # CLI because those leverage a kubeconfig authentication plugin based on doctl.
-ARG DOCTL_VERSION=1.36.0
+ARG DOCTL_VERSION=1.76.2
 # ginkgo is needed to run the upstream end-to-end tests.
 ARG GINKGO_VERSION=1.10.3
 # kubectl is needed by some tests.
