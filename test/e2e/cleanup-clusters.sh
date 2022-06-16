@@ -37,9 +37,7 @@ echo "Cleaning up clusters based on cluster tag: ${CLUSTER_TAG}"
 while read -r cluster_uuid; do
   if doctl kubernetes cluster get "${cluster_uuid}" --no-header --format Tags | grep -q "${CLUSTER_TAG}"; then
     echo "Deleting cluster ${cluster_uuid}"
-    doctl kubernetes cluster delete -f "${cluster_uuid}"
-    echo "Deleting volumes for cluster ${cluster_uuid}"
-    doctl compute volume list --no-header --format ID,Tags | grep "k8s:${cluster_uuid}" | awk '{print $1}' | xargs -n 1 doctl compute volume delete -f
+    doctl kubernetes cluster delete --dangerous -f "${cluster_uuid}"
   fi
 done < <(doctl kubernetes cluster list --no-header --format ID)   # --format field "Tags" does not work on the "list" command
 echo "Done."
