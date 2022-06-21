@@ -20,6 +20,15 @@ RUN apt-get update && \
 RUN mkdir -p /go/src/k8s.io
 WORKDIR /go/src/k8s.io
 
+### Kubernetes 1.23
+FROM builder AS tests-1.23
+ARG KUBE_VERSION_1_23=1.23.7
+ARG KUBE_VERSION_1_23_E2E_BIN_SHA256_CHECKSUM=8665242697896acf544fee3e060ccdacc49ddac68adca083ce4de131c4a7e829
+
+RUN curl --fail --location https://dl.k8s.io/v${KUBE_VERSION_1_23}/kubernetes-test-linux-amd64.tar.gz | tar xvzf - --strip-components 3 kubernetes/test/bin/e2e.test
+RUN echo "${KUBE_VERSION_1_23_E2E_BIN_SHA256_CHECKSUM}" e2e.test | sha256sum --check
+RUN cp e2e.test /e2e.1.23.test
+
 ### Kubernetes 1.22
 FROM builder AS tests-1.22
 ARG KUBE_VERSION_1_22=1.22.5
@@ -66,7 +75,7 @@ ARG DOCTL_VERSION=1.76.2
 # ginkgo is needed to run the upstream end-to-end tests.
 ARG GINKGO_VERSION=1.10.3
 # kubectl is needed by some tests.
-ARG KUBECTL_VERSION=1.22.5
+ARG KUBECTL_VERSION=1.23.7
 
 RUN curl --fail --location --output /tini https://github.com/krallin/tini/releases/download/v${TINI_VERSION}/tini
 RUN chmod u+x /tini
