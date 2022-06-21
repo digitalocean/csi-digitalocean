@@ -1,5 +1,7 @@
 ## unreleased
 
+## v4.1.0 - 2022.06.21
+
 * Guarantee that action IDs are logged
   [[GH-433]](https://github.com/digitalocean/csi-digitalocean/pull/433)
 * Make volumes page size customizable
