@@ -23,7 +23,7 @@ WORKDIR /go/src/k8s.io
 ### Kubernetes 1.23
 FROM builder AS tests-1.23
 ARG KUBE_VERSION_1_23=1.23.7
-ARG KUBE_VERSION_1_23_E2E_BIN_SHA256_CHECKSUM=49395632d0af4932ebe72bd52244ccebe71adc03028874f261678977f9a65908
+ARG KUBE_VERSION_1_23_E2E_BIN_SHA256_CHECKSUM=e1a9a632b7715d4bfbac3322da5d32072eaf544b31a81a6c3df205d0dc0e96b7
 
 RUN curl --fail --location https://dl.k8s.io/v${KUBE_VERSION_1_23}/kubernetes-test-linux-amd64.tar.gz | tar xvzf - --strip-components 3 kubernetes/test/bin/e2e.test
 RUN echo "${KUBE_VERSION_1_23_E2E_BIN_SHA256_CHECKSUM}" e2e.test | sha256sum --check
