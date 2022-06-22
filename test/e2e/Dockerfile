@@ -95,6 +95,7 @@ FROM bitnami/minideb:buster AS runtime
 # Certificates needed to trust the CA for any HTTPS connections to the DO API.
 RUN apt-get update && \
     DEBIAN_FRONTEND=noninteractive apt-get install --yes --no-install-recommends ca-certificates
+COPY --from=tests-1.23 /e2e.1.23.test /
 COPY --from=tests-1.22 /e2e.1.22.test /
 COPY --from=tests-1.21 /e2e.1.21.test /
 COPY --from=tests-1.20 /e2e.1.20.test /
