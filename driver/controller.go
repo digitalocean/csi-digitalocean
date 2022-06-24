@@ -93,7 +93,7 @@ func (d *Driver) CreateVolume(ctx context.Context, req *csi.CreateVolumeRequest)
 		return nil, status.Error(codes.InvalidArgument, fmt.Sprintf("volume capabilities cannot be satisified: %s", strings.Join(violations, "; ")))
 	}
 
-	size, err := extractStorage(req.CapacityRange)
+	size, err := d.extractStorage(req.CapacityRange)
 	if err != nil {
 		return nil, status.Errorf(codes.OutOfRange, "invalid capacity range: %v", err)
 	}
@@ -873,7 +873,7 @@ func (d *Driver) ControllerExpandVolume(ctx context.Context, req *csi.Controller
 		return nil, status.Errorf(codes.Internal, "ControllerExpandVolume could not retrieve existing volume: %v", err)
 	}
 
-	resizeBytes, err := extractStorage(req.GetCapacityRange())
+	resizeBytes, err := d.extractStorage(req.GetCapacityRange())
 	if err != nil {
 		return nil, status.Errorf(codes.OutOfRange, "ControllerExpandVolume invalid capacity range: %v", err)
 	}
@@ -936,7 +936,7 @@ func (d *Driver) ControllerGetVolume(ctx context.Context, req *csi.ControllerGet
 // range. If the capacity range is not satisfied it returns the default volume
 // size. If the capacity range is below or above supported sizes, it returns an
 // error.
-func extractStorage(capRange *csi.CapacityRange) (int64, error) {
+func (d *Driver) extractStorage(capRange *csi.CapacityRange) (int64, error) {
 	if capRange == nil {
 		return defaultVolumeSizeInBytes, nil
 	}
@@ -955,7 +955,11 @@ func extractStorage(capRange *csi.CapacityRange) (int64, error) {
 	}
 
 	if requiredSet && !limitSet && requiredBytes < minimumVolumeSizeInBytes {
-		return 0, fmt.Errorf("required (%v) can not be less than minimum supported volume size (%v)", formatBytes(requiredBytes), formatBytes(minimumVolumeSizeInBytes))
+		d.log.WithFields(logrus.Fields{
+			"requiredBytes":            formatBytes(requiredBytes),
+			"minimumVolumeSizeInBytes": formatBytes(minimumVolumeSizeInBytes),
+		}).Warn("requiredBytes is less than minimum supported volume size, setting requiredBytes default to minimumVolumeSizeBytes")
+		return minimumVolumeSizeInBytes, nil
 	}
 
 	if limitSet && limitBytes < minimumVolumeSizeInBytes {
