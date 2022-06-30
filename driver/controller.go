@@ -934,8 +934,8 @@ func (d *Driver) ControllerGetVolume(ctx context.Context, req *csi.ControllerGet
 
 // extractStorage extracts the storage size in bytes from the given capacity
 // range. If the capacity range is not satisfied it returns the default volume
-// size. If the capacity range is below or above supported sizes, it returns an
-// error.
+// size. If the capacity range is above supported sizes, it returns an
+// error. If the capacity range is below supported size, it returns the minimum supported size
 func (d *Driver) extractStorage(capRange *csi.CapacityRange) (int64, error) {
 	if capRange == nil {
 		return defaultVolumeSizeInBytes, nil
@@ -956,9 +956,9 @@ func (d *Driver) extractStorage(capRange *csi.CapacityRange) (int64, error) {
 
 	if requiredSet && !limitSet && requiredBytes < minimumVolumeSizeInBytes {
 		d.log.WithFields(logrus.Fields{
-			"requiredBytes":            formatBytes(requiredBytes),
-			"minimumVolumeSizeInBytes": formatBytes(minimumVolumeSizeInBytes),
-		}).Warn("requiredBytes is less than minimum supported volume size, setting requiredBytes default to minimumVolumeSizeBytes")
+			"required_bytes":      formatBytes(requiredBytes),
+			"minimum_volume_size": formatBytes(minimumVolumeSizeInBytes),
+		}).Warn("requiredBytes is less than minimum volume size, setting requiredBytes default to minimumVolumeSizeBytes")
 		return minimumVolumeSizeInBytes, nil
 	}
 
