@@ -206,8 +206,8 @@ func TestControllerExpandVolume(t *testing.T) {
 					RequiredBytes: 0.5 * giB,
 				},
 			},
-			resp: nil,
-			err:  status.Error(codes.OutOfRange, "ControllerExpandVolume invalid capacity range: required (512Mi) can not be less than minimum supported volume size (1Gi)"),
+			resp: &csi.ControllerExpandVolumeResponse{CapacityBytes: minimumVolumeSizeInBytes, NodeExpansionRequired: true},
+			err:  nil,
 		},
 		{
 			name: "volume for corresponding volume id does not exist",
