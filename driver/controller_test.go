@@ -181,11 +181,16 @@ func (*fakeTagsDriver) UntagResources(context.Context, string, *godo.UntagResour
 }
 
 func TestControllerExpandVolume(t *testing.T) {
+	defaultVolume := &godo.Volume{
+		ID:            "volume-id",
+		SizeGigaBytes: (defaultVolumeSizeInBytes / giB),
+	}
 	tcs := []struct {
-		name string
-		req  *csi.ControllerExpandVolumeRequest
-		resp *csi.ControllerExpandVolumeResponse
-		err  error
+		name   string
+		req    *csi.ControllerExpandVolumeRequest
+		resp   *csi.ControllerExpandVolumeResponse
+		err    error
+		volume *godo.Volume
 	}{
 		{
 			name: "request exceeds maximum supported size",
@@ -199,15 +204,19 @@ func TestControllerExpandVolume(t *testing.T) {
 			err:  status.Error(codes.OutOfRange, "ControllerExpandVolume invalid capacity range: required (20Ti) can not exceed maximum supported volume size (16Ti)"),
 		},
 		{
-			name: "requested size less than minimum supported size",
+			name: "requested size less than minimum supported size returns the default minimum volume size",
+			volume: &godo.Volume{
+				ID:            "volume-id",
+				SizeGigaBytes: 1,
+			},
 			req: &csi.ControllerExpandVolumeRequest{
 				VolumeId: "volume-id",
 				CapacityRange: &csi.CapacityRange{
 					RequiredBytes: 0.5 * giB,
 				},
 			},
-			resp: nil,
-			err:  status.Error(codes.OutOfRange, "ControllerExpandVolume invalid capacity range: required (512Mi) can not be less than minimum supported volume size (1Gi)"),
+			resp: &csi.ControllerExpandVolumeResponse{CapacityBytes: minimumVolumeSizeInBytes, NodeExpansionRequired: true},
+			err:  nil,
 		},
 		{
 			name: "volume for corresponding volume id does not exist",
@@ -245,20 +254,19 @@ func TestControllerExpandVolume(t *testing.T) {
 	}
 	for _, tc := range tcs {
 		t.Run(tc.name, func(t *testing.T) {
-			volume := &godo.Volume{
-				ID:            "volume-id",
-				SizeGigaBytes: (defaultVolumeSizeInBytes / giB),
+			if tc.volume == nil {
+				tc.volume = defaultVolume
 			}
 			driver := &Driver{
 				region: "foo",
 				storage: &fakeStorageDriver{
 					volumes: map[string]*godo.Volume{
-						"volume-id": volume,
+						"volume-id": tc.volume,
 					},
 				},
 				storageActions: &fakeStorageActionsDriver{
 					volumes: map[string]*godo.Volume{
-						"volume-id": volume,
+						"volume-id": tc.volume,
 					},
 				},
 				log: logrus.New().WithField("test_enabed", true),
@@ -268,7 +276,7 @@ func TestControllerExpandVolume(t *testing.T) {
 				assert.Equal(t, err, tc.err)
 			} else {
 				assert.Equal(t, tc.resp, resp)
-				assert.Equal(t, (volume.SizeGigaBytes * giB), resp.CapacityBytes)
+				assert.Equal(t, (tc.volume.SizeGigaBytes * giB), resp.CapacityBytes)
 			}
 
 		})
