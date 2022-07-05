@@ -181,20 +181,19 @@ func (*fakeTagsDriver) UntagResources(context.Context, string, *godo.UntagResour
 }
 
 func TestControllerExpandVolume(t *testing.T) {
-	default_volume := &godo.Volume{
+	defaultVolume := &godo.Volume{
 		ID:            "volume-id",
 		SizeGigaBytes: (defaultVolumeSizeInBytes / giB),
 	}
 	tcs := []struct {
-		name        string
-		req         *csi.ControllerExpandVolumeRequest
-		resp        *csi.ControllerExpandVolumeResponse
-		err         error
-		godo_volume *godo.Volume
+		name   string
+		req    *csi.ControllerExpandVolumeRequest
+		resp   *csi.ControllerExpandVolumeResponse
+		err    error
+		volume *godo.Volume
 	}{
 		{
-			name:        "request exceeds maximum supported size",
-			godo_volume: default_volume,
+			name: "request exceeds maximum supported size",
 			req: &csi.ControllerExpandVolumeRequest{
 				VolumeId: "volume-id",
 				CapacityRange: &csi.CapacityRange{
@@ -205,10 +204,10 @@ func TestControllerExpandVolume(t *testing.T) {
 			err:  status.Error(codes.OutOfRange, "ControllerExpandVolume invalid capacity range: required (20Ti) can not exceed maximum supported volume size (16Ti)"),
 		},
 		{
-			name: "requested size less than minimum supported size",
-			godo_volume: &godo.Volume{
+			name: "requested size less than minimum supported size returns the default minimum volume size",
+			volume: &godo.Volume{
 				ID:            "volume-id",
-				SizeGigaBytes: (minimumVolumeSizeInBytes / giB),
+				SizeGigaBytes: 1,
 			},
 			req: &csi.ControllerExpandVolumeRequest{
 				VolumeId: "volume-id",
@@ -220,8 +219,7 @@ func TestControllerExpandVolume(t *testing.T) {
 			err:  nil,
 		},
 		{
-			name:        "volume for corresponding volume id does not exist",
-			godo_volume: default_volume,
+			name: "volume for corresponding volume id does not exist",
 			req: &csi.ControllerExpandVolumeRequest{
 				VolumeId: "non-existent-id",
 				CapacityRange: &csi.CapacityRange{
@@ -232,8 +230,7 @@ func TestControllerExpandVolume(t *testing.T) {
 			err:  status.Error(codes.Internal, "ControllerExpandVolume could not retrieve existing volume: volume not found"),
 		},
 		{
-			name:        "new volume size is less than old volume size",
-			godo_volume: default_volume,
+			name: "new volume size is less than old volume size",
 			req: &csi.ControllerExpandVolumeRequest{
 				VolumeId: "volume-id",
 				CapacityRange: &csi.CapacityRange{
@@ -244,8 +241,7 @@ func TestControllerExpandVolume(t *testing.T) {
 			err:  nil,
 		},
 		{
-			name:        "new volume size is equal to old volume size",
-			godo_volume: default_volume,
+			name: "new volume size is equal to old volume size",
 			req: &csi.ControllerExpandVolumeRequest{
 				VolumeId: "volume-id",
 				CapacityRange: &csi.CapacityRange{
@@ -258,16 +254,19 @@ func TestControllerExpandVolume(t *testing.T) {
 	}
 	for _, tc := range tcs {
 		t.Run(tc.name, func(t *testing.T) {
+			if tc.volume == nil {
+				tc.volume = defaultVolume
+			}
 			driver := &Driver{
 				region: "foo",
 				storage: &fakeStorageDriver{
 					volumes: map[string]*godo.Volume{
-						"volume-id": tc.godo_volume,
+						"volume-id": tc.volume,
 					},
 				},
 				storageActions: &fakeStorageActionsDriver{
 					volumes: map[string]*godo.Volume{
-						"volume-id": tc.godo_volume,
+						"volume-id": tc.volume,
 					},
 				},
 				log: logrus.New().WithField("test_enabed", true),
@@ -277,7 +276,7 @@ func TestControllerExpandVolume(t *testing.T) {
 				assert.Equal(t, err, tc.err)
 			} else {
 				assert.Equal(t, tc.resp, resp)
-				assert.Equal(t, (tc.godo_volume.SizeGigaBytes * giB), resp.CapacityBytes)
+				assert.Equal(t, (tc.volume.SizeGigaBytes * giB), resp.CapacityBytes)
 			}
 
 		})
