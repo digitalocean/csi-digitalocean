@@ -20,6 +20,15 @@ RUN apt-get update && \
 RUN mkdir -p /go/src/k8s.io
 WORKDIR /go/src/k8s.io
 
+### Kubernetes 1.23
+FROM builder AS tests-1.23
+ARG KUBE_VERSION_1_23=1.23.7
+ARG KUBE_VERSION_1_23_E2E_BIN_SHA256_CHECKSUM=e1a9a632b7715d4bfbac3322da5d32072eaf544b31a81a6c3df205d0dc0e96b7
+
+RUN curl --fail --location https://dl.k8s.io/v${KUBE_VERSION_1_23}/kubernetes-test-linux-amd64.tar.gz | tar xvzf - --strip-components 3 kubernetes/test/bin/e2e.test
+RUN echo "${KUBE_VERSION_1_23_E2E_BIN_SHA256_CHECKSUM}" e2e.test | sha256sum --check
+RUN cp e2e.test /e2e.1.23.test
+
 ### Kubernetes 1.22
 FROM builder AS tests-1.22
 ARG KUBE_VERSION_1_22=1.22.5
@@ -38,24 +47,6 @@ RUN curl --fail --location https://dl.k8s.io/v${KUBE_VERSION_1_21}/kubernetes-te
 RUN echo "${KUBE_VERSION_1_21_E2E_BIN_SHA256_CHECKSUM}" e2e.test | sha256sum --check
 RUN cp e2e.test /e2e.1.21.test
 
-### Kubernetes 1.20
-FROM builder AS tests-1.20
-ARG KUBE_VERSION_1_20=1.20.12
-ARG KUBE_VERSION_1_20_E2E_BIN_SHA256_CHECKSUM=8b5a1bc13f3978d8f17c3d13f64a1e678cf764aea22d8500e05f8c99fb57f6d9
-
-RUN curl --fail --location https://dl.k8s.io/v${KUBE_VERSION_1_20}/kubernetes-test-linux-amd64.tar.gz | tar xvzf - --strip-components 3 kubernetes/test/bin/e2e.test
-RUN echo "${KUBE_VERSION_1_20_E2E_BIN_SHA256_CHECKSUM}" e2e.test | sha256sum --check
-RUN cp e2e.test /e2e.1.20.test
-
-### Kubernetes 1.19
-FROM builder AS tests-1.19
-ARG KUBE_VERSION_1_19=1.19.16
-ARG KUBE_VERSION_1_19_E2E_BIN_SHA256_CHECKSUM=441f61ffe66d5a1bca4d71b0fa38b31bece1275f95c2a0b07e5b786e408b0ee0
-
-RUN curl --fail --location https://dl.k8s.io/v${KUBE_VERSION_1_19}/kubernetes-test-linux-amd64.tar.gz | tar xvzf - --strip-components 3 kubernetes/test/bin/e2e.test
-RUN echo "${KUBE_VERSION_1_19_E2E_BIN_SHA256_CHECKSUM}" e2e.test | sha256sum --check
-RUN cp e2e.test /e2e.1.19.test
-
 ### ginkgo and tools
 FROM golang:1.13 AS tools
 # See comment at the bottom on why we need tini.
@@ -66,7 +57,7 @@ ARG DOCTL_VERSION=1.76.2
 # ginkgo is needed to run the upstream end-to-end tests.
 ARG GINKGO_VERSION=1.10.3
 # kubectl is needed by some tests.
-ARG KUBECTL_VERSION=1.22.5
+ARG KUBECTL_VERSION=1.23.7
 
 RUN curl --fail --location --output /tini https://github.com/krallin/tini/releases/download/v${TINI_VERSION}/tini
 RUN chmod u+x /tini
@@ -86,10 +77,9 @@ FROM bitnami/minideb:buster AS runtime
 # Certificates needed to trust the CA for any HTTPS connections to the DO API.
 RUN apt-get update && \
     DEBIAN_FRONTEND=noninteractive apt-get install --yes --no-install-recommends ca-certificates
+COPY --from=tests-1.23 /e2e.1.23.test /
 COPY --from=tests-1.22 /e2e.1.22.test /
 COPY --from=tests-1.21 /e2e.1.21.test /
-COPY --from=tests-1.20 /e2e.1.20.test /
-COPY --from=tests-1.19 /e2e.1.19.test /
 COPY --from=tools /tini /sbin/
 COPY --from=tools /doctl /usr/local/bin/
 COPY --from=tools /ginkgo /usr/local/bin/
