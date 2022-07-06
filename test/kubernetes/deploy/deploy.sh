@@ -61,12 +61,7 @@ fi
 kubectl -n kube-system create secret generic digitalocean --from-literal="access-token=${DIGITALOCEAN_ACCESS_TOKEN}" --dry-run=client -o yaml |
     kubectl apply -f -
 
-"${REPO_SCRIPTS_DIR}/create-cert.sh" --service snapshot-validation-service --secret snapshot-validation-secret --namespace kube-system
-
-# Delete alpha snapshots if found.
-if kubectl api-versions | grep -q snapshot.storage.k8s.io/v1alpha1; then
-    kubectl delete crd volumesnapshotclasses.snapshot.storage.k8s.io volumesnapshotcontents.snapshot.storage.k8s.io volumesnapshots.snapshot.storage.k8s.io
-fi
+"${REPO_SCRIPTS_DIR}/create-cert.sh" --service snapshot-validation-service-dev --secret snapshot-validation-secret --namespace kube-system
 
 # Configure kustomize to use the specified dev image (default to the one created
 # by `VERSION=dev make publish`).
@@ -88,13 +83,9 @@ while [[ $(kubectl get crd volumesnapshotclasses.snapshot.storage.k8s.io -o json
 done
 echo
 
-# Apply the customization to the dev manifest, and install it into the cluster.
-kustomize build . --load-restrictor LoadRestrictionsNone | kubectl apply -f -
+# Apply the customization to the dev manifests, and install them into the cluster.
+kustomize build . --load-restrictor LoadRestrictionsNone | "${REPO_SCRIPTS_DIR}/patch-ca-bundle.sh" | kubectl apply -f -
 )
-# Install the snapshot controller.
-kubectl apply -f "${DEV_RELEASE_DIR}/snapshot-controller.yaml"
-# Install the snapshot validation webhook.
-sed 's/# caBundle:/caBundle:/' "${DEV_RELEASE_DIR}/snapshot-validation-webhook.yaml" | "${REPO_SCRIPTS_DIR}/patch-ca-bundle.sh" | kubectl apply -f -
 
 # Wait for the deployment to complete.
 kubectl -n kube-system wait --timeout=5m --for=condition=Ready pod -l app=csi-do-controller-dev
