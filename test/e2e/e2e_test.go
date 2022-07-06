@@ -391,9 +391,11 @@ func createCluster(ctx context.Context, client *godo.Client, nameSuffix, kubeMaj
 		Tags:        []string{"csi-e2e-test", versionTag, fmt.Sprintf("branch-identifier:%s", nameSuffix)},
 		NodePools: []*godo.KubernetesNodePoolCreateRequest{
 			{
-				Name:  clusterName + "-pool",
-				Size:  "s-4vcpu-8gb",
-				Count: 3,
+				Name:      clusterName + "-pool",
+				Size:      "s-4vcpu-8gb",
+				MinNodes:  5,
+				MaxNodes:  20,
+				AutoScale: true,
 			},
 		},
 	})
