@@ -518,10 +518,16 @@ func (d *Driver) ValidateVolumeCapabilities(ctx context.Context, req *csi.Valida
 
 // ListVolumes returns a list of all requested volumes
 func (d *Driver) ListVolumes(ctx context.Context, req *csi.ListVolumesRequest) (*csi.ListVolumesResponse, error) {
+	maxEntries := req.MaxEntries
+	if maxEntries == 0 && d.defaultVolumesPageSize > 0 {
+		maxEntries = int32(d.defaultVolumesPageSize)
+	}
+
 	log := d.log.WithFields(logrus.Fields{
-		"max_entries":        req.MaxEntries,
-		"req_starting_token": req.StartingToken,
-		"method":             "list_volumes",
+		"max_entries":           req.MaxEntries,
+		"effective_max_entries": maxEntries,
+		"req_starting_token":    req.StartingToken,
+		"method":                "list_volumes",
 	})
 	log.Info("list volumes called")
 
@@ -534,7 +540,7 @@ func (d *Driver) ListVolumes(ctx context.Context, req *csi.ListVolumesRequest) (
 		startingToken = int32(parsedToken)
 	}
 
-	untypedVolumes, nextToken, err := listResources(ctx, log, startingToken, req.MaxEntries, func(ctx context.Context, listOpts *godo.ListOptions) ([]interface{}, *godo.Response, error) {
+	untypedVolumes, nextToken, err := listResources(ctx, log, startingToken, maxEntries, func(ctx context.Context, listOpts *godo.ListOptions) ([]interface{}, *godo.Response, error) {
 		volListOpts := &godo.ListVolumeParams{
 			ListOptions: listOpts,
 			Region:      d.region,
@@ -585,7 +591,7 @@ func (d *Driver) ListVolumes(ctx context.Context, req *csi.ListVolumesRequest) (
 		resp.NextToken = strconv.FormatInt(int64(nextToken), 10)
 	}
 
-	log.WithField("response", resp).Info("volumes listed")
+	log.WithField("num_volume_entries", len(resp.Entries)).Info("volumes listed")
 	return resp, nil
 }
 
