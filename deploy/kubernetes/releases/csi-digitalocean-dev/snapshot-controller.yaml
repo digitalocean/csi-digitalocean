@@ -35,10 +35,10 @@ spec:
       labels:
         app: snapshot-controller
     spec:
-      serviceAccount: snapshot-controller
+      serviceAccountName: snapshot-controller
       containers:
         - name: snapshot-controller
-          image: k8s.gcr.io/sig-storage/snapshot-controller:v5.0.1
+          image: k8s.gcr.io/sig-storage/snapshot-controller:v6.0.1
           args:
             - "--v=5"
           imagePullPolicy: IfNotPresent
@@ -64,9 +64,6 @@ rules:
   - apiGroups: [""]
     resources: ["persistentvolumeclaims"]
     verbs: ["get", "list", "watch", "update"]
-  - apiGroups: ["storage.k8s.io"]
-    resources: ["storageclasses"]
-    verbs: ["get", "list", "watch"]
   - apiGroups: [""]
     resources: ["events"]
     verbs: ["list", "watch", "create", "update", "patch"]
@@ -75,16 +72,16 @@ rules:
     verbs: ["get", "list", "watch"]
   - apiGroups: ["snapshot.storage.k8s.io"]
     resources: ["volumesnapshotcontents"]
-    verbs: ["create", "get", "list", "watch", "patch", "update", "delete"]
+    verbs: ["create", "get", "list", "watch", "update", "delete", "patch"]
+  - apiGroups: ["snapshot.storage.k8s.io"]
+    resources: ["volumesnapshotcontents/status"]
+    verbs: ["patch"]
   - apiGroups: ["snapshot.storage.k8s.io"]
     resources: ["volumesnapshots"]
     verbs: ["get", "list", "watch", "update", "patch"]
   - apiGroups: ["snapshot.storage.k8s.io"]
     resources: ["volumesnapshots/status"]
     verbs: ["update", "patch"]
-  - apiGroups: [ "snapshot.storage.k8s.io" ]
-    resources: [ "volumesnapshotcontents/status" ]
-    verbs: ["patch"]
 
 ---
 

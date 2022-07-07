@@ -78,7 +78,7 @@ spec:
       serviceAccount: csi-do-controller-sa
       containers:
         - name: csi-provisioner
-          image: k8s.gcr.io/sig-storage/csi-provisioner:v3.1.0
+          image: k8s.gcr.io/sig-storage/csi-provisioner:v3.2.1
           args:
             - "--csi-address=$(ADDRESS)"
             - "--default-fstype=ext4"
@@ -91,7 +91,7 @@ spec:
             - name: socket-dir
               mountPath: /var/lib/csi/sockets/pluginproxy/
         - name: csi-attacher
-          image: k8s.gcr.io/sig-storage/csi-attacher:v3.4.0
+          image: k8s.gcr.io/sig-storage/csi-attacher:v3.5.0
           args:
             - "--csi-address=$(ADDRESS)"
             - "--v=5"
@@ -105,7 +105,7 @@ spec:
             - name: socket-dir
               mountPath: /var/lib/csi/sockets/pluginproxy/
         - name: csi-snapshotter
-          image: k8s.gcr.io/sig-storage/csi-snapshotter:v5.0.1
+          image: k8s.gcr.io/sig-storage/csi-snapshotter:v6.0.1
           args:
             - "--csi-address=$(ADDRESS)"
             - "--v=5"
@@ -117,7 +117,7 @@ spec:
             - name: socket-dir
               mountPath: /var/lib/csi/sockets/pluginproxy/
         - name: csi-resizer
-          image: k8s.gcr.io/sig-storage/csi-resizer:v1.4.0
+          image: k8s.gcr.io/sig-storage/csi-resizer:v1.5.0
           args:
             - "--csi-address=$(ADDRESS)"
             - "--timeout=30s"
@@ -267,7 +267,7 @@ rules:
     verbs: ["get", "list", "watch"]
   - apiGroups: ["snapshot.storage.k8s.io"]
     resources: ["volumesnapshotcontents"]
-    verbs: ["create", "get", "list", "watch", "update", "delete", "patch"]
+    verbs: ["get", "list", "watch", "update", "patch"]
   - apiGroups: ["snapshot.storage.k8s.io"]
     resources: ["volumesnapshotcontents/status"]
     verbs: ["update", "patch"]
