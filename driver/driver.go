@@ -30,7 +30,7 @@ import (
 	"time"
 
 	"github.com/container-storage-interface/spec/lib/go/csi"
-	metadata "github.com/digitalocean/go-metadata"
+	"github.com/digitalocean/go-metadata"
 	"github.com/digitalocean/godo"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/oauth2"
@@ -41,8 +41,7 @@ import (
 const (
 	// DefaultDriverName defines the name that is used in Kubernetes and the CSI
 	// system for the canonical, official name of this plugin
-	DefaultDriverName        = "dobs.csi.digitalocean.com"
-	defaultWaitActionTimeout = 1 * time.Minute
+	DefaultDriverName = "dobs.csi.digitalocean.com"
 )
 
 var (

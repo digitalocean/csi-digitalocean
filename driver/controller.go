@@ -373,9 +373,10 @@ func (d *Driver) ControllerPublishVolume(ctx context.Context, req *csi.Controlle
 	}
 
 	if action != nil {
+		log = logWithAction(log, action)
 		log.Info("waiting until volume is attached")
 		if err := d.waitAction(ctx, log, req.VolumeId, action.ID); err != nil {
-			return nil, err
+			return nil, status.Errorf(codes.Internal, "failed waiting on action ID %d for volume ID %s to get attached: %s", action.ID, req.VolumeId, err)
 		}
 	}
 
@@ -461,9 +462,10 @@ func (d *Driver) ControllerUnpublishVolume(ctx context.Context, req *csi.Control
 	}
 
 	if action != nil {
+		log = logWithAction(log, action)
 		log.Info("waiting until volume is detached")
 		if err := d.waitAction(ctx, log, req.VolumeId, action.ID); err != nil {
-			return nil, err
+			return nil, status.Errorf(codes.Internal, "failed waiting on action ID %d for volume ID %s to get detached: %s", action.ID, req.VolumeId, err)
 		}
 	}
 
@@ -896,9 +898,10 @@ func (d *Driver) ControllerExpandVolume(ctx context.Context, req *csi.Controller
 	log = log.WithField("new_volume_size", resizeGigaBytes)
 
 	if action != nil {
+		log = logWithAction(log, action)
 		log.Info("waiting until volume is resized")
 		if err := d.waitAction(ctx, log, req.VolumeId, action.ID); err != nil {
-			return nil, status.Errorf(codes.Internal, "failed waiting for volume to get resized: %s", err)
+			return nil, status.Errorf(codes.Internal, "failed waiting on action ID %d for volume ID %s to get resized: %s", action.ID, req.VolumeId, err)
 		}
 	}
 
@@ -1002,19 +1005,9 @@ func formatBytes(inputBytes int64) string {
 	return result + unit
 }
 
-// waitAction waits until the given action for the volume is completed
+// waitAction waits until the given action for the volume has completed.
 func (d *Driver) waitAction(ctx context.Context, log *logrus.Entry, volumeID string, actionID int) error {
-	log = log.WithFields(logrus.Fields{
-		"action_id": actionID,
-	})
-
-	// This timeout should not strike given all sidecars use a timeout that is
-	// lower (which should always be the case). Using this as a fail-safe
-	// mechanism in case of a bug or misconfiguration.
-	ctx, cancel := context.WithTimeout(ctx, d.waitActionTimeout)
-	defer cancel()
-
-	err := wait.PollUntil(1*time.Second, wait.ConditionFunc(func() (done bool, err error) {
+	err := wait.PollUntil(1*time.Second, func() (done bool, err error) {
 		action, _, err := d.storageActions.Get(ctx, volumeID, actionID)
 		if err != nil {
 			ctxCanceled := ctx.Err() != nil
@@ -1025,18 +1018,27 @@ func (d *Driver) waitAction(ctx context.Context, log *logrus.Entry, volumeID str
 
 			return false, fmt.Errorf("failed to get action %d for volume %s: %s", actionID, volumeID, err)
 		}
-
-		log.WithField("action_status", action.Status).Info("action received")
+		log = log.WithField("action_status", action.Status)
 
 		if action.Status == godo.ActionCompleted {
 			log.Info("action completed")
 			return true, nil
 		}
 
+		log.Info("action is still pending")
 		return false, nil
-	}), ctx.Done())
+	}, ctx.Done())
 
 	return err
+}
+
+// logWithAction returns a log with action-specific fields populated.
+func logWithAction(log *logrus.Entry, action *godo.Action) *logrus.Entry {
+	log = log.WithField("action_id", action.ID)
+	if action.StartedAt != nil {
+		log = log.WithField("action_start_time", action.StartedAt.Time)
+	}
+	return log
 }
 
 type limitDetails struct {
