@@ -94,7 +94,7 @@ build:
 push:
 # Permit releasing to the canonical container repository only if VERSION adheres to semver.
 ifeq ($(DOCKER_REPO),digitalocean/do-csi-plugin)
-	@echo "${VERSION}" | grep -Eq "^v[0-9]+\.[0-9]+\.[0-9]+$$" || ( echo "VERSION \"${VERSION}\" does not adhere to semver"; exit 1 )
+	@echo "${VERSION}" | grep -Eq "^v[0-9]+\.[0-9]+\.[0-9]+(-[[:alnum:]]+)?$$" || ( echo "VERSION \"${VERSION}\" does not adhere to semver"; exit 1 )
 endif
 	@echo "==> Publishing $(DOCKER_REPO):$(VERSION)"
 	@docker push $(DOCKER_REPO):$(VERSION)
