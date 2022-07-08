@@ -366,6 +366,8 @@ to update the Kubernetes dependencies to version X.Y.Z.
 
 ## Releasing
 
+Releases may happen either for the latest minor version of the CSI driver maintained in the `master` branch, or an older minor version still maintained in one of the `release-*` branches. In this section, we will call that branch the _release branch_.
+
 To release a new version `vX.Y.Z`, first bump the version:
 
 ```shell
@@ -382,9 +384,9 @@ git add .
 git push origin
 ```
 
-After it is merged to master, wait for the master build to go green. (This will entail another run of the entire test suite.)
+After it is merged to the release branch, wait for the release branch build to go green. (This will entail another run of the entire test suite.)
 
-Finally, check out the master branch again, tag the release, and push it:
+Finally, check out the release branch again, tag the release, and push it:
 
 ```shell
 git checkout master
