@@ -24,7 +24,7 @@ env:
 on:
   push:
     branches:
-      - master
+      - release-3.0
   pull_request:
     branches:
 
