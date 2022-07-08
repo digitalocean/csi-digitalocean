@@ -35,7 +35,7 @@ spec:
       labels:
         app: snapshot-controller
     spec:
-      serviceAccount: snapshot-controller
+      serviceAccountName: snapshot-controller
       containers:
         - name: snapshot-controller
           image: k8s.gcr.io/sig-storage/snapshot-controller:v3.0.3

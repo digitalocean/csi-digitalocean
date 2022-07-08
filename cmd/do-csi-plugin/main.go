@@ -30,14 +30,15 @@ import (
 
 func main() {
 	var (
-		endpoint   = flag.String("endpoint", "unix:///var/lib/kubelet/plugins/"+driver.DefaultDriverName+"/csi.sock", "CSI endpoint.")
-		token      = flag.String("token", "", "DigitalOcean access token.")
-		url        = flag.String("url", "https://api.digitalocean.com/", "DigitalOcean API URL.")
-		region     = flag.String("region", "", "DigitalOcean region slug. Specify only when running in controller mode outside of a DigitalOcean droplet.")
-		doTag      = flag.String("do-tag", "", "Tag DigitalOcean volumes on Create/Attach.")
-		driverName = flag.String("driver-name", driver.DefaultDriverName, "Name for the driver.")
-		debugAddr  = flag.String("debug-addr", "", "Address to serve the HTTP debug server on.")
-		version    = flag.Bool("version", false, "Print the version and exit.")
+		endpoint               = flag.String("endpoint", "unix:///var/lib/kubelet/plugins/"+driver.DefaultDriverName+"/csi.sock", "CSI endpoint.")
+		token                  = flag.String("token", "", "DigitalOcean access token.")
+		url                    = flag.String("url", "https://api.digitalocean.com/", "DigitalOcean API URL.")
+		region                 = flag.String("region", "", "DigitalOcean region slug. Specify only when running in controller mode outside of a DigitalOcean droplet.")
+		doTag                  = flag.String("do-tag", "", "Tag DigitalOcean volumes on Create/Attach.")
+		driverName             = flag.String("driver-name", driver.DefaultDriverName, "Name for the driver.")
+		debugAddr              = flag.String("debug-addr", "", "Address to serve the HTTP debug server on.")
+		defaultVolumesPageSize = flag.Uint("default-volumes-page-size", 0, "The default page size used when paging through volumes results (default: do not specify and let the DO API choose)")
+		version                = flag.Bool("version", false, "Print the version and exit.")
 	)
 	flag.Parse()
 
@@ -50,7 +51,16 @@ func main() {
 		log.Fatalln("region flag must not be set when driver is running in node mode (i.e., token flag is unset)")
 	}
 
-	drv, err := driver.NewDriver(*endpoint, *token, *url, *region, *doTag, *driverName, *debugAddr)
+	drv, err := driver.NewDriver(driver.NewDriverParams{
+		Endpoint:               *endpoint,
+		Token:                  *token,
+		URL:                    *url,
+		Region:                 *region,
+		DOTag:                  *doTag,
+		DriverName:             *driverName,
+		DebugAddr:              *debugAddr,
+		DefaultVolumesPageSize: *defaultVolumesPageSize,
+	})
 	if err != nil {
 		log.Fatalln(err)
 	}

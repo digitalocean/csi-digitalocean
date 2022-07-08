@@ -30,7 +30,7 @@ on:
 
 jobs:
   unit-test:
-    runs-on: ubuntu-18.04
+    runs-on: ubuntu-20.04
 
     steps:
       - name: checkout
@@ -41,13 +41,13 @@ jobs:
       - name: Go setup
         uses: actions/setup-go@37335c7bb261b353407cff977110895fa0b4f7d8  # v2.1.3
         with:
-          go-version: '1.17.2'
+          go-version: '1.17.7'
 
       - name: Run unit tests
         run: make all
 
   push-images:
-    runs-on: ubuntu-18.04
+    runs-on: ubuntu-20.04
     needs: unit-test
 
     steps:
@@ -85,7 +85,7 @@ jobs:
           DOCKER_REPO=${DOCKER_ORG}/do-csi-plugin-dev make publish
 
   e2e-test:
-    runs-on: ubuntu-18.04
+    runs-on: ubuntu-20.04
     needs: push-images
     strategy:
       matrix:
@@ -100,7 +100,7 @@ jobs:
       - name: Go setup
         uses: actions/setup-go@37335c7bb261b353407cff977110895fa0b4f7d8  # v2.1.3
         with:
-          go-version: '1.17.2'
+          go-version: '1.17.7'
 
       - name: Install kustomize
         env:
@@ -135,7 +135,7 @@ jobs:
           TIMEOUT=60m make test-e2e E2E_ARGS="-ginkgo-nodes ${NUM_GINKGO_NODES} -driver-image ${DOCKER_ORG}/do-csi-plugin-dev:${TAG} -runner-image ${DOCKER_ORG}/k8s-e2e-test-runner:${RUNNER_IMAGE_TAG_PREFIX}latest -name-suffix ${NAME_SUFFIX} -retain ${{ matrix.kube-release }}"
 
   tag-new-master-image:
-    runs-on: ubuntu-18.04
+    runs-on: ubuntu-20.04
     if: github.ref == 'refs/heads/master'
     needs: e2e-test
 

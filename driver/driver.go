@@ -30,7 +30,7 @@ import (
 	"time"
 
 	"github.com/container-storage-interface/spec/lib/go/csi"
-	metadata "github.com/digitalocean/go-metadata"
+	"github.com/digitalocean/go-metadata"
 	"github.com/digitalocean/godo"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/oauth2"
@@ -41,8 +41,7 @@ import (
 const (
 	// DefaultDriverName defines the name that is used in Kubernetes and the CSI
 	// system for the canonical, official name of this plugin
-	DefaultDriverName        = "dobs.csi.digitalocean.com"
-	defaultWaitActionTimeout = 1 * time.Minute
+	DefaultDriverName = "dobs.csi.digitalocean.com"
 )
 
 var (
@@ -63,13 +62,13 @@ type Driver struct {
 	// `ControllerPublishVolume` to `NodeStageVolume or `NodePublishVolume`
 	publishInfoVolumeName string
 
-	endpoint          string
-	debugAddr         string
-	hostID            func() string
-	region            string
-	doTag             string
-	isController      bool
-	waitActionTimeout time.Duration
+	endpoint               string
+	debugAddr              string
+	hostID                 func() string
+	region                 string
+	doTag                  string
+	isController           bool
+	defaultVolumesPageSize uint
 
 	srv     *grpc.Server
 	httpSrv *http.Server
@@ -91,21 +90,35 @@ type Driver struct {
 	ready   bool
 }
 
+// NewDriverParams defines the parameters that can be passed to NewDriver.
+type NewDriverParams struct {
+	Endpoint               string
+	Token                  string
+	URL                    string
+	Region                 string
+	DOTag                  string
+	DriverName             string
+	DebugAddr              string
+	DefaultVolumesPageSize uint
+}
+
 // NewDriver returns a CSI plugin that contains the necessary gRPC
 // interfaces to interact with Kubernetes over unix domain sockets for
 // managing DigitalOcean Block Storage
-func NewDriver(ep, token, url, region, doTag, driverName, debugAddr string) (*Driver, error) {
+func NewDriver(p NewDriverParams) (*Driver, error) {
+	driverName := p.DriverName
 	if driverName == "" {
 		driverName = DefaultDriverName
 	}
 
 	tokenSource := oauth2.StaticTokenSource(&oauth2.Token{
-		AccessToken: token,
+		AccessToken: p.Token,
 	})
 	oauthClient := oauth2.NewClient(context.Background(), tokenSource)
 
 	mdClient := metadata.NewClient()
-	if region == "" {
+	var region string
+	if p.Region == "" {
 		var err error
 		region, err = mdClient.Region()
 		if err != nil {
@@ -118,8 +131,8 @@ func NewDriver(ep, token, url, region, doTag, driverName, debugAddr string) (*Dr
 	}
 	hostID := strconv.Itoa(hostIDInt)
 
-	opts := []godo.ClientOpt{}
-	opts = append(opts, godo.SetBaseURL(url))
+	var opts []godo.ClientOpt
+	opts = append(opts, godo.SetBaseURL(p.URL))
 
 	if version == "" {
 		version = "dev"
@@ -143,16 +156,17 @@ func NewDriver(ep, token, url, region, doTag, driverName, debugAddr string) (*Dr
 		name:                  driverName,
 		publishInfoVolumeName: driverName + "/volume-name",
 
-		doTag:     doTag,
-		endpoint:  ep,
-		debugAddr: debugAddr,
-		hostID:    func() string { return hostID },
-		region:    region,
-		mounter:   newMounter(log),
-		log:       log,
+		doTag:                  p.DOTag,
+		endpoint:               p.Endpoint,
+		debugAddr:              p.DebugAddr,
+		defaultVolumesPageSize: p.DefaultVolumesPageSize,
+
+		hostID:  func() string { return hostID },
+		region:  region,
+		mounter: newMounter(log),
+		log:     log,
 		// we're assuming only the controller has a non-empty token.
-		isController:      token != "",
-		waitActionTimeout: defaultWaitActionTimeout,
+		isController: p.Token != "",
 
 		storage:        doClient.Storage,
 		storageActions: doClient.StorageActions,

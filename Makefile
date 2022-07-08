@@ -14,7 +14,7 @@
 
 NAME=do-csi-plugin
 OS ?= linux
-GO_VERSION := 1.15.5
+GO_VERSION := 1.17.7
 ifeq ($(strip $(shell git status --porcelain 2>/dev/null)),)
   GIT_TREE_STATE=clean
 else
@@ -28,7 +28,7 @@ ifneq ($(VERSION),)
 else
   VERSION ?= $(shell cat VERSION)
 endif
-KUBERNETES_VERSION ?= 1.19.2
+KUBERNETES_VERSION ?= 1.19.15
 DOCKER_REPO ?= digitalocean/do-csi-plugin
 CANONICAL_RUNNER_IMAGE = digitalocean/k8s-e2e-test-runner
 RUNNER_IMAGE ?= $(CANONICAL_RUNNER_IMAGE)

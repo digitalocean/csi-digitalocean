@@ -22,8 +22,8 @@ WORKDIR /go/src/k8s.io
 
 ### Kubernetes 1.19
 FROM builder AS tests-1.19
-ARG KUBE_VERSION_1_19=1.19.2
-ARG KUBE_VERSION_1_19_E2E_BIN_SHA256_CHECKSUM=0ef80e3f74a9d115b7b2e74f8bcca9e2f93d69cd7b3b45cafc74c13c3799cad7
+ARG KUBE_VERSION_1_19=1.19.15
+ARG KUBE_VERSION_1_19_E2E_BIN_SHA256_CHECKSUM=a4300019eab60fb26580637dc7852589ceaf224dc34af4e4f831fceb9afea258
 
 RUN curl --fail --location https://dl.k8s.io/v${KUBE_VERSION_1_19}/kubernetes-test-linux-amd64.tar.gz | tar xvzf - --strip-components 3 kubernetes/test/bin/e2e.test
 RUN echo "${KUBE_VERSION_1_19_E2E_BIN_SHA256_CHECKSUM}" e2e.test | sha256sum --check
@@ -35,11 +35,11 @@ FROM golang:1.13 AS tools
 ARG TINI_VERSION=0.18.0
 # doctl is needed to support clusters that had their kubeconfig fetched via the
 # CLI because those leverage a kubeconfig authentication plugin based on doctl.
-ARG DOCTL_VERSION=1.36.0
+ARG DOCTL_VERSION=1.76.2
 # ginkgo is needed to run the upstream end-to-end tests.
 ARG GINKGO_VERSION=1.10.3
 # kubectl is needed by some tests.
-ARG KUBECTL_VERSION=1.19.2
+ARG KUBECTL_VERSION=1.19.15
 
 RUN curl --fail --location --output /tini https://github.com/krallin/tini/releases/download/v${TINI_VERSION}/tini
 RUN chmod u+x /tini
