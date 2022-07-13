@@ -1,5 +1,18 @@
 ## unreleased
 
+## v3.1.0 - 2022.07.08
+
+* Upgrade sidecars
+  [[GH-446]](https://github.com/digitalocean/csi-digitalocean/pull/446)
+* Specify RBAC rules for snapshot validation webhook
+  [[GH-446]](https://github.com/digitalocean/csi-digitalocean/pull/446)
+* Guarantee that action IDs are logged
+  [[GH-446]](https://github.com/digitalocean/csi-digitalocean/pull/446)
+* Make volumes page size customizable
+  [[GH-446]](https://github.com/digitalocean/csi-digitalocean/pull/446)
+* Remove unnecessary waitActionTimeout
+  [[GH-446]](https://github.com/digitalocean/csi-digitalocean/pull/446)
+
 ## v3.0.0 - 2022.01.07
 
 * Mark CSI driver as default container
