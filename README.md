@@ -80,7 +80,7 @@ Version 1 of the CSI driver supports v1alpha1 Volume Snapshots only.
 
 Version 2 and 3 of the CSI driver supports v1beta1 Volume Snapshots only.
 
-Version 4 and later of the CSI driver supports v1 Volume Snapshots, which is backwards compatible to v1beta1. However, version 3 renders snapshots unusable that had previously been marked as invalid. See the [csi-snapshotter](https://github.com/kubernetes-csi/external-snapshotter) documentation on the validating webhook and v1beta1 to v1 upgrade notes.
+Version 4 and later of the CSI driver support v1 Volume Snapshots only, which is backwards compatible to v1beta1. However, version 3 renders snapshots unusable that had previously been marked as invalid. See the [csi-snapshotter](https://github.com/kubernetes-csi/external-snapshotter) documentation on the validating webhook and v1beta1 to v1 upgrade notes.
 
 ---
 
@@ -100,12 +100,13 @@ Volumes can be transferred across clusters. The exact steps are outlined in [our
 
 The following table describes the required DigitalOcean CSI driver version per supported Kubernetes release.
 
-Kubernetes Release | DigitalOcean CSI Driver Version
------------------- | -------------------------------
-1.19               | v3
-1.20               | v3
-1.21               | v3
-1.22               | v4
+| Kubernetes Release | DigitalOcean CSI Driver Version |
+|--------------------|---------------------------------|
+| 1.19               | v3                              |
+| 1.20               | v3                              |
+| 1.21               | v3                              |
+| 1.22               | v4                              |
+| 1.23               | v4.2.0+                         |
 
 ---
 **Note:**
@@ -198,6 +199,8 @@ where `vX.Y.Z` is the plugin target version. (Note that for releases older than 
 If you see any issues during the installation, this could be because the newly
 created CRDs haven't been established yet. If you call `kubectl apply -f` again
 on the same file, the missing resources will be applied again.
+
+The above does not include the snapshot validating webhook which needs extra configuration as outlined above. You may append `,snapshot-validation-webhook.yaml` to the `{...}` list if you want to install a (presumably configured) webhook as well. 
 
 #### 4. Test and verify
 

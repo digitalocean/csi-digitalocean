@@ -1,5 +1,16 @@
 ## unreleased
 
+## v4.2.0 - 2022.07.13
+
+* Add retain and XFS storage classes
+* [[GH-450]](https://github.com/digitalocean/csi-digitalocean/pull/450)
+* Upgrade sidecars and add RBAC rules for snapshot validation webhook
+  [[GH-444]](https://github.com/digitalocean/csi-digitalocean/pull/444)
+* Set storage size to minimum volume size
+  [[GH-441]](https://github.com/digitalocean/csi-digitalocean/pull/441)
+* Update CSI driver for Kubernetes 1.23
+  [[GH-440]](https://github.com/digitalocean/csi-digitalocean/pull/440)
+
 ## v4.1.0 - 2022.06.21
 
 * Guarantee that action IDs are logged
