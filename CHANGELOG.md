@@ -1,6 +1,6 @@
 ## unreleased
 
-## v3.1.0 - 2022.07.08
+## v3.1.0 - 2022.07.13
 
 * Upgrade sidecars
   [[GH-446]](https://github.com/digitalocean/csi-digitalocean/pull/446)
