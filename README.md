@@ -371,7 +371,7 @@ to update the Kubernetes dependencies to version X.Y.Z.
 
 Releases may happen either for the latest minor version of the CSI driver maintained in the `master` branch, or an older minor version still maintained in one of the `release-*` branches. In this section, we will call that branch the _release branch_.
 
-To release a new version `vX.Y.Z`, first bump the version:
+To release a new version `vX.Y.Z`, first check out the release branch and bump the version:
 
 ```shell
 make NEW_VERSION=vX.Y.Z bump-version
@@ -392,11 +392,13 @@ After it is merged to the release branch, wait for the release branch build to g
 Finally, check out the release branch again, tag the release, and push it:
 
 ```shell
-git checkout master
+git checkout <release branch>
 git pull
 git tag vX.Y.Z
 git push origin vX.Y.Z
 ```
+
+(This works for non-master release branches as well since the `checkout` Github Action we use defaults to checking out the ref/SHA that triggered the workflow.)
 
 The CI will publish the container image `digitalocean/do-csi-plugin:vX.Y.Z` and create a Github Release under the name `vX.Y.Z` automatically. Nothing else needs to be done.
 
