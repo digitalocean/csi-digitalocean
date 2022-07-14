@@ -18,8 +18,8 @@ require (
 	golang.org/x/sync v0.0.0-20210220032951-036812b2e83c
 	golang.org/x/sys v0.0.0-20210831042530-f4d43177bf5e
 	google.golang.org/grpc v1.40.0
-	k8s.io/apimachinery v0.23.7
-	k8s.io/mount-utils v0.23.7
+	k8s.io/apimachinery v0.23.9
+	k8s.io/mount-utils v0.23.9
 	k8s.io/utils v0.0.0-20220210201930-3a6ce19ff2f9
 )
 
@@ -51,13 +51,13 @@ require (
 	k8s.io/klog/v2 v2.30.0 // indirect
 )
 
-replace k8s.io/api => k8s.io/api v0.23.7
+replace k8s.io/api => k8s.io/api v0.23.9
 
-replace k8s.io/apiextensions-apiserver => k8s.io/apiextensions-apiserver v0.23.7
+replace k8s.io/apiextensions-apiserver => k8s.io/apiextensions-apiserver v0.23.9
 
-replace k8s.io/apimachinery => k8s.io/apimachinery v0.23.9-rc.0
+replace k8s.io/apimachinery => k8s.io/apimachinery v0.23.9
 
-replace k8s.io/apiserver => k8s.io/apiserver v0.23.7
+replace k8s.io/apiserver => k8s.io/apiserver v0.23.9
 
 replace k8s.io/cli-runtime => k8s.io/cli-runtime v0.23.7
 
