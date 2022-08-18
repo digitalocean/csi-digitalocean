@@ -36,7 +36,6 @@ DriverInfo:
     volumeLimits: true
     singleNodeVolume: true
     topology: true
-    capacity: true
   SupportedFsType:
     ext3:
     ext4:

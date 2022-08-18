@@ -107,6 +107,7 @@ The following table describes the required DigitalOcean CSI driver version per s
 | 1.21               | v3                              |
 | 1.22               | v4                              |
 | 1.23               | v4.2.0+                         |
+| 1.24               | v4.3.0+                         |
 
 ---
 **Note:**
@@ -366,6 +367,8 @@ make NEW_KUBERNETES_VERSION=X.Y.Z update-k8s
 ```
 
 to update the Kubernetes dependencies to version X.Y.Z.
+
+> Note: Make sure to also add support to the e2e tests for the new kubernetes version, following [these instructions](test/e2e/README.md#add-support-for-a-new-kubernetes-release).
 
 ## Releasing
 
