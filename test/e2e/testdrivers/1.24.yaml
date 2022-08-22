@@ -25,6 +25,7 @@ DriverInfo:
     persistence: true
     block: true
     fsGroup: true
+    volumeMountGroup: false
     exec: true
     snapshotDataSource: true
     pvcDataSource: false
@@ -36,6 +37,7 @@ DriverInfo:
     volumeLimits: true
     singleNodeVolume: true
     topology: true
+    capacity: false
   SupportedFsType:
     ext3:
     ext4:
