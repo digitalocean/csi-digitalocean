@@ -68,6 +68,5 @@ if [[ "${SKIP_SEQUENTIAL_TESTS:-}" ]]; then
   echo 'Skipping sequential tests'
 else
   echo 'Running sequential tests'
-  # Note: \[Feature:VolumeSourceXFS\] is to temporarily skip some snapshot/xfs tests added with 1.22 that would also fail on 1.21 and possibly earlier (via manual testing)
-  ginkgo -v -focus="External.Storage${focus}.*(\[Feature:|\[Serial\])" -skip='\[Disruptive\]|\[Feature:VolumeSourceXFS\]' "${E2E_TEST_FILE}" -- "-storage.testdriver=${TD_FILE}"
+  ginkgo -v -focus="External.Storage${focus}.*(\[Feature:|\[Serial\])" -skip='\[Disruptive\]' "${E2E_TEST_FILE}" -- "-storage.testdriver=${TD_FILE}"
 fi
