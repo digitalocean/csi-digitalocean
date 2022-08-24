@@ -367,7 +367,6 @@ To run the integration tests on a DOKS cluster, follow [the instructions](test/k
 4. Verify [e2e tests pass](.github/workflows/test.yaml) - see [here](#end-to-end-tests) about running tests locally
 5. Prepare for [release](#releasing)
 6. Perform [release](.github/workflows/release.yaml)
-7. Use new CSI release in [k8saas-images](https://github.internal.digitalocean.com/digitalocean/k8saas-images) - [example](https://github.internal.digitalocean.com/digitalocean/k8saas-images/pull/693)
 
 > See [e2e test README](test/e2e/README.md) on how to run conformance tests locally.
 
