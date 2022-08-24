@@ -1,5 +1,10 @@
 ## unreleased
 
+## v4.3.0 - 2022.08.24
+* Update CSI driver for Kubernetes 1.24
+[[GH-457]](https://github.com/digitalocean/csi-digitalocean/pull/457)
+* Clarify release documentation on branch releases
+ [[GH-455]](https://github.com/digitalocean/csi-digitalocean/pull/455)
 ## v4.2.0 - 2022.07.13
 
 * Add retain and XFS storage classes
