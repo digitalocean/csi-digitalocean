@@ -358,7 +358,20 @@ There is a set of custom integration tests which are mostly useful for Kubernete
 
 To run the integration tests on a DOKS cluster, follow [the instructions](test/kubernetes/deploy/README.md).
 
-## Updating the Kubernetes dependencies
+## Prepare CSI driver for a new Kubernetes minor version
+
+1. Review recently merged PRs and any in-progress / planned work to ensure any bugs scheduled for the release have been fixed and merged.
+2. [Bump kubernetes dependency versions](#updating-the-kubernetes-dependencies)
+3. [Support running e2e on new $MAJOR.$MINOR](test/e2e/README.md#add-support-for-a-new-kubernetes-release)
+   1. Since we only support three minor versions at a time. E2e tests for the oldest supported version can be removed.
+4. Verify [e2e tests pass](.github/workflows/test.yaml) - see [here](#end-to-end-tests) about running tests locally
+5. Prepare for [release](#releasing)
+6. Perform [release](.github/workflows/release.yaml)
+7. Use new CSI release in [k8saas-images](https://github.internal.digitalocean.com/digitalocean/k8saas-images) - [example](https://github.internal.digitalocean.com/digitalocean/k8saas-images/pull/693)
+
+> See [e2e test README](test/e2e/README.md) on how to run conformance tests locally.
+
+### Updating the Kubernetes dependencies
 
 Run
 
@@ -370,7 +383,7 @@ to update the Kubernetes dependencies to version X.Y.Z.
 
 > Note: Make sure to also add support to the e2e tests for the new kubernetes version, following [these instructions](test/e2e/README.md#add-support-for-a-new-kubernetes-release).
 
-## Releasing
+### Releasing
 
 Releases may happen either for the latest minor version of the CSI driver maintained in the `master` branch, or an older minor version still maintained in one of the `release-*` branches. In this section, we will call that branch the _release branch_.
 
