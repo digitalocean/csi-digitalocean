@@ -61,11 +61,22 @@ var (
 	}
 )
 
+type Node struct {
+	// publishInfoVolumeName is used to pass the volume name from
+	// `ControllerPublishVolume` to `NodeStageVolume or `NodePublishVolume`
+	publishInfoVolumeName string
+	region                string
+	hostID                func() string
+
+	log     *logrus.Entry
+	mounter Mounter
+}
+
 // NodeStageVolume mounts the volume to a staging path on the node. This is
 // called by the CO before NodePublishVolume and is used to temporary mount the
 // volume to a staging path. Once mounted, NodePublishVolume will make sure to
 // mount it to the appropriate path
-func (d *Driver) NodeStageVolume(ctx context.Context, req *csi.NodeStageVolumeRequest) (*csi.NodeStageVolumeResponse, error) {
+func (d *Node) NodeStageVolume(ctx context.Context, req *csi.NodeStageVolumeRequest) (*csi.NodeStageVolumeResponse, error) {
 	if req.VolumeId == "" {
 		return nil, status.Error(codes.InvalidArgument, "NodeStageVolume Volume ID must be provided")
 	}
@@ -165,7 +176,7 @@ func (d *Driver) NodeStageVolume(ctx context.Context, req *csi.NodeStageVolumeRe
 }
 
 // NodeUnstageVolume unstages the volume from the staging path
-func (d *Driver) NodeUnstageVolume(ctx context.Context, req *csi.NodeUnstageVolumeRequest) (*csi.NodeUnstageVolumeResponse, error) {
+func (d *Node) NodeUnstageVolume(ctx context.Context, req *csi.NodeUnstageVolumeRequest) (*csi.NodeUnstageVolumeResponse, error) {
 	if req.VolumeId == "" {
 		return nil, status.Error(codes.InvalidArgument, "NodeUnstageVolume Volume ID must be provided")
 	}
@@ -201,7 +212,7 @@ func (d *Driver) NodeUnstageVolume(ctx context.Context, req *csi.NodeUnstageVolu
 }
 
 // NodePublishVolume mounts the volume mounted to the staging path to the target path
-func (d *Driver) NodePublishVolume(ctx context.Context, req *csi.NodePublishVolumeRequest) (*csi.NodePublishVolumeResponse, error) {
+func (d *Node) NodePublishVolume(ctx context.Context, req *csi.NodePublishVolumeRequest) (*csi.NodePublishVolumeResponse, error) {
 	if req.VolumeId == "" {
 		return nil, status.Error(codes.InvalidArgument, "NodePublishVolume Volume ID must be provided")
 	}
@@ -250,7 +261,7 @@ func (d *Driver) NodePublishVolume(ctx context.Context, req *csi.NodePublishVolu
 }
 
 // NodeUnpublishVolume unmounts the volume from the target path
-func (d *Driver) NodeUnpublishVolume(ctx context.Context, req *csi.NodeUnpublishVolumeRequest) (*csi.NodeUnpublishVolumeResponse, error) {
+func (d *Node) NodeUnpublishVolume(ctx context.Context, req *csi.NodeUnpublishVolumeRequest) (*csi.NodeUnpublishVolumeResponse, error) {
 	if req.VolumeId == "" {
 		return nil, status.Error(codes.InvalidArgument, "NodeUnpublishVolume Volume ID must be provided")
 	}
@@ -276,7 +287,7 @@ func (d *Driver) NodeUnpublishVolume(ctx context.Context, req *csi.NodeUnpublish
 }
 
 // NodeGetCapabilities returns the supported capabilities of the node server
-func (d *Driver) NodeGetCapabilities(ctx context.Context, req *csi.NodeGetCapabilitiesRequest) (*csi.NodeGetCapabilitiesResponse, error) {
+func (d *Node) NodeGetCapabilities(ctx context.Context, req *csi.NodeGetCapabilitiesRequest) (*csi.NodeGetCapabilitiesResponse, error) {
 	nscaps := []*csi.NodeServiceCapability{
 		&csi.NodeServiceCapability{
 			Type: &csi.NodeServiceCapability_Rpc{
@@ -314,7 +325,7 @@ func (d *Driver) NodeGetCapabilities(ctx context.Context, req *csi.NodeGetCapabi
 // should eventually return the droplet ID if possible. This is used so the CO
 // knows where to place the workload. The result of this function will be used
 // by the CO in ControllerPublishVolume.
-func (d *Driver) NodeGetInfo(ctx context.Context, req *csi.NodeGetInfoRequest) (*csi.NodeGetInfoResponse, error) {
+func (d *Node) NodeGetInfo(ctx context.Context, req *csi.NodeGetInfoRequest) (*csi.NodeGetInfoResponse, error) {
 	d.log.WithField("method", "node_get_info").Info("node get info called")
 	return &csi.NodeGetInfoResponse{
 		NodeId:            d.hostID(),
@@ -331,7 +342,7 @@ func (d *Driver) NodeGetInfo(ctx context.Context, req *csi.NodeGetInfoRequest) (
 
 // NodeGetVolumeStats returns the volume capacity statistics available for the
 // the given volume.
-func (d *Driver) NodeGetVolumeStats(ctx context.Context, req *csi.NodeGetVolumeStatsRequest) (*csi.NodeGetVolumeStatsResponse, error) {
+func (d *Node) NodeGetVolumeStats(ctx context.Context, req *csi.NodeGetVolumeStatsRequest) (*csi.NodeGetVolumeStatsResponse, error) {
 	if req.VolumeId == "" {
 		return nil, status.Error(codes.InvalidArgument, "NodeGetVolumeStats Volume ID must be provided")
 	}
@@ -412,7 +423,7 @@ func (d *Driver) NodeGetVolumeStats(ctx context.Context, req *csi.NodeGetVolumeS
 	}, nil
 }
 
-func (d *Driver) NodeExpandVolume(ctx context.Context, req *csi.NodeExpandVolumeRequest) (*csi.NodeExpandVolumeResponse, error) {
+func (d *Node) NodeExpandVolume(ctx context.Context, req *csi.NodeExpandVolumeRequest) (*csi.NodeExpandVolumeResponse, error) {
 	volumeID := req.GetVolumeId()
 	if len(volumeID) == 0 {
 		return nil, status.Error(codes.InvalidArgument, "NodeExpandVolume volume ID not provided")
@@ -470,7 +481,7 @@ func (d *Driver) NodeExpandVolume(ctx context.Context, req *csi.NodeExpandVolume
 	return &csi.NodeExpandVolumeResponse{}, nil
 }
 
-func (d *Driver) nodePublishVolumeForFileSystem(req *csi.NodePublishVolumeRequest, mountOptions []string, log *logrus.Entry) error {
+func (d *Node) nodePublishVolumeForFileSystem(req *csi.NodePublishVolumeRequest, mountOptions []string, log *logrus.Entry) error {
 	source := req.StagingTargetPath
 	target := req.TargetPath
 
@@ -508,7 +519,7 @@ func (d *Driver) nodePublishVolumeForFileSystem(req *csi.NodePublishVolumeReques
 	return nil
 }
 
-func (d *Driver) nodePublishVolumeForBlock(req *csi.NodePublishVolumeRequest, mountOptions []string, log *logrus.Entry) error {
+func (d *Node) nodePublishVolumeForBlock(req *csi.NodePublishVolumeRequest, mountOptions []string, log *logrus.Entry) error {
 	volumeName, ok := req.GetPublishContext()[d.publishInfoVolumeName]
 	if !ok {
 		return status.Error(codes.InvalidArgument, fmt.Sprintf("Could not find the volume name from the publish context %q", d.publishInfoVolumeName))

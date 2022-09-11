@@ -23,6 +23,7 @@ import (
 	"net/http"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/container-storage-interface/spec/lib/go/csi"
@@ -78,9 +79,30 @@ var (
 	}
 )
 
+type Controller struct {
+	// publishInfoVolumeName is used to pass the volume name from
+	// `ControllerPublishVolume` to `NodeStageVolume or `NodePublishVolume`
+	publishInfoVolumeName  string
+	region                 string
+	doTag                  string
+	defaultVolumesPageSize uint
+
+	storage        godo.StorageService
+	storageActions godo.StorageActionsService
+	droplets       godo.DropletsService
+	snapshots      godo.SnapshotsService
+	account        godo.AccountService
+	tags           godo.TagsService
+
+	healthChecker *HealthChecker
+	log           *logrus.Entry
+
+	readyMu sync.Mutex
+}
+
 // CreateVolume creates a new volume from the given request. The function is
 // idempotent.
-func (d *Driver) CreateVolume(ctx context.Context, req *csi.CreateVolumeRequest) (*csi.CreateVolumeResponse, error) {
+func (d *Controller) CreateVolume(ctx context.Context, req *csi.CreateVolumeRequest) (*csi.CreateVolumeResponse, error) {
 	if req.Name == "" {
 		return nil, status.Error(codes.InvalidArgument, "CreateVolume Name must be provided")
 	}
@@ -230,7 +252,7 @@ func (d *Driver) CreateVolume(ctx context.Context, req *csi.CreateVolumeRequest)
 }
 
 // DeleteVolume deletes the given volume. The function is idempotent.
-func (d *Driver) DeleteVolume(ctx context.Context, req *csi.DeleteVolumeRequest) (*csi.DeleteVolumeResponse, error) {
+func (d *Controller) DeleteVolume(ctx context.Context, req *csi.DeleteVolumeRequest) (*csi.DeleteVolumeResponse, error) {
 	if req.VolumeId == "" {
 		return nil, status.Error(codes.InvalidArgument, "DeleteVolume Volume ID must be provided")
 	}
@@ -259,7 +281,7 @@ func (d *Driver) DeleteVolume(ctx context.Context, req *csi.DeleteVolumeRequest)
 }
 
 // ControllerPublishVolume attaches the given volume to the node
-func (d *Driver) ControllerPublishVolume(ctx context.Context, req *csi.ControllerPublishVolumeRequest) (*csi.ControllerPublishVolumeResponse, error) {
+func (d *Controller) ControllerPublishVolume(ctx context.Context, req *csi.ControllerPublishVolumeRequest) (*csi.ControllerPublishVolumeResponse, error) {
 	if req.VolumeId == "" {
 		return nil, status.Error(codes.InvalidArgument, "ControllerPublishVolume Volume ID must be provided")
 	}
@@ -389,7 +411,7 @@ func (d *Driver) ControllerPublishVolume(ctx context.Context, req *csi.Controlle
 }
 
 // ControllerUnpublishVolume deattaches the given volume from the node
-func (d *Driver) ControllerUnpublishVolume(ctx context.Context, req *csi.ControllerUnpublishVolumeRequest) (*csi.ControllerUnpublishVolumeResponse, error) {
+func (d *Controller) ControllerUnpublishVolume(ctx context.Context, req *csi.ControllerUnpublishVolumeRequest) (*csi.ControllerUnpublishVolumeResponse, error) {
 	if req.VolumeId == "" {
 		return nil, status.Error(codes.InvalidArgument, "ControllerUnpublishVolume Volume ID must be provided")
 	}
@@ -475,7 +497,7 @@ func (d *Driver) ControllerUnpublishVolume(ctx context.Context, req *csi.Control
 
 // ValidateVolumeCapabilities checks whether the volume capabilities requested
 // are supported.
-func (d *Driver) ValidateVolumeCapabilities(ctx context.Context, req *csi.ValidateVolumeCapabilitiesRequest) (*csi.ValidateVolumeCapabilitiesResponse, error) {
+func (d *Controller) ValidateVolumeCapabilities(ctx context.Context, req *csi.ValidateVolumeCapabilitiesRequest) (*csi.ValidateVolumeCapabilitiesResponse, error) {
 	if req.VolumeId == "" {
 		return nil, status.Error(codes.InvalidArgument, "ValidateVolumeCapabilities Volume ID must be provided")
 	}
@@ -517,7 +539,7 @@ func (d *Driver) ValidateVolumeCapabilities(ctx context.Context, req *csi.Valida
 }
 
 // ListVolumes returns a list of all requested volumes
-func (d *Driver) ListVolumes(ctx context.Context, req *csi.ListVolumesRequest) (*csi.ListVolumesResponse, error) {
+func (d *Controller) ListVolumes(ctx context.Context, req *csi.ListVolumesRequest) (*csi.ListVolumesResponse, error) {
 	maxEntries := req.MaxEntries
 	if maxEntries == 0 && d.defaultVolumesPageSize > 0 {
 		maxEntries = int32(d.defaultVolumesPageSize)
@@ -596,7 +618,7 @@ func (d *Driver) ListVolumes(ctx context.Context, req *csi.ListVolumesRequest) (
 }
 
 // GetCapacity returns the capacity of the storage pool
-func (d *Driver) GetCapacity(ctx context.Context, req *csi.GetCapacityRequest) (*csi.GetCapacityResponse, error) {
+func (d *Controller) GetCapacity(ctx context.Context, req *csi.GetCapacityRequest) (*csi.GetCapacityResponse, error) {
 	// TODO(arslan): check if we can provide this information somehow
 	d.log.WithFields(logrus.Fields{
 		"params": req.Parameters,
@@ -606,7 +628,7 @@ func (d *Driver) GetCapacity(ctx context.Context, req *csi.GetCapacityRequest) (
 }
 
 // ControllerGetCapabilities returns the capabilities of the controller service.
-func (d *Driver) ControllerGetCapabilities(ctx context.Context, req *csi.ControllerGetCapabilitiesRequest) (*csi.ControllerGetCapabilitiesResponse, error) {
+func (d *Controller) ControllerGetCapabilities(ctx context.Context, req *csi.ControllerGetCapabilitiesRequest) (*csi.ControllerGetCapabilitiesResponse, error) {
 	newCap := func(cap csi.ControllerServiceCapability_RPC_Type) *csi.ControllerServiceCapability {
 		return &csi.ControllerServiceCapability{
 			Type: &csi.ControllerServiceCapability_Rpc{
@@ -643,7 +665,7 @@ func (d *Driver) ControllerGetCapabilities(ctx context.Context, req *csi.Control
 
 // CreateSnapshot will be called by the CO to create a new snapshot from a
 // source volume on behalf of a user.
-func (d *Driver) CreateSnapshot(ctx context.Context, req *csi.CreateSnapshotRequest) (*csi.CreateSnapshotResponse, error) {
+func (d *Controller) CreateSnapshot(ctx context.Context, req *csi.CreateSnapshotRequest) (*csi.CreateSnapshotResponse, error) {
 	if req.GetName() == "" {
 		return nil, status.Error(codes.InvalidArgument, "CreateSnapshot Name must be provided")
 	}
@@ -739,7 +761,7 @@ func (d *Driver) CreateSnapshot(ctx context.Context, req *csi.CreateSnapshotRequ
 }
 
 // DeleteSnapshot will be called by the CO to delete a snapshot.
-func (d *Driver) DeleteSnapshot(ctx context.Context, req *csi.DeleteSnapshotRequest) (*csi.DeleteSnapshotResponse, error) {
+func (d *Controller) DeleteSnapshot(ctx context.Context, req *csi.DeleteSnapshotRequest) (*csi.DeleteSnapshotResponse, error) {
 	log := d.log.WithFields(logrus.Fields{
 		"req_snapshot_id": req.GetSnapshotId(),
 		"method":          "delete_snapshot",
@@ -772,7 +794,7 @@ func (d *Driver) DeleteSnapshot(ctx context.Context, req *csi.DeleteSnapshotRequ
 // system within the given parameters regardless of how they were created.
 // ListSnapshots shold not list a snapshot that is being created but has not
 // been cut successfully yet.
-func (d *Driver) ListSnapshots(ctx context.Context, req *csi.ListSnapshotsRequest) (*csi.ListSnapshotsResponse, error) {
+func (d *Controller) ListSnapshots(ctx context.Context, req *csi.ListSnapshotsRequest) (*csi.ListSnapshotsResponse, error) {
 	listResp := &csi.ListSnapshotsResponse{}
 	log := d.log.WithFields(logrus.Fields{
 		"snapshot_id":        req.SnapshotId,
@@ -862,7 +884,7 @@ func (d *Driver) ListSnapshots(ctx context.Context, req *csi.ListSnapshotsReques
 }
 
 // ControllerExpandVolume is called from the resizer to increase the volume size.
-func (d *Driver) ControllerExpandVolume(ctx context.Context, req *csi.ControllerExpandVolumeRequest) (*csi.ControllerExpandVolumeResponse, error) {
+func (d *Controller) ControllerExpandVolume(ctx context.Context, req *csi.ControllerExpandVolumeRequest) (*csi.ControllerExpandVolumeResponse, error) {
 	volID := req.GetVolumeId()
 
 	if len(volID) == 0 {
@@ -928,7 +950,7 @@ func (d *Driver) ControllerExpandVolume(ctx context.Context, req *csi.Controller
 // The call is used for the CSI health check feature
 // (https://github.com/kubernetes/enhancements/pull/1077) which we do not
 // support yet.
-func (d *Driver) ControllerGetVolume(ctx context.Context, req *csi.ControllerGetVolumeRequest) (*csi.ControllerGetVolumeResponse, error) {
+func (d *Controller) ControllerGetVolume(ctx context.Context, req *csi.ControllerGetVolumeRequest) (*csi.ControllerGetVolumeResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "")
 }
 
@@ -936,7 +958,7 @@ func (d *Driver) ControllerGetVolume(ctx context.Context, req *csi.ControllerGet
 // range. If the capacity range is not satisfied it returns the default volume
 // size. If the capacity range is above supported sizes, it returns an
 // error. If the capacity range is below supported size, it returns the minimum supported size
-func (d *Driver) extractStorage(capRange *csi.CapacityRange) (int64, error) {
+func (d *Controller) extractStorage(capRange *csi.CapacityRange) (int64, error) {
 	if capRange == nil {
 		return defaultVolumeSizeInBytes, nil
 	}
@@ -1016,7 +1038,7 @@ func formatBytes(inputBytes int64) string {
 }
 
 // waitAction waits until the given action for the volume has completed.
-func (d *Driver) waitAction(ctx context.Context, log *logrus.Entry, volumeID string, actionID int) error {
+func (d *Controller) waitAction(ctx context.Context, log *logrus.Entry, volumeID string, actionID int) error {
 	err := wait.PollUntil(1*time.Second, func() (done bool, err error) {
 		action, _, err := d.storageActions.Get(ctx, volumeID, actionID)
 		if err != nil {
@@ -1057,7 +1079,7 @@ type limitDetails struct {
 }
 
 // checkLimit checks whether the user hit their account volume limit.
-func (d *Driver) checkLimit(ctx context.Context) (*limitDetails, error) {
+func (d *Controller) checkLimit(ctx context.Context) (*limitDetails, error) {
 	// only one provisioner runs, we can make sure to prevent burst creation
 	d.readyMu.Lock()
 	defer d.readyMu.Unlock()
@@ -1144,7 +1166,7 @@ func validateCapabilities(caps []*csi.VolumeCapability) []string {
 	return violations.List()
 }
 
-func (d *Driver) tagVolume(parentCtx context.Context, vol *godo.Volume) error {
+func (d *Controller) tagVolume(parentCtx context.Context, vol *godo.Volume) error {
 	for _, tag := range vol.Tags {
 		if tag == d.doTag {
 			return nil
