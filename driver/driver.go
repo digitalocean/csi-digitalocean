@@ -57,37 +57,22 @@ var (
 //   csi.NodeServer
 //
 type Driver struct {
-	name string
-	// publishInfoVolumeName is used to pass the volume name from
-	// `ControllerPublishVolume` to `NodeStageVolume or `NodePublishVolume`
-	publishInfoVolumeName string
-
-	endpoint               string
-	debugAddr              string
-	hostID                 func() string
-	region                 string
-	doTag                  string
-	isController           bool
-	defaultVolumesPageSize uint
+	name         string
+	endpoint     string
+	debugAddr    string
+	isController bool
 
 	srv     *grpc.Server
 	httpSrv *http.Server
 	log     *logrus.Entry
-	mounter Mounter
-
-	storage        godo.StorageService
-	storageActions godo.StorageActionsService
-	droplets       godo.DropletsService
-	snapshots      godo.SnapshotsService
-	account        godo.AccountService
-	tags           godo.TagsService
-
-	healthChecker *HealthChecker
 
 	// ready defines whether the driver is ready to function. This value will
 	// be used by the `Identity` service via the `Probe()` method.
 	readyMu sync.Mutex // protects ready
 	ready   bool
+
+	csi.NodeServer
+	csi.ControllerServer
 }
 
 // NewDriverParams defines the parameters that can be passed to NewDriver.
@@ -131,52 +116,75 @@ func NewDriver(p NewDriverParams) (*Driver, error) {
 	}
 	hostID := strconv.Itoa(hostIDInt)
 
-	var opts []godo.ClientOpt
-	opts = append(opts, godo.SetBaseURL(p.URL))
-
-	if version == "" {
-		version = "dev"
-	}
-	opts = append(opts, godo.SetUserAgent("csi-digitalocean/"+version))
-
-	doClient, err := godo.New(oauthClient, opts...)
-	if err != nil {
-		return nil, fmt.Errorf("couldn't initialize DigitalOcean client: %s", err)
-	}
-
-	healthChecker := NewHealthChecker(&doHealthChecker{account: doClient.Account})
-
 	log := logrus.New().WithFields(logrus.Fields{
 		"region":  region,
 		"host_id": hostID,
 		"version": version,
 	})
 
-	return &Driver{
-		name:                  driverName,
-		publishInfoVolumeName: driverName + "/volume-name",
+	var driver *Driver
+	// we're assuming only the controller has a non-empty token.
+	if p.Token != "" {
+		var opts []godo.ClientOpt
+		opts = append(opts, godo.SetBaseURL(p.URL))
 
-		doTag:                  p.DOTag,
-		endpoint:               p.Endpoint,
-		debugAddr:              p.DebugAddr,
-		defaultVolumesPageSize: p.DefaultVolumesPageSize,
+		if version == "" {
+			version = "dev"
+		}
+		opts = append(opts, godo.SetUserAgent("csi-digitalocean/"+version))
 
-		hostID:  func() string { return hostID },
-		region:  region,
-		mounter: newMounter(log),
-		log:     log,
-		// we're assuming only the controller has a non-empty token.
-		isController: p.Token != "",
+		doClient, err := godo.New(oauthClient, opts...)
+		if err != nil {
+			return nil, fmt.Errorf("couldn't initialize DigitalOcean client: %s", err)
+		}
 
-		storage:        doClient.Storage,
-		storageActions: doClient.StorageActions,
-		droplets:       doClient.Droplets,
-		snapshots:      doClient.Snapshots,
-		account:        doClient.Account,
-		tags:           doClient.Tags,
+		healthChecker := NewHealthChecker(&doHealthChecker{account: doClient.Account})
 
-		healthChecker: healthChecker,
-	}, nil
+		controller := &Controller{
+			publishInfoVolumeName:  driverName + "/volume-name",
+			region:                 region,
+			doTag:                  p.DOTag,
+			defaultVolumesPageSize: p.DefaultVolumesPageSize,
+
+			storage:        doClient.Storage,
+			storageActions: doClient.StorageActions,
+			droplets:       doClient.Droplets,
+			snapshots:      doClient.Snapshots,
+			account:        doClient.Account,
+			tags:           doClient.Tags,
+
+			healthChecker: healthChecker,
+			log:           log,
+		}
+
+		driver = &Driver{
+			name:         driverName,
+			endpoint:     p.Endpoint,
+			debugAddr:    p.DebugAddr,
+			isController: p.Token != "",
+
+			ControllerServer: controller,
+		}
+	} else {
+		node := &Node{
+			publishInfoVolumeName: driverName + "/volume-name",
+			region:                region,
+			hostID:                func() string { return hostID },
+			log:                   log,
+			mounter:               newMounter(log),
+		}
+
+		driver = &Driver{
+			name:         driverName,
+			endpoint:     p.Endpoint,
+			debugAddr:    p.DebugAddr,
+			isController: p.Token != "",
+
+			NodeServer: node,
+		}
+	}
+
+	return driver, nil
 }
 
 // Run starts the CSI plugin by communication over the given endpoint
@@ -217,11 +225,15 @@ func (d *Driver) Run(ctx context.Context) error {
 		return resp, err
 	}
 
+	d.srv = grpc.NewServer(grpc.UnaryInterceptor(errHandler))
+	csi.RegisterIdentityServer(d.srv, d)
+
 	// warn the user, it'll not propagate to the user but at least we see if
 	// something is wrong in the logs. Only check if the driver is running with
 	// a token (i.e: controller)
 	if d.isController {
-		details, err := d.checkLimit(context.Background())
+		controller := d.ControllerServer.(*Controller)
+		details, err := controller.checkLimit(context.Background())
 		if err != nil {
 			return fmt.Errorf("failed to check volumes limits on startup: %s", err)
 		}
@@ -235,7 +247,7 @@ func (d *Driver) Run(ctx context.Context) error {
 		if d.debugAddr != "" {
 			mux := http.NewServeMux()
 			mux.HandleFunc("/health", func(w http.ResponseWriter, r *http.Request) {
-				err := d.healthChecker.Check(r.Context())
+				err := controller.healthChecker.Check(r.Context())
 				if err != nil {
 					d.log.WithError(err).Error("executing health check")
 					http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -248,12 +260,10 @@ func (d *Driver) Run(ctx context.Context) error {
 				Handler: mux,
 			}
 		}
+		csi.RegisterControllerServer(d.srv, controller)
+	} else {
+		csi.RegisterNodeServer(d.srv, d.NodeServer.(*Node))
 	}
-
-	d.srv = grpc.NewServer(grpc.UnaryInterceptor(errHandler))
-	csi.RegisterIdentityServer(d.srv, d)
-	csi.RegisterControllerServer(d.srv, d)
-	csi.RegisterNodeServer(d.srv, d)
 
 	d.ready = true // we're now ready to go!
 	d.log.WithFields(logrus.Fields{
