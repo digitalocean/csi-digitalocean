@@ -34,7 +34,7 @@ readonly OPERATION="$1"
 
 case "${OPERATION}" in
   build)
-    docker build -t "${IMAGE}" --build-arg KUBE_VERSION_1_24 --build-arg KUBE_VERSION_1_24_E2E_BIN_SHA256_CHECKSUM --build-arg KUBE_VERSION_1_23 --build-arg KUBE_VERSION_1_23_E2E_BIN_SHA256_CHECKSUM --build-arg KUBE_VERSION_1_22 --build-arg KUBE_VERSION_1_22_E2E_BIN_SHA256_CHECKSUM --build-arg KUBE_VERSION_1_21 --build-arg KUBE_VERSION_1_21_E2E_BIN_SHA256_CHECKSUM -f "${SCRIPT_DIR}/Dockerfile" "${SCRIPT_DIR}"
+    docker build -t "${IMAGE}" --build-arg KUBE_VERSION_1_25 --build-arg KUBE_VERSION_1_25_E2E_BIN_SHA256_CHECKSUM --build-arg KUBE_VERSION_1_24 --build-arg KUBE_VERSION_1_24_E2E_BIN_SHA256_CHECKSUM --build-arg KUBE_VERSION_1_23 --build-arg KUBE_VERSION_1_23_E2E_BIN_SHA256_CHECKSUM --build-arg KUBE_VERSION_1_22 --build-arg KUBE_VERSION_1_22_E2E_BIN_SHA256_CHECKSUM --build-arg KUBE_VERSION_1_21 --build-arg KUBE_VERSION_1_21_E2E_BIN_SHA256_CHECKSUM -f "${SCRIPT_DIR}/Dockerfile" "${SCRIPT_DIR}"
     ;;
   
   push)

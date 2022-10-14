@@ -20,6 +20,15 @@ RUN apt-get update && \
 RUN mkdir -p /go/src/k8s.io
 WORKDIR /go/src/k8s.io
 
+### Kubernetes 1.25
+FROM builder AS tests-1.25
+ARG KUBE_VERSION_1_25=1.25.2
+ARG KUBE_VERSION_1_25_E2E_BIN_SHA256_CHECKSUM=b9ec7494abed4d5d40f4027e4211da0a2b33f76f81f6813430a9ebd142ca83a0
+
+RUN curl --fail --location https://dl.k8s.io/v${KUBE_VERSION_1_25}/kubernetes-test-linux-amd64.tar.gz | tar xvzf - --strip-components 3 kubernetes/test/bin/e2e.test
+RUN echo "${KUBE_VERSION_1_25_E2E_BIN_SHA256_CHECKSUM}" e2e.test | sha256sum --check
+RUN cp e2e.test /e2e.1.24.test
+
 ### Kubernetes 1.24
 FROM builder AS tests-1.24
 ARG KUBE_VERSION_1_24=1.24.3

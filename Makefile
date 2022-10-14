@@ -125,6 +125,8 @@ runner-build:
 	@echo "pulling cache images"
 	@docker pull $(RUNNER_IMAGE):$(RUNNER_IMAGE_TAG_PREFIX)builder || true
 	@docker pull $(CANONICAL_RUNNER_IMAGE):builder || true
+	@docker pull $(RUNNER_IMAGE):$(RUNNER_IMAGE_TAG_PREFIX)tests-1.25 || true
+	@docker pull $(CANONICAL_RUNNER_IMAGE):tests-1.25 || true
 	@docker pull $(RUNNER_IMAGE):$(RUNNER_IMAGE_TAG_PREFIX)tests-1.24 || true
 	@docker pull $(CANONICAL_RUNNER_IMAGE):tests-1.24 || true
 	@docker pull $(RUNNER_IMAGE):$(RUNNER_IMAGE_TAG_PREFIX)tests-1.23 || true
@@ -144,6 +146,13 @@ runner-build:
 		--cache-from $(CANONICAL_RUNNER_IMAGE):builder \
 		-t $(RUNNER_IMAGE):$(RUNNER_IMAGE_TAG_PREFIX)builder -f test/e2e/Dockerfile test/e2e
 
+	@echo "building target tests-1.25"
+	@docker build --target tests-1.25 \
+		--cache-from $(RUNNER_IMAGE):$(RUNNER_IMAGE_TAG_PREFIX)builder \
+		--cache-from $(CANONICAL_RUNNER_IMAGE):builder \
+		--cache-from $(RUNNER_IMAGE):$(RUNNER_IMAGE_TAG_PREFIX)tests-1.25 \
+		--cache-from $(CANONICAL_RUNNER_IMAGE):tests-1.25 \
+		-t $(RUNNER_IMAGE):$(RUNNER_IMAGE_TAG_PREFIX)tests-1.25 -f test/e2e/Dockerfile test/e2e
 
 	@echo "building target tests-1.24"
 	@docker build --target tests-1.24 \
@@ -179,6 +188,8 @@ runner-build:
 	@docker build --target tools \
 		--cache-from $(RUNNER_IMAGE):$(RUNNER_IMAGE_TAG_PREFIX)builder \
 		--cache-from $(CANONICAL_RUNNER_IMAGE):builder \
+		--cache-from $(RUNNER_IMAGE):$(RUNNER_IMAGE_TAG_PREFIX)tests-1.25 \
+		--cache-from $(CANONICAL_RUNNER_IMAGE):tests-1.25 \
 		--cache-from $(RUNNER_IMAGE):$(RUNNER_IMAGE_TAG_PREFIX)tests-1.24 \
 		--cache-from $(CANONICAL_RUNNER_IMAGE):tests-1.24 \
 		--cache-from $(RUNNER_IMAGE):$(RUNNER_IMAGE_TAG_PREFIX)tests-1.23 \
@@ -193,6 +204,8 @@ runner-build:
 	@docker build --target runtime \
 		--cache-from $(RUNNER_IMAGE):$(RUNNER_IMAGE_TAG_PREFIX)builder \
 		--cache-from $(CANONICAL_RUNNER_IMAGE):builder \
+		--cache-from $(RUNNER_IMAGE):$(RUNNER_IMAGE_TAG_PREFIX)tests-1.25 \
+		--cache-from $(CANONICAL_RUNNER_IMAGE):tests-1.25 \
 		--cache-from $(RUNNER_IMAGE):$(RUNNER_IMAGE_TAG_PREFIX)tests-1.24 \
 		--cache-from $(CANONICAL_RUNNER_IMAGE):tests-1.24 \
 		--cache-from $(RUNNER_IMAGE):$(RUNNER_IMAGE_TAG_PREFIX)tests-1.23 \
@@ -209,6 +222,8 @@ runner-build:
 	@docker build \
 		--cache-from $(RUNNER_IMAGE):$(RUNNER_IMAGE_TAG_PREFIX)builder \
 		--cache-from $(CANONICAL_RUNNER_IMAGE):builder \
+		--cache-from $(RUNNER_IMAGE):$(RUNNER_IMAGE_TAG_PREFIX)tests-1.25 \
+		--cache-from $(CANONICAL_RUNNER_IMAGE):tests-1.25 \
 		--cache-from $(RUNNER_IMAGE):$(RUNNER_IMAGE_TAG_PREFIX)tests-1.24 \
 		--cache-from $(CANONICAL_RUNNER_IMAGE):tests-1.24 \
 		--cache-from $(RUNNER_IMAGE):$(RUNNER_IMAGE_TAG_PREFIX)tests-1.23 \
@@ -225,6 +240,7 @@ runner-build:
 
 runner-push: runner-build
 	@docker push $(RUNNER_IMAGE):$(RUNNER_IMAGE_TAG_PREFIX)builder
+	@docker push $(RUNNER_IMAGE):$(RUNNER_IMAGE_TAG_PREFIX)tests-1.25
 	@docker push $(RUNNER_IMAGE):$(RUNNER_IMAGE_TAG_PREFIX)tests-1.24
 	@docker push $(RUNNER_IMAGE):$(RUNNER_IMAGE_TAG_PREFIX)tests-1.23
 	@docker push $(RUNNER_IMAGE):$(RUNNER_IMAGE_TAG_PREFIX)tests-1.22
