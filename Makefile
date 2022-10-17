@@ -14,7 +14,8 @@
 
 NAME=do-csi-plugin
 OS ?= linux
-GO_VERSION := 1.17.7
+# Get Go version from go.mod file.
+GO_VERSION := $(shell go mod edit -print | grep -E '^go [[:digit:].]*' | cut -d' ' -f2)
 ifeq ($(strip $(shell git status --porcelain 2>/dev/null)),)
   GIT_TREE_STATE=clean
 else
@@ -69,7 +70,11 @@ bump-version:
 .PHONY: compile
 compile:
 	@echo "==> Building the project"
-	@docker run --rm -e GOOS=${OS} -e GOARCH=amd64 -v ${PWD}/:/app -w /app golang:${GO_VERSION}-alpine sh -c 'apk add git && go build -mod=vendor -o cmd/do-csi-plugin/${NAME} -ldflags "$(LDFLAGS)" ${PKG}'
+	# Do not embed VCS data as this seems to fail in the Alpine container. This
+	# should be fine for now given we manually inject build information.
+	# TODO(timoreimann): move away from custom build information injection in
+	# favor of Go native's one.
+	@docker run --rm -e GOOS=${OS} -e GOARCH=amd64 -v ${PWD}/:/app -w /app golang:${GO_VERSION}-alpine sh -c 'apk add git && go build -buildvcs=false -mod=vendor -o cmd/do-csi-plugin/${NAME} -ldflags "$(LDFLAGS)" ${PKG}'
 
 .PHONY: check-unused
 check-unused: vendor
