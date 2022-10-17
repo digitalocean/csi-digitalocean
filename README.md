@@ -303,6 +303,10 @@ For that reason, the default page size can be customized by passing the `--defau
 2. The configured sidecar timeout values may need to be aligned with the chosen page size. In particular, csi-attacher invokes `ListVolumes` to periodically synchronize the API and cluster-local volume states; as such, its timeout must be large enough to account for the expected number of volumes in the given account and region.   
 3. The default page size does not become effective if an explicit page size (more precisely, _max entries_ in CSI spec speak) is passed to a given gRPC method.
 
+### API rate limiting
+
+DO API usage is subject to [certain rate limits](https://docs.digitalocean.com/reference/api/api-reference/#section/Introduction/Rate-Limit). In order to protect against running out of quota for extremely heavy regular usage or pathological cases (e.g., bugs or API thrashing due to an interfering third-party controller), a custom rate limit can be configured via the `--do-api-rate-limit` flag. It accepts a float value, e.g., `--do-api-rate-limit=3.5` to restrict API usage to 3.5 queries per second.
+
 ---
 
 ## Development

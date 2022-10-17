@@ -378,6 +378,10 @@ func (f *fakeDropletsDriver) List(context.Context, *godo.ListOptions) ([]godo.Dr
 	panic("not implemented")
 }
 
+func (f *fakeDropletsDriver) ListByName(context.Context, string, *godo.ListOptions) ([]godo.Droplet, *godo.Response, error) {
+	panic("not implemented")
+}
+
 func (f *fakeDropletsDriver) ListByTag(context.Context, string, *godo.ListOptions) ([]godo.Droplet, *godo.Response, error) {
 	panic("not implemented")
 }

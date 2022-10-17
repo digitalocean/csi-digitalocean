@@ -1,5 +1,7 @@
 ## unreleased
 
+* Support setting DO API rate limit
+  [[GH-462]](https://github.com/digitalocean/csi-digitalocean/pull/462)
 * Upgrade Go to 1.19
   [[GH-463]](https://github.com/digitalocean/csi-digitalocean/pull/463)
 
