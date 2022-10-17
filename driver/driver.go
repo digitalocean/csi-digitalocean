@@ -52,10 +52,9 @@ var (
 
 // Driver implements the following CSI interfaces:
 //
-//   csi.IdentityServer
-//   csi.ControllerServer
-//   csi.NodeServer
-//
+//	csi.IdentityServer
+//	csi.ControllerServer
+//	csi.NodeServer
 type Driver struct {
 	name string
 	// publishInfoVolumeName is used to pass the volume name from
@@ -100,6 +99,7 @@ type NewDriverParams struct {
 	DriverName             string
 	DebugAddr              string
 	DefaultVolumesPageSize uint
+	DOAPIRateLimitQPS      float64
 }
 
 // NewDriver returns a CSI plugin that contains the necessary gRPC
@@ -139,18 +139,23 @@ func NewDriver(p NewDriverParams) (*Driver, error) {
 	}
 	opts = append(opts, godo.SetUserAgent("csi-digitalocean/"+version))
 
+	log := logrus.New().WithFields(logrus.Fields{
+		"region":  region,
+		"host_id": hostID,
+		"version": version,
+	})
+
+	if p.DOAPIRateLimitQPS > 0 {
+		log.WithField("do_api_rate_limit", p.DOAPIRateLimitQPS).Info("setting DO API rate limit")
+		opts = append(opts, godo.SetStaticRateLimit(p.DOAPIRateLimitQPS))
+	}
+
 	doClient, err := godo.New(oauthClient, opts...)
 	if err != nil {
 		return nil, fmt.Errorf("couldn't initialize DigitalOcean client: %s", err)
 	}
 
 	healthChecker := NewHealthChecker(&doHealthChecker{account: doClient.Account})
-
-	log := logrus.New().WithFields(logrus.Fields{
-		"region":  region,
-		"host_id": hostID,
-		"version": version,
-	})
 
 	return &Driver{
 		name:                  driverName,
