@@ -38,6 +38,7 @@ func main() {
 		driverName             = flag.String("driver-name", driver.DefaultDriverName, "Name for the driver.")
 		debugAddr              = flag.String("debug-addr", "", "Address to serve the HTTP debug server on.")
 		defaultVolumesPageSize = flag.Uint("default-volumes-page-size", 0, "The default page size used when paging through volumes results (default: do not specify and let the DO API choose)")
+		doAPIRateLimitQPS      = flag.Float64("do-api-rate-limit", 0, "Impose QPS rate limit on DigitalOcean API usage (default: do not rate limit)")
 		version                = flag.Bool("version", false, "Print the version and exit.")
 	)
 	flag.Parse()
@@ -60,6 +61,7 @@ func main() {
 		DriverName:             *driverName,
 		DebugAddr:              *debugAddr,
 		DefaultVolumesPageSize: *defaultVolumesPageSize,
+		DOAPIRateLimitQPS:      *doAPIRateLimitQPS,
 	})
 	if err != nil {
 		log.Fatalln(err)

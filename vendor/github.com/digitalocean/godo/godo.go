@@ -11,13 +11,17 @@ import (
 	"net/url"
 	"reflect"
 	"strconv"
+	"strings"
+	"sync"
 	"time"
 
 	"github.com/google/go-querystring/query"
+	"golang.org/x/oauth2"
+	"golang.org/x/time/rate"
 )
 
 const (
-	libraryVersion = "1.29.0"
+	libraryVersion = "1.87.0"
 	defaultBaseURL = "https://api.digitalocean.com/"
 	userAgent      = "godo/" + libraryVersion
 	mediaType      = "application/json"
@@ -39,24 +43,30 @@ type Client struct {
 	UserAgent string
 
 	// Rate contains the current rate limit for the client as determined by the most recent
-	// API call.
-	Rate Rate
+	// API call. It is not thread-safe. Please consider using GetRate() instead.
+	Rate    Rate
+	ratemtx sync.Mutex
 
 	// Services used for communicating with the API
 	Account           AccountService
 	Actions           ActionsService
+	Apps              AppsService
 	Balance           BalanceService
+	BillingHistory    BillingHistoryService
 	CDNs              CDNService
 	Domains           DomainsService
 	Droplets          DropletsService
 	DropletActions    DropletActionsService
 	Images            ImagesService
 	ImageActions      ImageActionsService
+	Invoices          InvoicesService
 	Keys              KeysService
 	Regions           RegionsService
 	Sizes             SizesService
 	FloatingIPs       FloatingIPsService
 	FloatingIPActions FloatingIPActionsService
+	ReservedIPs       ReservedIPsService
+	ReservedIPActions ReservedIPActionsService
 	Snapshots         SnapshotsService
 	Storage           StorageService
 	StorageActions    StorageActionsService
@@ -69,9 +79,17 @@ type Client struct {
 	Registry          RegistryService
 	Databases         DatabasesService
 	VPCs              VPCsService
+	OneClick          OneClickService
+	Monitoring        MonitoringService
 
 	// Optional function called after every successful request made to the DO APIs
 	onRequestCompleted RequestCompletionCallback
+
+	// Optional extra HTTP headers to set on every request to the API.
+	headers map[string]string
+
+	// Optional rate limiter to ensure QoS.
+	rateLimiter *rate.Limiter
 }
 
 // RequestCompletionCallback defines the type of the request callback function
@@ -87,6 +105,20 @@ type ListOptions struct {
 	PerPage int `url:"per_page,omitempty"`
 }
 
+// TokenListOptions specifies the optional parameters to various List methods that support token pagination.
+type TokenListOptions struct {
+	// For paginated result sets, page of results to retrieve.
+	Page int `url:"page,omitempty"`
+
+	// For paginated result sets, the number of results to include per page.
+	PerPage int `url:"per_page,omitempty"`
+
+	// For paginated result sets which support tokens, the token provided by the last set
+	// of results in order to retrieve the next set of results. This is expected to be faster
+	// than incrementing or decrementing the page number.
+	Token string `url:"page_token,omitempty"`
+}
+
 // Response is a DigitalOcean response. This wraps the standard http.Response returned from DigitalOcean.
 type Response struct {
 	*http.Response
@@ -99,6 +131,8 @@ type Response struct {
 	Meta *Meta
 
 	// Monitoring URI
+	// Deprecated: This field is not populated. To poll for the status of a
+	// newly created Droplet, use Links.Actions[0].HREF
 	Monitor string
 
 	Rate
@@ -155,7 +189,21 @@ func addOptions(s string, opt interface{}) (string, error) {
 	return origURL.String(), nil
 }
 
-// NewClient returns a new DigitalOcean API client.
+// NewFromToken returns a new DigitalOcean API client with the given API
+// token.
+func NewFromToken(token string) *Client {
+	cleanToken := strings.Trim(strings.TrimSpace(token), "'")
+	ctx := context.Background()
+	ts := oauth2.StaticTokenSource(&oauth2.Token{AccessToken: cleanToken})
+	return NewClient(oauth2.NewClient(ctx, ts))
+}
+
+// NewClient returns a new DigitalOcean API client, using the given
+// http.Client to perform all requests.
+//
+// Users who wish to pass their own http.Client should use this method. If
+// you're in need of further customization, the godo.New method allows more
+// options, such as setting a custom URL or a custom user agent string.
 func NewClient(httpClient *http.Client) *Client {
 	if httpClient == nil {
 		httpClient = http.DefaultClient
@@ -166,7 +214,9 @@ func NewClient(httpClient *http.Client) *Client {
 	c := &Client{client: httpClient, BaseURL: baseURL, UserAgent: userAgent}
 	c.Account = &AccountServiceOp{client: c}
 	c.Actions = &ActionsServiceOp{client: c}
+	c.Apps = &AppsServiceOp{client: c}
 	c.Balance = &BalanceServiceOp{client: c}
+	c.BillingHistory = &BillingHistoryServiceOp{client: c}
 	c.CDNs = &CDNServiceOp{client: c}
 	c.Certificates = &CertificatesServiceOp{client: c}
 	c.Domains = &DomainsServiceOp{client: c}
@@ -175,8 +225,11 @@ func NewClient(httpClient *http.Client) *Client {
 	c.Firewalls = &FirewallsServiceOp{client: c}
 	c.FloatingIPs = &FloatingIPsServiceOp{client: c}
 	c.FloatingIPActions = &FloatingIPActionsServiceOp{client: c}
+	c.ReservedIPs = &ReservedIPsServiceOp{client: c}
+	c.ReservedIPActions = &ReservedIPActionsServiceOp{client: c}
 	c.Images = &ImagesServiceOp{client: c}
 	c.ImageActions = &ImageActionsServiceOp{client: c}
+	c.Invoices = &InvoicesServiceOp{client: c}
 	c.Keys = &KeysServiceOp{client: c}
 	c.LoadBalancers = &LoadBalancersServiceOp{client: c}
 	c.Projects = &ProjectsServiceOp{client: c}
@@ -190,6 +243,10 @@ func NewClient(httpClient *http.Client) *Client {
 	c.Registry = &RegistryServiceOp{client: c}
 	c.Databases = &DatabasesServiceOp{client: c}
 	c.VPCs = &VPCsServiceOp{client: c}
+	c.OneClick = &OneClickServiceOp{client: c}
+	c.Monitoring = &MonitoringServiceOp{client: c}
+
+	c.headers = make(map[string]string)
 
 	return c
 }
@@ -197,7 +254,7 @@ func NewClient(httpClient *http.Client) *Client {
 // ClientOpt are options for New.
 type ClientOpt func(*Client) error
 
-// New returns a new DIgitalOcean API client instance.
+// New returns a new DigitalOcean API client instance.
 func New(httpClient *http.Client, opts ...ClientOpt) (*Client, error) {
 	c := NewClient(httpClient)
 	for _, opt := range opts {
@@ -230,6 +287,26 @@ func SetUserAgent(ua string) ClientOpt {
 	}
 }
 
+// SetRequestHeaders sets optional HTTP headers on the client that are
+// sent on each HTTP request.
+func SetRequestHeaders(headers map[string]string) ClientOpt {
+	return func(c *Client) error {
+		for k, v := range headers {
+			c.headers[k] = v
+		}
+		return nil
+	}
+}
+
+// SetStaticRateLimit sets an optional client-side rate limiter that restricts
+// the number of queries per second that the client can send to enforce QoS.
+func SetStaticRateLimit(rps float64) ClientOpt {
+	return func(c *Client) error {
+		c.rateLimiter = rate.NewLimiter(rate.Limit(rps), 1)
+		return nil
+	}
+}
+
 // NewRequest creates an API request. A relative URL can be provided in urlStr, which will be resolved to the
 // BaseURL of the Client. Relative URLS should always be specified without a preceding slash. If specified, the
 // value pointed to by body is JSON encoded and included in as the request body.
@@ -239,28 +316,51 @@ func (c *Client) NewRequest(ctx context.Context, method, urlStr string, body int
 		return nil, err
 	}
 
-	buf := new(bytes.Buffer)
-	if body != nil {
-		err = json.NewEncoder(buf).Encode(body)
+	var req *http.Request
+	switch method {
+	case http.MethodGet, http.MethodHead, http.MethodOptions:
+		req, err = http.NewRequest(method, u.String(), nil)
 		if err != nil {
 			return nil, err
 		}
+
+	default:
+		buf := new(bytes.Buffer)
+		if body != nil {
+			err = json.NewEncoder(buf).Encode(body)
+			if err != nil {
+				return nil, err
+			}
+		}
+
+		req, err = http.NewRequest(method, u.String(), buf)
+		if err != nil {
+			return nil, err
+		}
+		req.Header.Set("Content-Type", mediaType)
 	}
 
-	req, err := http.NewRequest(method, u.String(), buf)
-	if err != nil {
-		return nil, err
+	for k, v := range c.headers {
+		req.Header.Add(k, v)
 	}
 
-	req.Header.Add("Content-Type", mediaType)
-	req.Header.Add("Accept", mediaType)
-	req.Header.Add("User-Agent", c.UserAgent)
+	req.Header.Set("Accept", mediaType)
+	req.Header.Set("User-Agent", c.UserAgent)
+
 	return req, nil
 }
 
 // OnRequestCompleted sets the DO API request completion callback
 func (c *Client) OnRequestCompleted(rc RequestCompletionCallback) {
 	c.onRequestCompleted = rc
+}
+
+// GetRate returns the current rate limit for the client as determined by the most recent
+// API call. It is thread-safe.
+func (c *Client) GetRate() Rate {
+	c.ratemtx.Lock()
+	defer c.ratemtx.Unlock()
+	return c.Rate
 }
 
 // newResponse creates a new Response for the provided http.Response
@@ -290,6 +390,13 @@ func (r *Response) populateRate() {
 // pointed to by v, or returned as an error if an API error has occurred. If v implements the io.Writer interface,
 // the raw response will be written to v, without attempting to decode it.
 func (c *Client) Do(ctx context.Context, req *http.Request, v interface{}) (*Response, error) {
+	if c.rateLimiter != nil {
+		err := c.rateLimiter.Wait(ctx)
+		if err != nil {
+			return nil, err
+		}
+	}
+
 	resp, err := DoRequestWithClient(ctx, c.client, req)
 	if err != nil {
 		return nil, err
@@ -299,13 +406,26 @@ func (c *Client) Do(ctx context.Context, req *http.Request, v interface{}) (*Res
 	}
 
 	defer func() {
+		// Ensure the response body is fully read and closed
+		// before we reconnect, so that we reuse the same TCPConnection.
+		// Close the previous response's body. But read at least some of
+		// the body so if it's small the underlying TCP connection will be
+		// re-used. No need to check for errors: if it fails, the Transport
+		// won't reuse it anyway.
+		const maxBodySlurpSize = 2 << 10
+		if resp.ContentLength == -1 || resp.ContentLength <= maxBodySlurpSize {
+			io.CopyN(ioutil.Discard, resp.Body, maxBodySlurpSize)
+		}
+
 		if rerr := resp.Body.Close(); err == nil {
 			err = rerr
 		}
 	}()
 
 	response := newResponse(resp)
+	c.ratemtx.Lock()
 	c.Rate = response.Rate
+	c.ratemtx.Unlock()
 
 	err = CheckResponse(resp)
 	if err != nil {
@@ -355,6 +475,7 @@ func (r *ErrorResponse) Error() string {
 // CheckResponse checks the API response for errors, and returns them if present. A response is considered an
 // error if it has a status code outside the 200 range. API error responses are expected to have either no response
 // body, or a JSON response body that maps to ErrorResponse. Any other response body will be silently ignored.
+// If the API error response does not include the request ID in its body, the one from its header will be used.
 func CheckResponse(r *http.Response) error {
 	if c := r.StatusCode; c >= 200 && c <= 299 {
 		return nil
@@ -367,6 +488,10 @@ func CheckResponse(r *http.Response) error {
 		if err != nil {
 			errorResponse.Message = string(data)
 		}
+	}
+
+	if errorResponse.RequestID == "" {
+		errorResponse.RequestID = r.Header.Get("x-request-id")
 	}
 
 	return errorResponse

@@ -39,9 +39,9 @@ jobs:
           fetch-depth: 1
 
       - name: Go setup
-        uses: actions/setup-go@37335c7bb261b353407cff977110895fa0b4f7d8  # v2.1.3
+        uses: actions/setup-go@268d8c0ca0432bb2cf416faae41297df9d262d7f  # v3.3.0
         with:
-          go-version: '1.17.7'
+          go-version-file: go.mod
 
       - name: Run unit tests
         run: make all
@@ -98,9 +98,9 @@ jobs:
           fetch-depth: 1
 
       - name: Go setup
-        uses: actions/setup-go@37335c7bb261b353407cff977110895fa0b4f7d8  # v2.1.3
+        uses: actions/setup-go@268d8c0ca0432bb2cf416faae41297df9d262d7f  # v3.3.0
         with:
-          go-version: '1.17.7'
+          go-version-file: go.mod
 
       - name: Install kustomize
         env:

@@ -7,7 +7,7 @@ Godo is a Go client library for accessing the DigitalOcean V2 API.
 
 You can view the client API docs here: [http://godoc.org/github.com/digitalocean/godo](http://godoc.org/github.com/digitalocean/godo)
 
-You can view DigitalOcean API docs here: [https://developers.digitalocean.com/documentation/v2/](https://developers.digitalocean.com/documentation/v2/)
+You can view DigitalOcean API docs here: [https://docs.digitalocean.com/reference/api/api-reference/](https://docs.digitalocean.com/reference/api/api-reference/)
 
 ## Install
 ```sh
@@ -43,35 +43,15 @@ You can then use your token to create a new client:
 package main
 
 import (
-	"context"
-	"github.com/digitalocean/godo"
-	"golang.org/x/oauth2"
+    "github.com/digitalocean/godo"
 )
-
-const (
-    pat = "mytoken"
-)
-
-type TokenSource struct {
-	AccessToken string
-}
-
-func (t *TokenSource) Token() (*oauth2.Token, error) {
-	token := &oauth2.Token{
-		AccessToken: t.AccessToken,
-	}
-	return token, nil
-}
 
 func main() {
-	tokenSource := &TokenSource{
-		AccessToken: pat,
-	}
-
-	oauthClient := oauth2.NewClient(context.Background(), tokenSource)
-	client := godo.NewClient(oauthClient)
+    client := godo.NewFromToken("my-digitalocean-api-token")
 }
 ```
+
+If you need to provide a `context.Context` to your new client, you should use [`godo.NewClient`](https://godoc.org/github.com/digitalocean/godo#NewClient) to manually construct a client instead.
 
 ## Examples
 
@@ -86,7 +66,7 @@ createRequest := &godo.DropletCreateRequest{
     Region: "nyc3",
     Size:   "s-1vcpu-1gb",
     Image: godo.DropletCreateImage{
-        Slug: "ubuntu-14-04-x64",
+        Slug: "ubuntu-20-04-x64",
     },
 }
 
@@ -118,9 +98,7 @@ func DropletList(ctx context.Context, client *godo.Client) ([]godo.Droplet, erro
         }
 
         // append the current page's droplets to our list
-        for _, d := range droplets {
-            list = append(list, d)
-        }
+        list = append(list, droplets...)
 
         // if we are at the last page, break out the for loop
         if resp.Links == nil || resp.Links.IsLastPage() {
@@ -140,6 +118,43 @@ func DropletList(ctx context.Context, client *godo.Client) ([]godo.Droplet, erro
 }
 ```
 
+Some endpoints offer token based pagination. For example, to fetch all Registry Repositories:
+
+```go
+func ListRepositoriesV2(ctx context.Context, client *godo.Client, registryName string) ([]*godo.RepositoryV2, error) {
+    // create a list to hold our registries
+    list := []*godo.RepositoryV2{}
+
+    // create options. initially, these will be blank
+    opt := &godo.TokenListOptions{}
+    for {
+        repositories, resp, err := client.Registry.ListRepositoriesV2(ctx, registryName, opt)
+        if err != nil {
+            return nil, err
+        }
+
+        // append the current page's registries to our list
+        list = append(list, repositories...)
+
+        // if we are at the last page, break out the for loop
+        if resp.Links == nil || resp.Links.IsLastPage() {
+            break
+        }
+
+        // grab the next page token
+        nextPageToken, err := resp.Links.NextPageToken()
+        if err != nil {
+            return nil, err
+        }
+
+        // provide the next page token for the next request
+        opt.Token = nextPageToken
+    }
+
+    return list, nil
+}
+```
+
 ## Versioning
 
 Each version of the client is tagged and the version is updated accordingly.
@@ -149,7 +164,7 @@ To see the list of past versions, run `git tag`.
 
 ## Documentation
 
-For a comprehensive list of examples, check out the [API documentation](https://developers.digitalocean.com/documentation/v2/).
+For a comprehensive list of examples, check out the [API documentation](https://docs.digitalocean.com/reference/api/api-reference/#tag/SSH-Keys).
 
 For details on all the functionality in this library, see the [GoDoc](http://godoc.org/github.com/digitalocean/godo) documentation.
 
