@@ -158,6 +158,8 @@ runner-build:
 	@docker build --target tests-1.24 \
 		--cache-from $(RUNNER_IMAGE):$(RUNNER_IMAGE_TAG_PREFIX)builder \
 		--cache-from $(CANONICAL_RUNNER_IMAGE):builder \
+		--cache-from $(RUNNER_IMAGE):$(RUNNER_IMAGE_TAG_PREFIX)tests-1.25 \
+		--cache-from $(CANONICAL_RUNNER_IMAGE):tests-1.25 \
 		--cache-from $(RUNNER_IMAGE):$(RUNNER_IMAGE_TAG_PREFIX)tests-1.24 \
 		--cache-from $(CANONICAL_RUNNER_IMAGE):tests-1.24 \
 		-t $(RUNNER_IMAGE):$(RUNNER_IMAGE_TAG_PREFIX)tests-1.24 -f test/e2e/Dockerfile test/e2e
@@ -166,6 +168,8 @@ runner-build:
 	@docker build --target tests-1.23 \
 		--cache-from $(RUNNER_IMAGE):$(RUNNER_IMAGE_TAG_PREFIX)builder \
 		--cache-from $(CANONICAL_RUNNER_IMAGE):builder \
+		--cache-from $(RUNNER_IMAGE):$(RUNNER_IMAGE_TAG_PREFIX)tests-1.25 \
+		--cache-from $(CANONICAL_RUNNER_IMAGE):tests-1.25 \
 		--cache-from $(RUNNER_IMAGE):$(RUNNER_IMAGE_TAG_PREFIX)tests-1.24 \
 		--cache-from $(CANONICAL_RUNNER_IMAGE):tests-1.24 \
 		--cache-from $(RUNNER_IMAGE):$(RUNNER_IMAGE_TAG_PREFIX)tests-1.23 \
@@ -176,6 +180,8 @@ runner-build:
 	@docker build --target tests-1.22 \
 		--cache-from $(RUNNER_IMAGE):$(RUNNER_IMAGE_TAG_PREFIX)builder \
 		--cache-from $(CANONICAL_RUNNER_IMAGE):builder \
+		--cache-from $(RUNNER_IMAGE):$(RUNNER_IMAGE_TAG_PREFIX)tests-1.25 \
+		--cache-from $(CANONICAL_RUNNER_IMAGE):tests-1.25 \
 		--cache-from $(RUNNER_IMAGE):$(RUNNER_IMAGE_TAG_PREFIX)tests-1.24 \
 		--cache-from $(CANONICAL_RUNNER_IMAGE):tests-1.24 \
 		--cache-from $(RUNNER_IMAGE):$(RUNNER_IMAGE_TAG_PREFIX)tests-1.23 \
