@@ -27,7 +27,7 @@ ARG KUBE_VERSION_1_25_E2E_BIN_SHA256_CHECKSUM=b9ec7494abed4d5d40f4027e4211da0a2b
 
 RUN curl --fail --location https://dl.k8s.io/v${KUBE_VERSION_1_25}/kubernetes-test-linux-amd64.tar.gz | tar xvzf - --strip-components 3 kubernetes/test/bin/e2e.test
 RUN echo "${KUBE_VERSION_1_25_E2E_BIN_SHA256_CHECKSUM}" e2e.test | sha256sum --check
-RUN cp e2e.test /e2e.1.24.test
+RUN cp e2e.test /e2e.1.25.test
 
 ### Kubernetes 1.24
 FROM builder AS tests-1.24
