@@ -922,10 +922,10 @@ func (cc *ClientConn) onIdleTimeout() {
 	cc.closeIfIdle()
 }
 
-func (cc *ClientConn) closeConn() error {
+func (cc *ClientConn) closeConn() {
 	t := time.AfterFunc(250*time.Millisecond, cc.forceCloseConn)
 	defer t.Stop()
-	return cc.tconn.Close()
+	cc.tconn.Close()
 }
 
 // A tls.Conn.Close can hang for a long time if the peer is unresponsive.
@@ -991,7 +991,8 @@ func (cc *ClientConn) Shutdown(ctx context.Context) error {
 	shutdownEnterWaitStateHook()
 	select {
 	case <-done:
-		return cc.closeConn()
+		cc.closeConn()
+		return nil
 	case <-ctx.Done():
 		cc.mu.Lock()
 		// Free the goroutine above
@@ -1036,7 +1037,7 @@ func (cc *ClientConn) closeForError(err error) {
 	}
 	cc.cond.Broadcast()
 	cc.mu.Unlock()
-	return cc.closeConn()
+	cc.closeConn()
 }
 
 // Close closes the client connection immediately.
