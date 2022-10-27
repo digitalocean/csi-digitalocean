@@ -61,13 +61,12 @@ else
   echo 'Running parallel tests'
   # Set node count explicitly since node detection does not work properly inside a
   # container.
-  ginkgo -v -p -nodes "${GINKGO_NODES:-$DEFAULT_GINKGO_NODES}" -focus="External.Storage${focus}.*" -skip='\[Feature:|\[Disruptive\]|\[Serial\]' "${E2E_TEST_FILE}" -- "-storage.testdriver=${TD_FILE}"
+  "ginkgo-${KUBE_VER}" -v -p -nodes "${GINKGO_NODES:-$DEFAULT_GINKGO_NODES}" -focus="External.Storage${focus}.*" -skip='\[Feature:|\[Disruptive\]|\[Serial\]' "${E2E_TEST_FILE}" -- "-storage.testdriver=${TD_FILE}"
 fi
 
 if [[ "${SKIP_SEQUENTIAL_TESTS:-}" ]]; then
   echo 'Skipping sequential tests'
 else
   echo 'Running sequential tests'
-  # Note: \[Feature:VolumeSourceXFS\] is to temporarily skip some snapshot/xfs tests added with 1.22 that would also fail on 1.21 and possibly earlier (via manual testing)
-  ginkgo -v -focus="External.Storage${focus}.*(\[Feature:|\[Serial\])" -skip='\[Disruptive\]|\[Feature:VolumeSourceXFS\]' "${E2E_TEST_FILE}" -- "-storage.testdriver=${TD_FILE}"
+  "ginkgo-${KUBE_VER}" -v -focus="External.Storage${focus}.*(\[Feature:|\[Serial\])" -skip='\[Disruptive\]|\[Feature:VolumeSourceXFS\]' "${E2E_TEST_FILE}" -- "-storage.testdriver=${TD_FILE}"
 fi
