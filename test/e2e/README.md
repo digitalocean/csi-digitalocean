@@ -71,13 +71,14 @@ Command-line arguments are passed as-in to the test tool. Run `e2e.sh -h` for us
 ### Add support for a new Kubernetes release
 
 1. Add a new Kubernetes version-specific block to the runner image Dockerfile; make sure to update the `SHA_*` commit hash and/or `*_SHA256_*` e2e.test binary checksum variables as well. (You can use `scripts/get-e2etest-sha256` to generate the e2e.test binary checksum for a given Kubernetes version.)
-1. Update the Makefile `runner-build` and `runner-push` targets.
-1. Extend the Kubernetes release-specific build arguments in the `handle-images.sh` script.
-1. Add a new testdriver YAML configuration file.
-1. Extend the list of supported Kubernetes releases in `e2e_test.go`.
-1. Extend the list of tested Kubernetes releases in `.github/workflows/test.yaml`.
-1. Extend the list of deleted container images in `.github/workflows/delete.yaml`.
-1. Update the [_Kubernetes Compatibility_ matrix](/README.md#kubernetes_compatibility) in the README file.
+   1. Ensure that a version specific ginkgo binary is copied into the final runner image
+2. Update the Makefile `runner-build` and `runner-push` targets.
+3. Extend the Kubernetes release-specific build arguments in the `handle-images.sh` script.
+4. Add a new testdriver YAML configuration file.
+5. Extend the list of supported Kubernetes releases in `e2e_test.go`.
+6. Extend the list of tested Kubernetes releases in `.github/workflows/test.yaml`.
+7. Extend the list of deleted container images in `.github/workflows/delete.yaml`.
+8. Update the [_Kubernetes Compatibility_ matrix](/README.md#kubernetes_compatibility) in the README file.
 
 ### handle-image.sh
 
