@@ -1,5 +1,9 @@
 ## unreleased
 
+## v4.4.0 - 2022.11.02
+
+* Update CSI driver for Kubernetes 1.25
+  [[GH-461]](https://github.com/digitalocean/csi-digitalocean/pull/461)
 * Support setting DO API rate limit
   [[GH-462]](https://github.com/digitalocean/csi-digitalocean/pull/462)
 * Upgrade Go to 1.19
