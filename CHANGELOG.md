@@ -1,5 +1,10 @@
 ## unreleased
 
+## v4.4.1 - 2022.11.04
+
+* Update CSI sidecars to latest
+  [[GH-465]](https://github.com/digitalocean/csi-digitalocean/pull/465)
+
 ## v4.4.0 - 2022.11.02
 
 * Update CSI driver for Kubernetes 1.25
