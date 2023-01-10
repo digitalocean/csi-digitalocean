@@ -20,6 +20,16 @@ RUN apt-get update && \
 RUN mkdir -p /go/src/k8s.io
 WORKDIR /go/src/k8s.io
 
+### Kubernetes 1.26
+FROM builder AS tests-1.26
+ARG KUBE_VERSION_1_26=1.26.0
+ARG KUBE_VERSION_1_26_E2E_BIN_SHA256_CHECKSUM=6d337b8bd7789105e95682ff1ad7da8d3e8c6c40e8d85021ef72d4ae117f08a9
+
+RUN curl --fail --location https://dl.k8s.io/v${KUBE_VERSION_1_26}/kubernetes-test-linux-amd64.tar.gz | tar xvzf - --strip-components 3 kubernetes/test/bin/e2e.test kubernetes/test/bin/ginkgo
+RUN echo "${KUBE_VERSION_1_26_E2E_BIN_SHA256_CHECKSUM}" e2e.test | sha256sum --check
+RUN cp e2e.test /e2e.1.26.test
+RUN cp ginkgo /ginkgo-1.26
+
 ### Kubernetes 1.25
 FROM builder AS tests-1.25
 ARG KUBE_VERSION_1_25=1.25.2
@@ -81,7 +91,9 @@ RUN cp kubectl /
 FROM bitnami/minideb:buster AS runtime
 # Certificates needed to trust the CA for any HTTPS connections to the DO API.
 RUN apt-get update && \
-    DEBIAN_FRONTEND=noninteractive apt-get install --yes --no-install-recommends ca-certificates
+    DEBIAN_FRONTEND=noninteractive apt-get install --yes --no-install-recommends ca-certificates \
+COPY --from=tests-1.26 /e2e.1.26.test /
+COPY --from=tests-1.26 /ginkgo-1.26 /usr/local/bin
 COPY --from=tests-1.25 /e2e.1.25.test /
 COPY --from=tests-1.25 /ginkgo-1.25 /usr/local/bin
 COPY --from=tests-1.24 /e2e.1.24.test /
