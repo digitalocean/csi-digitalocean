@@ -1,5 +1,11 @@
 ## unreleased
 
+## v4.5.0 - 2023.01.11
+* Update CSI driver for Kubernetes 1.26
+  [[GH-469]](https://github.com/digitalocean/csi-digitalocean/pull/469)
+* Update CSI sidecars to latest
+  [[GH-474]](https://github.com/digitalocean/csi-digitalocean/pull/474)
+
 ## v4.4.1 - 2022.11.04
 
 * Update CSI sidecars to latest
