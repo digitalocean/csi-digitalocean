@@ -78,7 +78,7 @@ Command-line arguments are passed as-in to the test tool. Run `e2e.sh -h` for us
 5. Extend the list of supported Kubernetes releases in `e2e_test.go`.
 6. Extend the list of tested Kubernetes releases in `.github/workflows/test.yaml`.
 7. Extend the list of deleted container images in `.github/workflows/delete.yaml`.
-8. Update the [_Kubernetes Compatibility_ matrix](/README.md#kubernetes_compatibility) in the README file.
+8. Update the [_Kubernetes Compatibility_ matrix](/README.md#kubernetes-compatibility) in the README file.
 
 ### handle-image.sh
 
