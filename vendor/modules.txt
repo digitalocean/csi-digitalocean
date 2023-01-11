@@ -20,7 +20,7 @@ github.com/digitalocean/go-metadata
 ## explicit; go 1.18
 github.com/digitalocean/godo
 github.com/digitalocean/godo/metrics
-# github.com/docker/distribution v2.7.1+incompatible
+# github.com/docker/distribution v2.8.0+incompatible
 ## explicit
 github.com/docker/distribution/digestset
 github.com/docker/distribution/reference
