@@ -59,17 +59,17 @@ const (
 // more than just mounting functionality by now.
 type Mounter interface {
 	// Format formats the source with the given filesystem type
-	Format(source, fsType string) error
+	Format(source, fsType string, luksContext LuksContext) error
 
 	// Mount mounts source to target with the given fstype and options.
-	Mount(source, target, fsType string, options ...string) error
+	Mount(source, target, fsType string, luksContext LuksContext, options ...string) error
 
 	// Unmount unmounts the given target
-	Unmount(target string) error
+	Unmount(target string, luksContext LuksContext) error
 
 	// IsFormatted checks whether the source device is formatted or not. It
 	// returns true if the source device is already formatted.
-	IsFormatted(source string) (bool, error)
+	IsFormatted(source string, luksContext LuksContext) (bool, error)
 
 	// IsMounted checks whether the target path is a correct mount (i.e:
 	// propagated). It returns true if it's mounted. An error is returned in
@@ -107,7 +107,7 @@ func newMounter(log *logrus.Entry) *mounter {
 	}
 }
 
-func (m *mounter) Format(source, fsType string) error {
+func (m *mounter) Format(source, fsType string, luksContext LuksContext) error {
 	mkfsCmd := fmt.Sprintf("mkfs.%s", fsType)
 
 	_, err := exec.LookPath(mkfsCmd)
@@ -133,21 +133,35 @@ func (m *mounter) Format(source, fsType string) error {
 		mkfsArgs = []string{"-F", source}
 	}
 
-	m.log.WithFields(logrus.Fields{
-		"cmd":  mkfsCmd,
-		"args": mkfsArgs,
-	}).Info("executing format command")
+	if !luksContext.EncryptionEnabled {
+		m.log.WithFields(logrus.Fields{
+			"cmd":  mkfsCmd,
+			"args": mkfsArgs,
+		}).Info("executing format command")
 
-	out, err := exec.Command(mkfsCmd, mkfsArgs...).CombinedOutput()
-	if err != nil {
-		return fmt.Errorf("formatting disk failed: %v cmd: '%s %s' output: %q",
-			err, mkfsCmd, strings.Join(mkfsArgs, " "), string(out))
+		out, err := exec.Command(mkfsCmd, mkfsArgs...).CombinedOutput()
+		if err != nil {
+			return fmt.Errorf("formatting disk failed: %v cmd: '%s %s' output: %q",
+				err, mkfsCmd, strings.Join(mkfsArgs, " "), string(out))
+		}
+
+		return nil
+	} else {
+		err := luksContext.validate()
+		if err != nil {
+			return err
+		}
+
+		err = luksFormat(source, mkfsCmd, mkfsArgs, luksContext, m.log)
+		if err != nil {
+			return err
+		}
+
+		return nil
 	}
-
-	return nil
 }
 
-func (m *mounter) Mount(source, target, fsType string, opts ...string) error {
+func (m *mounter) Mount(source, target, fsType string, luksContext LuksContext, opts ...string) error {
 	mountCmd := "mount"
 	mountArgs := []string{}
 
@@ -187,7 +201,21 @@ func (m *mounter) Mount(source, target, fsType string, opts ...string) error {
 		mountArgs = append(mountArgs, "-o", strings.Join(opts, ","))
 	}
 
-	mountArgs = append(mountArgs, source)
+	if luksContext.EncryptionEnabled && luksContext.VolumeLifecycle == VolumeLifecycleNodeStageVolume {
+		luksSource, err := luksPrepareMount(source, luksContext, m.log)
+		if err != nil {
+			m.log.WithFields(logrus.Fields{
+				"error":  err.Error(),
+				"volume": luksContext.VolumeName,
+			}).Error("failed to prepare luks volume for mounting")
+			return err
+		}
+
+		mountArgs = append(mountArgs, luksSource)
+	} else {
+		mountArgs = append(mountArgs, source)
+	}
+
 	mountArgs = append(mountArgs, target)
 
 	m.log.WithFields(logrus.Fields{
@@ -204,11 +232,93 @@ func (m *mounter) Mount(source, target, fsType string, opts ...string) error {
 	return nil
 }
 
-func (m *mounter) Unmount(target string) error {
-	return mount.CleanupMountPoint(target, m.kMounter, true)
+func (m *mounter) Unmount(target string, luksContext LuksContext) error {
+	if target == "" {
+		return errors.New("target is not specified for unmounting the volume")
+	}
+
+	// if this is the unmount call after the mount-bind has been removed,
+	// a luks volume needs to be closed after unmounting; get the source
+	// of the mount to check if that is a luks volume
+	mountSources, err := getMountSources(target)
+	if err != nil {
+		return err
+	}
+
+	if len(mountSources) == 0 {
+		return fmt.Errorf("unable to determine mount sources of target %s", target)
+	}
+
+	umountCmd := "umount"
+	umountArgs := []string{target}
+
+	m.log.WithFields(logrus.Fields{
+		"cmd":  umountCmd,
+		"args": umountArgs,
+	}).Info("executing umount command")
+
+	out, err := exec.Command(umountCmd, umountArgs...).CombinedOutput()
+	if err != nil {
+		return fmt.Errorf("unmounting failed: %v cmd: '%s %s' output: %q",
+			err, umountCmd, target, string(out))
+	}
+
+	merror := mount.CleanupMountPoint(target, m.kMounter, true)
+
+	// if this is the unstaging process, check if the source is a luks volume and close it
+	if luksContext.VolumeLifecycle == VolumeLifecycleNodeUnstageVolume {
+		for _, source := range mountSources {
+			isLuksMapping, mappingName, err := isLuksMapping(source)
+			if err != nil {
+				return err
+			}
+			if isLuksMapping {
+				err := luksClose(mappingName, m.log)
+				if err != nil {
+					return err
+				}
+			}
+		}
+	}
+
+	return merror
 }
 
-func (m *mounter) IsFormatted(source string) (bool, error) {
+// gets the mount sources of a mountpoint
+func getMountSources(target string) ([]string, error) {
+	_, err := exec.LookPath("findmnt")
+	if err != nil {
+		if err == exec.ErrNotFound {
+			return nil, fmt.Errorf("%q executable not found in $PATH", "findmnt")
+		}
+		return nil, err
+	}
+	out, err := exec.Command("sh", "-c", fmt.Sprintf("findmnt -o SOURCE -n -M %s", target)).CombinedOutput()
+	if err != nil {
+		// findmnt exits with non zero exit status if it couldn't find anything
+		if strings.TrimSpace(string(out)) == "" {
+			return nil, nil
+		}
+		return nil, fmt.Errorf("checking mounted failed: %v cmd: %q output: %q",
+			err, "findmnt", string(out))
+	}
+	return strings.Split(string(out), "\n"), nil
+}
+
+func (m *mounter) IsFormatted(source string, luksContext LuksContext) (bool, error) {
+	if !luksContext.EncryptionEnabled {
+		return isVolumeFormatted(source, m.log)
+	}
+
+	formatted, err := isLuksVolumeFormatted(source, luksContext, m.log)
+	if err != nil {
+		return false, err
+	}
+
+	return formatted, nil
+}
+
+func isVolumeFormatted(source string, log *logrus.Entry) (bool, error) {
 	if source == "" {
 		return false, errors.New("source is not specified")
 	}
@@ -224,7 +334,7 @@ func (m *mounter) IsFormatted(source string) (bool, error) {
 
 	blkidArgs := []string{source}
 
-	m.log.WithFields(logrus.Fields{
+	log.WithFields(logrus.Fields{
 		"cmd":  blkidCmd,
 		"args": blkidArgs,
 	}).Info("checking if source is formatted")

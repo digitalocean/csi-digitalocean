@@ -40,11 +40,17 @@ deletionPolicy: Delete
 kind: StorageClass
 apiVersion: storage.k8s.io/v1
 metadata:
-  name: do-block-storage
+  name: do-block-storage-luks
   annotations:
     storageclass.kubernetes.io/is-default-class: "true"
 provisioner: dobs.csi.digitalocean.com
 allowVolumeExpansion: true
+parameters:
+  dobs.csi.digitalocean.com/luks-encrypted: "true"
+  dobs.csi.digitalocean.com/luks-cipher: "aes-xts-plain64"
+  dobs.csi.digitalocean.com/luks-key-size: "512"
+  csi.storage.k8s.io/node-stage-secret-namespace: ${pvc.namespace}
+  csi.storage.k8s.io/node-stage-secret-name: ${pvc.name}-luks-key
 
 ---
 
@@ -57,24 +63,24 @@ allowVolumeExpansion: true
 kind: StatefulSet
 apiVersion: apps/v1
 metadata:
-  name: csi-do-controller
+  name: csi-do-controller-luks
   namespace: kube-system
 spec:
   serviceName: "csi-do"
   selector:
     matchLabels:
-      app: csi-do-controller
+      app: csi-do-controller-luks
   replicas: 1
   template:
     metadata:
       annotations:
         kubectl.kubernetes.io/default-container: csi-do-plugin
       labels:
-        app: csi-do-controller
+        app: csi-do-controller-luks
         role: csi-do
     spec:
       priorityClassName: system-cluster-critical
-      serviceAccount: csi-do-controller-sa
+      serviceAccount: csi-do-controller-sa-luks
       containers:
         - name: csi-provisioner
           image: k8s.gcr.io/sig-storage/csi-provisioner:v3.0.0
@@ -129,7 +135,7 @@ spec:
             - name: socket-dir
               mountPath: /var/lib/csi/sockets/pluginproxy/
         - name: csi-do-plugin
-          image: digitalocean/do-csi-plugin:v4.0.0
+          image: edeckers/do-csi-plugin:v4.0.0-luks
           args :
             - "--endpoint=$(CSI_ENDPOINT)"
             - "--token=$(DIGITALOCEAN_ACCESS_TOKEN)"
@@ -157,7 +163,7 @@ spec:
 kind: ServiceAccount
 apiVersion: v1
 metadata:
-  name: csi-do-controller-sa
+  name: csi-do-controller-sa-luks
   namespace: kube-system
 
 ---
@@ -202,7 +208,7 @@ metadata:
   name: csi-do-provisioner-binding
 subjects:
   - kind: ServiceAccount
-    name: csi-do-controller-sa
+    name: csi-do-controller-sa-luks
     namespace: kube-system
 roleRef:
   kind: ClusterRole
@@ -239,7 +245,7 @@ metadata:
   name: csi-do-attacher-binding
 subjects:
   - kind: ServiceAccount
-    name: csi-do-controller-sa
+    name: csi-do-controller-sa-luks
     namespace: kube-system
 roleRef:
   kind: ClusterRole
@@ -275,7 +281,7 @@ metadata:
   name: csi-do-snapshotter-binding
 subjects:
   - kind: ServiceAccount
-    name: csi-do-controller-sa
+    name: csi-do-controller-sa-luks
     namespace: kube-system
 roleRef:
   kind: ClusterRole
@@ -311,7 +317,7 @@ metadata:
   name: csi-do-resizer-binding
 subjects:
   - kind: ServiceAccount
-    name: csi-do-controller-sa
+    name: csi-do-controller-sa-luks
     namespace: kube-system
 roleRef:
   kind: ClusterRole
@@ -329,22 +335,22 @@ roleRef:
 kind: DaemonSet
 apiVersion: apps/v1
 metadata:
-  name: csi-do-node
+  name: csi-do-node-luks
   namespace: kube-system
 spec:
   selector:
     matchLabels:
-      app: csi-do-node
+      app: csi-do-node-luks
   template:
     metadata:
       annotations:
         kubectl.kubernetes.io/default-container: csi-do-plugin
       labels:
-        app: csi-do-node
+        app: csi-do-node-luks
         role: csi-do
     spec:
       priorityClassName: system-node-critical
-      serviceAccount: csi-do-node-sa
+      serviceAccount: csi-do-node-luks
       hostNetwork: true
       initContainers:
         # Delete automount udev rule running on all DO droplets. The rule mounts
@@ -385,7 +391,7 @@ spec:
             - name: registration-dir
               mountPath: /registration/
         - name: csi-do-plugin
-          image: digitalocean/do-csi-plugin:v4.0.0
+          image: edeckers/do-csi-plugin:v4.0.0-luks
           args :
             - "--endpoint=$(CSI_ENDPOINT)"
             - "--url=$(DIGITALOCEAN_API_URL)"
@@ -410,6 +416,8 @@ spec:
               mountPropagation: "Bidirectional"
             - name: device-dir
               mountPath: /dev
+            - name: tmpfs
+              mountPath: /tmp
       volumes:
         - name: registration-dir
           hostPath:
@@ -429,12 +437,16 @@ spec:
         - name: udev-rules-dir
           hostPath:
             path: /etc/udev/rules.d/
+        # to make sure temporary stored luks keys never touch a disk
+        - name: tmpfs
+          emptyDir:
+            medium: Memory
 ---
 
 apiVersion: v1
 kind: ServiceAccount
 metadata:
-  name: csi-do-node-sa
+  name: csi-do-node-sa-luks
   namespace: kube-system
 
 ---
@@ -442,7 +454,7 @@ metadata:
 kind: ClusterRole
 apiVersion: rbac.authorization.k8s.io/v1
 metadata:
-  name: csi-do-node-driver-registrar-role
+  name: csi-do-node-luks-driver-registrar-role
   namespace: kube-system
 rules:
   - apiGroups: [""]
@@ -454,12 +466,12 @@ rules:
 kind: ClusterRoleBinding
 apiVersion: rbac.authorization.k8s.io/v1
 metadata:
-  name: csi-do-node-driver-registrar-binding
+  name: csi-do-node-luks-driver-registrar-binding
 subjects:
   - kind: ServiceAccount
-    name: csi-do-node-sa
+    name: csi-do-node-sa-luks
     namespace: kube-system
 roleRef:
   kind: ClusterRole
-  name: csi-do-node-driver-registrar-role
+  name: csi-do-node-luks-driver-registrar-role
   apiGroup: rbac.authorization.k8s.io
