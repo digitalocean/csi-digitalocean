@@ -30,17 +30,17 @@ import (
 
 func main() {
 	var (
-		endpoint                = flag.String("endpoint", "unix:///var/lib/kubelet/plugins/"+driver.DefaultDriverName+"/csi.sock", "CSI endpoint.")
-		token                   = flag.String("token", "", "DigitalOcean access token.")
-		url                     = flag.String("url", "https://api.digitalocean.com/", "DigitalOcean API URL.")
-		region                  = flag.String("region", "", "DigitalOcean region slug. Specify only when running in controller mode outside of a DigitalOcean droplet.")
-		doTag                   = flag.String("do-tag", "", "Tag DigitalOcean volumes on Create/Attach.")
-		driverName              = flag.String("driver-name", driver.DefaultDriverName, "Name for the driver.")
-		debugAddr               = flag.String("debug-addr", "", "Address to serve the HTTP debug server on.")
-		defaultVolumesPageSize  = flag.Uint("default-volumes-page-size", 0, "The default page size used when paging through volumes results (default: do not specify and let the DO API choose)")
-		doAPIRateLimitQPS       = flag.Float64("do-api-rate-limit", 0, "Impose QPS rate limit on DigitalOcean API usage (default: do not rate limit)")
-		version                 = flag.Bool("version", false, "Print the version and exit.")
-		enableMountRunningCheck = flag.Bool("enable-mount-running-validation", false, "Validate if the volume mount is in a running state.")
+		endpoint               = flag.String("endpoint", "unix:///var/lib/kubelet/plugins/"+driver.DefaultDriverName+"/csi.sock", "CSI endpoint.")
+		token                  = flag.String("token", "", "DigitalOcean access token.")
+		url                    = flag.String("url", "https://api.digitalocean.com/", "DigitalOcean API URL.")
+		region                 = flag.String("region", "", "DigitalOcean region slug. Specify only when running in controller mode outside of a DigitalOcean droplet.")
+		doTag                  = flag.String("do-tag", "", "Tag DigitalOcean volumes on Create/Attach.")
+		driverName             = flag.String("driver-name", driver.DefaultDriverName, "Name for the driver.")
+		debugAddr              = flag.String("debug-addr", "", "Address to serve the HTTP debug server on.")
+		defaultVolumesPageSize = flag.Uint("default-volumes-page-size", 0, "The default page size used when paging through volumes results (default: do not specify and let the DO API choose)")
+		doAPIRateLimitQPS      = flag.Float64("do-api-rate-limit", 0, "Impose QPS rate limit on DigitalOcean API usage (default: do not rate limit)")
+		version                = flag.Bool("version", false, "Print the version and exit.")
+		validateAttachment     = flag.Bool("validate-attachment", false, "Validate if the attachment is in a running state.")
 	)
 	flag.Parse()
 
@@ -54,16 +54,16 @@ func main() {
 	}
 
 	drv, err := driver.NewDriver(driver.NewDriverParams{
-		Endpoint:                     *endpoint,
-		Token:                        *token,
-		URL:                          *url,
-		Region:                       *region,
-		DOTag:                        *doTag,
-		DriverName:                   *driverName,
-		DebugAddr:                    *debugAddr,
-		DefaultVolumesPageSize:       *defaultVolumesPageSize,
-		DOAPIRateLimitQPS:            *doAPIRateLimitQPS,
-		EnableMountRunningValidation: *enableMountRunningCheck,
+		Endpoint:               *endpoint,
+		Token:                  *token,
+		URL:                    *url,
+		Region:                 *region,
+		DOTag:                  *doTag,
+		DriverName:             *driverName,
+		DebugAddr:              *debugAddr,
+		DefaultVolumesPageSize: *defaultVolumesPageSize,
+		DOAPIRateLimitQPS:      *doAPIRateLimitQPS,
+		ValidateAttachment:     *validateAttachment,
 	})
 	if err != nil {
 		log.Fatalln(err)

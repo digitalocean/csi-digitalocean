@@ -2,6 +2,7 @@ package driver
 
 import (
 	"errors"
+	"github.com/golang/mock/gomock"
 	"github.com/sirupsen/logrus"
 	"testing"
 )
@@ -11,33 +12,29 @@ func Test_mounter_IsRunning(t *testing.T) {
 		source string
 	}
 	tests := []struct {
-		name         string
-		args         args
-		evalSymlinks func(path string) (string, error)
-		readFileFunc func(name string) ([]byte, error)
-		want         bool
+		name   string
+		args   args
+		expect func(*MockiAttachmentValidator)
+		want   bool
 	}{
 		{
 			name: "could not evaluate the symbolic link",
 			args: args{
 				source: "my-source",
 			},
-			evalSymlinks: func(path string) (string, error) {
-				return "", errors.New("error")
+			expect: func(av *MockiAttachmentValidator) {
+				av.EXPECT().evalSymlinks(gomock.Any()).Times(1).Return("", errors.New("error"))
 			},
-			readFileFunc: nil,
-			want:         false,
+			want: false,
 		},
 		{
 			name: "error reading the device state file",
 			args: args{
 				source: "my-source",
 			},
-			evalSymlinks: func(path string) (string, error) {
-				return "/dev/sda", nil
-			},
-			readFileFunc: func(name string) ([]byte, error) {
-				return nil, errors.New("error")
+			expect: func(av *MockiAttachmentValidator) {
+				av.EXPECT().evalSymlinks(gomock.Any()).Times(1).Return("/dev/sda", nil)
+				av.EXPECT().readFile(gomock.Any()).Times(1).Return(nil, errors.New("error"))
 			},
 			want: false,
 		},
@@ -46,11 +43,9 @@ func Test_mounter_IsRunning(t *testing.T) {
 			args: args{
 				source: "my-source",
 			},
-			evalSymlinks: func(path string) (string, error) {
-				return "/dev/sda", nil
-			},
-			readFileFunc: func(name string) ([]byte, error) {
-				return []byte("not-running\n"), nil
+			expect: func(av *MockiAttachmentValidator) {
+				av.EXPECT().evalSymlinks(gomock.Any()).Times(1).Return("/dev/sda", nil)
+				av.EXPECT().readFile(gomock.Any()).Times(1).Return([]byte("not-running\n"), nil)
 			},
 			want: false,
 		},
@@ -59,11 +54,9 @@ func Test_mounter_IsRunning(t *testing.T) {
 			args: args{
 				source: "my-source",
 			},
-			evalSymlinks: func(path string) (string, error) {
-				return "/dev/sda", nil
-			},
-			readFileFunc: func(name string) ([]byte, error) {
-				return []byte(runningState + "\n"), nil
+			expect: func(av *MockiAttachmentValidator) {
+				av.EXPECT().evalSymlinks(gomock.Any()).Times(1).Return("/dev/sda", nil)
+				av.EXPECT().readFile(gomock.Any()).Times(1).Return([]byte(runningState+"\n"), nil)
 			},
 			want: true,
 		},
@@ -75,10 +68,13 @@ func Test_mounter_IsRunning(t *testing.T) {
 				kMounter: nil,
 			}
 
-			readFile = tt.readFileFunc
-			evalSymlinks = tt.evalSymlinks
+			ctrl := gomock.NewController(t)
+			defer ctrl.Finish()
+			av := NewMockiAttachmentValidator(ctrl)
 
-			if got := m.IsRunning(tt.args.source); got != tt.want {
+			tt.expect(av)
+
+			if got := m.IsRunning(av, tt.args.source); got != tt.want {
 				t.Errorf("IsRunning() = %v, want %v", got, tt.want)
 			}
 		})

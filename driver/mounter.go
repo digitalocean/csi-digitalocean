@@ -37,8 +37,20 @@ const (
 	runningState = "running"
 )
 
-var readFile = os.ReadFile
-var evalSymlinks = filepath.EvalSymlinks
+type attachmentValidator struct{}
+
+func (av *attachmentValidator) readFile(name string) ([]byte, error) {
+	return os.ReadFile(name)
+}
+
+func (av *attachmentValidator) evalSymlinks(path string) (string, error) {
+	return filepath.EvalSymlinks(path)
+}
+
+type iAttachmentValidator interface {
+	readFile(name string) ([]byte, error)
+	evalSymlinks(path string) (string, error)
+}
 
 type findmntResponse struct {
 	FileSystems []fileSystem `json:"filesystems"`
@@ -75,7 +87,7 @@ type Mounter interface {
 	Unmount(target string) error
 
 	// IsRunning checks whether the source device is in the running state.
-	IsRunning(source string) bool
+	IsRunning(av iAttachmentValidator, source string) bool
 
 	// IsFormatted checks whether the source device is formatted or not. It
 	// returns true if the source device is already formatted.
@@ -218,8 +230,8 @@ func (m *mounter) Unmount(target string) error {
 	return mount.CleanupMountPoint(target, m.kMounter, true)
 }
 
-func (m *mounter) IsRunning(source string) bool {
-	out, err := evalSymlinks(source)
+func (m *mounter) IsRunning(av iAttachmentValidator, source string) bool {
+	out, err := av.evalSymlinks(source)
 	if err != nil {
 		m.log.WithFields(logrus.Fields{
 			"source": source,
@@ -229,7 +241,7 @@ func (m *mounter) IsRunning(source string) bool {
 	}
 
 	_, file := filepath.Split(out)
-	fileContent, err := readFile(fmt.Sprintf("/sys/class/block/%s/device/state", file))
+	fileContent, err := av.readFile(fmt.Sprintf("/sys/class/block/%s/device/state", file))
 	if err != nil {
 		m.log.WithFields(logrus.Fields{
 			"source": source,

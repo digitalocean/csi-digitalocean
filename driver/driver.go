@@ -61,14 +61,14 @@ type Driver struct {
 	// `ControllerPublishVolume` to `NodeStageVolume or `NodePublishVolume`
 	publishInfoVolumeName string
 
-	endpoint                     string
-	debugAddr                    string
-	hostID                       func() string
-	region                       string
-	doTag                        string
-	isController                 bool
-	defaultVolumesPageSize       uint
-	enableMountRunningValidation bool
+	endpoint               string
+	debugAddr              string
+	hostID                 func() string
+	region                 string
+	doTag                  string
+	isController           bool
+	defaultVolumesPageSize uint
+	validateAttachment     bool
 
 	srv     *grpc.Server
 	httpSrv *http.Server
@@ -92,16 +92,16 @@ type Driver struct {
 
 // NewDriverParams defines the parameters that can be passed to NewDriver.
 type NewDriverParams struct {
-	Endpoint                     string
-	Token                        string
-	URL                          string
-	Region                       string
-	DOTag                        string
-	DriverName                   string
-	DebugAddr                    string
-	DefaultVolumesPageSize       uint
-	DOAPIRateLimitQPS            float64
-	EnableMountRunningValidation bool
+	Endpoint               string
+	Token                  string
+	URL                    string
+	Region                 string
+	DOTag                  string
+	DriverName             string
+	DebugAddr              string
+	DefaultVolumesPageSize uint
+	DOAPIRateLimitQPS      float64
+	ValidateAttachment     bool
 }
 
 // NewDriver returns a CSI plugin that contains the necessary gRPC
