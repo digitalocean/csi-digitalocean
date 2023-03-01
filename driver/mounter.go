@@ -17,7 +17,6 @@ limitations under the License.
 package driver
 
 import (
-	"bytes"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -32,6 +31,10 @@ import (
 	"golang.org/x/sys/unix"
 	"k8s.io/mount-utils"
 	kexec "k8s.io/utils/exec"
+)
+
+const (
+	runningState = "running"
 )
 
 type execContext = func(name string, args ...string) *exec.Cmd
@@ -71,7 +74,7 @@ type Mounter interface {
 	Unmount(target string) error
 
 	// IsRunning checks whether the source device is in the running state.
-	IsRunning(source string, cmdContext execContext) bool
+	IsRunning(source string) bool
 
 	// IsFormatted checks whether the source device is formatted or not. It
 	// returns true if the source device is already formatted.
@@ -214,46 +217,40 @@ func (m *mounter) Unmount(target string) error {
 	return mount.CleanupMountPoint(target, m.kMounter, true)
 }
 
-func (m *mounter) IsRunning(source string, cmdContext execContext) bool {
-	cmd := fmt.Sprintf("ls -l %s | awk '{print $NF}'", source)
-	out, err := cmdContext("/bin/sh", "-c", cmd, source).CombinedOutput()
-
+func (m *mounter) IsRunning(source string) bool {
+	out, err := filepath.EvalSymlinks(source)
 	if err != nil {
 		m.log.WithFields(logrus.Fields{
-			"cmd": cmd,
-		}).Errorf("error retrieving the mount name, err: %v", err)
+			"source": source,
+		}).Errorf("error evaluating the sym link, err: %v", err)
 
 		return false
 	}
 
-	mountName := strings.TrimSuffix(string(bytes.Replace(out, []byte("../../"), []byte(""), 1)), "\n")
-
-	cmd = fmt.Sprintf("cat /sys/class/block/%s/device/state | grep -x running | wc -l", mountName)
-	out, err = cmdContext("/bin/sh", "-c", cmd).Output()
+	_, file := filepath.Split(out)
+	fileContent, err := os.ReadFile(fmt.Sprintf("/sys/class/block/%s/device/state", file))
 	if err != nil {
 		m.log.WithFields(logrus.Fields{
-			"cmd":       cmd,
-			"mountName": mountName,
-		}).Errorf("error retrieving the running state, err: %v", err)
-
-		return false
-	}
-
-	if strings.TrimSuffix(string(out), "\n") != "1" {
-		m.log.WithFields(logrus.Fields{
-			"cmd":         cmd,
-			"mountName":   mountName,
-			"fileContent": out,
-		}).Errorf("the state file does not specify the running state, err: %v", err)
+			"source": source,
+			"file":   file,
+		}).Errorf("error reading the device state file, err: %v", err)
 
 		return false
 	}
 
 	m.log.WithFields(logrus.Fields{
-		"source":    source,
-		"cmd":       cmd,
-		"mountName": mountName,
-	}).Info("state file is showing a running state")
+		"source":      source,
+		"fileContent": string(fileContent),
+	}).Info("state file content")
+
+	if string(fileContent) != fmt.Sprintf("%s\n", runningState) {
+		m.log.WithFields(logrus.Fields{
+			"source":      source,
+			"fileContent": string(fileContent),
+		}).Error("the state file does not specify the running state")
+
+		return false
+	}
 
 	return true
 }

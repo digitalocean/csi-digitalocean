@@ -164,7 +164,7 @@ func Test_mounter_IsRunning(t *testing.T) {
 				log:      tt.fields.log,
 				kMounter: tt.fields.kMounter,
 			}
-			if got := m.IsRunning(tt.args.source, tt.args.cmdContext); got != tt.want {
+			if got := m.IsRunning(tt.args.source); got != tt.want {
 				t.Errorf("IsRunning() = %v, want %v", got, tt.want)
 			}
 		})
