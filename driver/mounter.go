@@ -37,7 +37,8 @@ const (
 	runningState = "running"
 )
 
-type execContext = func(name string, args ...string) *exec.Cmd
+var readFile = os.ReadFile
+var evalSymlinks = filepath.EvalSymlinks
 
 type findmntResponse struct {
 	FileSystems []fileSystem `json:"filesystems"`
@@ -218,7 +219,7 @@ func (m *mounter) Unmount(target string) error {
 }
 
 func (m *mounter) IsRunning(source string) bool {
-	out, err := filepath.EvalSymlinks(source)
+	out, err := evalSymlinks(source)
 	if err != nil {
 		m.log.WithFields(logrus.Fields{
 			"source": source,
@@ -228,7 +229,7 @@ func (m *mounter) IsRunning(source string) bool {
 	}
 
 	_, file := filepath.Split(out)
-	fileContent, err := os.ReadFile(fmt.Sprintf("/sys/class/block/%s/device/state", file))
+	fileContent, err := readFile(fmt.Sprintf("/sys/class/block/%s/device/state", file))
 	if err != nil {
 		m.log.WithFields(logrus.Fields{
 			"source": source,
