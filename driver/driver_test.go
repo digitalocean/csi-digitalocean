@@ -539,7 +539,7 @@ func (f *fakeMounter) GetDeviceName(_ mount.Interface, mountPath string) (string
 	return "", nil
 }
 
-func (f *fakeMounter) IsRunning(source string) bool {
+func (f *fakeMounter) IsRunning(source string, cmdContext execContext) bool {
 	return true
 }
 

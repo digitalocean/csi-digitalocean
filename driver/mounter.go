@@ -34,6 +34,8 @@ import (
 	kexec "k8s.io/utils/exec"
 )
 
+type execContext = func(name string, args ...string) *exec.Cmd
+
 type findmntResponse struct {
 	FileSystems []fileSystem `json:"filesystems"`
 }
@@ -69,7 +71,7 @@ type Mounter interface {
 	Unmount(target string) error
 
 	// IsRunning checks whether the source device is in the running state.
-	IsRunning(source string) bool
+	IsRunning(source string, cmdContext execContext) bool
 
 	// IsFormatted checks whether the source device is formatted or not. It
 	// returns true if the source device is already formatted.
@@ -212,9 +214,9 @@ func (m *mounter) Unmount(target string) error {
 	return mount.CleanupMountPoint(target, m.kMounter, true)
 }
 
-func (m *mounter) IsRunning(source string) bool {
+func (m *mounter) IsRunning(source string, cmdContext execContext) bool {
 	cmd := fmt.Sprintf("ls -l %s | awk '{print $NF}'", source)
-	out, err := exec.Command("/bin/sh", "-c", cmd).CombinedOutput()
+	out, err := cmdContext("/bin/sh", "-c", cmd, source).CombinedOutput()
 
 	if err != nil {
 		m.log.WithFields(logrus.Fields{
@@ -224,11 +226,10 @@ func (m *mounter) IsRunning(source string) bool {
 		return false
 	}
 
-	// i.e out = ../../sda\n
 	mountName := strings.TrimSuffix(string(bytes.Replace(out, []byte("../../"), []byte(""), 1)), "\n")
 
 	cmd = fmt.Sprintf("cat /sys/class/block/%s/device/state | grep -x running | wc -l", mountName)
-	out, err = exec.Command("/bin/sh", "-c", cmd).Output()
+	out, err = cmdContext("/bin/sh", "-c", cmd).Output()
 	if err != nil {
 		m.log.WithFields(logrus.Fields{
 			"cmd":       cmd,
