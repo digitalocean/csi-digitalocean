@@ -130,7 +130,7 @@ func (d *Driver) NodeStageVolume(ctx context.Context, req *csi.NodeStageVolumeRe
 	if noFormat {
 		log.Info("skipping formatting the source device")
 	} else {
-		if !d.mounter.IsRunning(source) {
+		if d.enableMountRunningValidation && !d.mounter.IsRunning(source) {
 			return nil, fmt.Errorf("the source device is not in the running state, %s", source)
 		}
 
