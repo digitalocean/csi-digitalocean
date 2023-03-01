@@ -17,6 +17,7 @@ limitations under the License.
 package driver
 
 import (
+	"bytes"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -66,6 +67,9 @@ type Mounter interface {
 
 	// Unmount unmounts the given target
 	Unmount(target string) error
+
+	// IsRunning checks whether the source device is in the running state.
+	IsRunning(source string) bool
 
 	// IsFormatted checks whether the source device is formatted or not. It
 	// returns true if the source device is already formatted.
@@ -206,6 +210,51 @@ func (m *mounter) Mount(source, target, fsType string, opts ...string) error {
 
 func (m *mounter) Unmount(target string) error {
 	return mount.CleanupMountPoint(target, m.kMounter, true)
+}
+
+func (m *mounter) IsRunning(source string) bool {
+	cmd := fmt.Sprintf("ls -l %s | awk '{print $NF}'", source)
+	out, err := exec.Command("/bin/sh", "-c", cmd).CombinedOutput()
+
+	if err != nil {
+		m.log.WithFields(logrus.Fields{
+			"cmd": cmd,
+		}).Errorf("error retrieving the mount name, err: %v", err)
+
+		return false
+	}
+
+	// i.e out = ../../sda\n
+	mountName := strings.TrimSuffix(string(bytes.Replace(out, []byte("../../"), []byte(""), 1)), "\n")
+
+	cmd = fmt.Sprintf("cat /sys/class/block/%s/device/state | grep -x running | wc -l", mountName)
+	out, err = exec.Command("/bin/sh", "-c", cmd).Output()
+	if err != nil {
+		m.log.WithFields(logrus.Fields{
+			"cmd":       cmd,
+			"mountName": mountName,
+		}).Errorf("error retrieving the running state, err: %v", err)
+
+		return false
+	}
+
+	if strings.TrimSuffix(string(out), "\n") != "1" {
+		m.log.WithFields(logrus.Fields{
+			"cmd":         cmd,
+			"mountName":   mountName,
+			"fileContent": out,
+		}).Errorf("the state file does not specify the running state, err: %v", err)
+
+		return false
+	}
+
+	m.log.WithFields(logrus.Fields{
+		"source":    source,
+		"cmd":       cmd,
+		"mountName": mountName,
+	}).Info("state file is showing a running state")
+
+	return true
 }
 
 func (m *mounter) IsFormatted(source string) (bool, error) {
