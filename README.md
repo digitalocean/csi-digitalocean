@@ -317,7 +317,7 @@ DO API usage is subject to [certain rate limits](https://docs.digitalocean.com/r
 
 The `--validate-attachment` options adds an additional validation which checks for the `/sys/class/block/<device name>/device/state`
 file content for the `running` status. When enabling this flag, it prevents a racing condition where the DOBS volumes aren't 
-fully attached which can be misinterpreted by the CSI implementation causing a force format of the volume and resulting in data loss. 
+fully attached which can be misinterpreted by the CSI implementation causing a force format of the volume which results in data loss. 
 
 ---
 
