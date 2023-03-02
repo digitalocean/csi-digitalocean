@@ -37,17 +37,17 @@ const (
 	runningState = "running"
 )
 
-type attachmentValidator struct{}
+type prodAttachmentValidator struct{}
 
-func (av *attachmentValidator) readFile(name string) ([]byte, error) {
+func (av *prodAttachmentValidator) readFile(name string) ([]byte, error) {
 	return os.ReadFile(name)
 }
 
-func (av *attachmentValidator) evalSymlinks(path string) (string, error) {
+func (av *prodAttachmentValidator) evalSymlinks(path string) (string, error) {
 	return filepath.EvalSymlinks(path)
 }
 
-type iAttachmentValidator interface {
+type AttachmentValidator interface {
 	readFile(name string) ([]byte, error)
 	evalSymlinks(path string) (string, error)
 }
@@ -86,8 +86,8 @@ type Mounter interface {
 	// Unmount unmounts the given target
 	Unmount(target string) error
 
-	// IsRunning checks whether the source device is in the running state.
-	IsRunning(av iAttachmentValidator, source string) bool
+	// IsAttached checks whether the source device is in the running state.
+	IsAttached(source string) (bool, error)
 
 	// IsFormatted checks whether the source device is formatted or not. It
 	// returns true if the source device is already formatted.
@@ -112,8 +112,9 @@ type Mounter interface {
 // architecture specific code in the future, such as mounter_darwin.go,
 // mounter_linux.go, etc..
 type mounter struct {
-	log      *logrus.Entry
-	kMounter *mount.SafeFormatAndMount
+	log                 *logrus.Entry
+	kMounter            *mount.SafeFormatAndMount
+	attachmentValidator AttachmentValidator
 }
 
 // newMounter returns a new mounter instance
@@ -124,8 +125,9 @@ func newMounter(log *logrus.Entry) *mounter {
 	}
 
 	return &mounter{
-		kMounter: kMounter,
-		log:      log,
+		kMounter:            kMounter,
+		log:                 log,
+		attachmentValidator: &(prodAttachmentValidator{}),
 	}
 }
 
@@ -230,42 +232,24 @@ func (m *mounter) Unmount(target string) error {
 	return mount.CleanupMountPoint(target, m.kMounter, true)
 }
 
-func (m *mounter) IsRunning(av iAttachmentValidator, source string) bool {
-	out, err := av.evalSymlinks(source)
+func (m *mounter) IsAttached(source string) (bool, error) {
+	out, err := m.attachmentValidator.evalSymlinks(source)
 	if err != nil {
-		m.log.WithFields(logrus.Fields{
-			"source": source,
-		}).Errorf("error evaluating the sym link, err: %v", err)
-
-		return false
+		return false, nil
 	}
 
-	_, file := filepath.Split(out)
-	fileContent, err := av.readFile(fmt.Sprintf("/sys/class/block/%s/device/state", file))
+	_, deviceName := filepath.Split(out)
+	deviceStateFilePath := fmt.Sprintf("/sys/class/block/%s/device/state", deviceName)
+	deviceStateFileContent, err := m.attachmentValidator.readFile(deviceStateFilePath)
 	if err != nil {
-		m.log.WithFields(logrus.Fields{
-			"source": source,
-			"file":   file,
-		}).Errorf("error reading the device state file, err: %v", err)
-
-		return false
+		return false, fmt.Errorf("error reading the device state file %q: %s", deviceStateFilePath, err)
 	}
 
-	m.log.WithFields(logrus.Fields{
-		"source":      source,
-		"fileContent": string(fileContent),
-	}).Info("state file content")
-
-	if string(fileContent) != fmt.Sprintf("%s\n", runningState) {
-		m.log.WithFields(logrus.Fields{
-			"source":      source,
-			"fileContent": string(fileContent),
-		}).Error("the state file does not specify the running state")
-
-		return false
+	if string(deviceStateFileContent) != fmt.Sprintf("%s\n", runningState) {
+		return false, nil
 	}
 
-	return true
+	return true, nil
 }
 
 func (m *mounter) IsFormatted(source string) (bool, error) {

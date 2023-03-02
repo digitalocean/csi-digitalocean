@@ -539,8 +539,8 @@ func (f *fakeMounter) GetDeviceName(_ mount.Interface, mountPath string) (string
 	return "", nil
 }
 
-func (f *fakeMounter) IsRunning(av iAttachmentValidator, source string) bool {
-	return true
+func (f *fakeMounter) IsAttached(source string) (bool, error) {
+	return true, nil
 }
 
 func (f *fakeMounter) IsFormatted(source string) (bool, error) {

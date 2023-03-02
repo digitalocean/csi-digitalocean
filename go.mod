@@ -8,7 +8,6 @@ require (
 	github.com/digitalocean/go-metadata v0.0.0-20180111002115-15bd36e5f6f7
 	github.com/digitalocean/godo v1.87.0
 	github.com/docker/docker v20.10.2+incompatible
-	github.com/golang/mock v1.6.0
 	github.com/golang/protobuf v1.5.2
 	github.com/google/go-cmp v0.5.9
 	github.com/google/uuid v1.2.0

@@ -39,8 +39,8 @@ func main() {
 		debugAddr              = flag.String("debug-addr", "", "Address to serve the HTTP debug server on.")
 		defaultVolumesPageSize = flag.Uint("default-volumes-page-size", 0, "The default page size used when paging through volumes results (default: do not specify and let the DO API choose)")
 		doAPIRateLimitQPS      = flag.Float64("do-api-rate-limit", 0, "Impose QPS rate limit on DigitalOcean API usage (default: do not rate limit)")
+		validateAttachment     = flag.Bool("validate-attachment", false, "Validate if the attachment has fully completed before formatting/mounting the device")
 		version                = flag.Bool("version", false, "Print the version and exit.")
-		validateAttachment     = flag.Bool("validate-attachment", false, "Validate if the attachment is in a running state.")
 	)
 	flag.Parse()
 
