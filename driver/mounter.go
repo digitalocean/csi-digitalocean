@@ -235,7 +235,7 @@ func (m *mounter) Unmount(target string) error {
 func (m *mounter) IsAttached(source string) (bool, error) {
 	out, err := m.attachmentValidator.evalSymlinks(source)
 	if err != nil {
-		return false, nil
+		return false, fmt.Errorf("error evaluating the symbolic link %q: %s", source, err)
 	}
 
 	_, deviceName := filepath.Split(out)
