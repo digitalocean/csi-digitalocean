@@ -127,7 +127,7 @@ func newMounter(log *logrus.Entry) *mounter {
 	return &mounter{
 		kMounter:            kMounter,
 		log:                 log,
-		attachmentValidator: &(prodAttachmentValidator{}),
+		attachmentValidator: &prodAttachmentValidator{},
 	}
 }
 
@@ -239,14 +239,18 @@ func (m *mounter) IsAttached(source string) (bool, error) {
 	}
 
 	_, deviceName := filepath.Split(out)
+	if deviceName == "" {
+		return false, fmt.Errorf("error device name is empty for path %s", out)
+	}
+
 	deviceStateFilePath := fmt.Sprintf("/sys/class/block/%s/device/state", deviceName)
 	deviceStateFileContent, err := m.attachmentValidator.readFile(deviceStateFilePath)
 	if err != nil {
 		return false, fmt.Errorf("error reading the device state file %q: %s", deviceStateFilePath, err)
 	}
 
-	if string(deviceStateFileContent) != fmt.Sprintf("%s\n", runningState) {
-		return false, nil
+	if string(deviceStateFileContent) != strings.TrimSpace(runningState) {
+		return false, fmt.Errorf("error comparing the state file content, expected: %s, got: %s", runningState, string(deviceStateFileContent))
 	}
 
 	return true, nil

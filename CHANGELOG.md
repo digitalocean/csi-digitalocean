@@ -1,5 +1,9 @@
 ## unreleased
 
+## v4.5.1 - 2023.01.11
+* CSI driver can accidentally format existing volume
+  [[GH-469]](https://github.com/digitalocean/csi-digitalocean/pull/478)
+
 ## v4.5.0 - 2023.01.11
 * Update CSI driver for Kubernetes 1.26
   [[GH-469]](https://github.com/digitalocean/csi-digitalocean/pull/469)
