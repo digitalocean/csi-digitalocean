@@ -1,6 +1,6 @@
 ## unreleased
 
-## v4.5.1 - 2023.01.11
+## v4.5.1 - 2023.03.03
 * CSI driver can accidentally format existing volume
   [[GH-469]](https://github.com/digitalocean/csi-digitalocean/pull/478)
 
