@@ -31,8 +31,6 @@ func Test_mounter_IsAttached(t *testing.T) {
 		name     string
 		av       AttachmentValidator
 		errorMsg string
-		wantErr  bool
-		want     bool
 	}{
 		{
 			name: "could not evaluate the symbolic link",
@@ -45,8 +43,6 @@ func Test_mounter_IsAttached(t *testing.T) {
 				},
 			},
 			errorMsg: fmt.Sprintf("error evaluating the symbolic link %q: %s", testSource, testEvalSymlinkErr),
-			wantErr:  true,
-			want:     false,
 		},
 		{
 			name: "error reading the device state file",
@@ -59,8 +55,6 @@ func Test_mounter_IsAttached(t *testing.T) {
 				},
 			},
 			errorMsg: fmt.Sprintf("error reading the device state file \"/sys/class/block/sda/device/state\": %s", testReadFileErr),
-			wantErr:  true,
-			want:     false,
 		},
 		{
 			name: "error device name is empty",
@@ -73,8 +67,6 @@ func Test_mounter_IsAttached(t *testing.T) {
 				},
 			},
 			errorMsg: "error device name is empty for path /",
-			wantErr:  true,
-			want:     false,
 		},
 		{
 			name: "state file content does not indicate a running state",
@@ -87,8 +79,6 @@ func Test_mounter_IsAttached(t *testing.T) {
 				},
 			},
 			errorMsg: fmt.Sprintf("error comparing the state file content, expected: %s, got: %s", runningState, "not-running"),
-			wantErr:  true,
-			want:     false,
 		},
 		{
 			name: "state file content does not indicate a running state",
@@ -101,8 +91,6 @@ func Test_mounter_IsAttached(t *testing.T) {
 				},
 			},
 			errorMsg: fmt.Sprintf("error comparing the state file content, expected: %s, got: %s", runningState, "not-running"),
-			wantErr:  true,
-			want:     false,
 		},
 		{
 			name: "state file content indicates a running state",
@@ -115,8 +103,6 @@ func Test_mounter_IsAttached(t *testing.T) {
 				},
 			},
 			errorMsg: "",
-			wantErr:  false,
-			want:     true,
 		},
 	}
 	for _, tt := range tests {
@@ -125,12 +111,12 @@ func Test_mounter_IsAttached(t *testing.T) {
 				log:                 logrus.NewEntry(logrus.New()),
 				attachmentValidator: tt.av,
 			}
-			got, err := m.IsAttached(testSource)
+			err := m.IsAttached(testSource)
 
-			if tt.wantErr {
+			if tt.errorMsg != "" {
 				assert.ErrorContains(t, err, tt.errorMsg)
 			} else {
-				assert.Equal(t, tt.want, got)
+				assert.NilError(t, err, "should not received an error")
 			}
 		})
 	}

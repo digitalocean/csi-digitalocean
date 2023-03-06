@@ -131,13 +131,8 @@ func (d *Driver) NodeStageVolume(ctx context.Context, req *csi.NodeStageVolumeRe
 		log.Info("skipping formatting the source device")
 	} else {
 		if d.validateAttachment {
-			isAttached, err := d.mounter.IsAttached(source)
-			if err != nil {
+			if err := d.mounter.IsAttached(source); err != nil {
 				return nil, fmt.Errorf("error retrieving the attachement status %q: %s", source, err)
-			}
-
-			if !isAttached {
-				return nil, fmt.Errorf("the attachment has not fully completed source: %s", source)
 			}
 		}
 

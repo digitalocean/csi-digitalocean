@@ -87,7 +87,7 @@ type Mounter interface {
 	Unmount(target string) error
 
 	// IsAttached checks whether the source device is in the running state.
-	IsAttached(source string) (bool, error)
+	IsAttached(source string) error
 
 	// IsFormatted checks whether the source device is formatted or not. It
 	// returns true if the source device is already formatted.
@@ -232,28 +232,28 @@ func (m *mounter) Unmount(target string) error {
 	return mount.CleanupMountPoint(target, m.kMounter, true)
 }
 
-func (m *mounter) IsAttached(source string) (bool, error) {
+func (m *mounter) IsAttached(source string) error {
 	out, err := m.attachmentValidator.evalSymlinks(source)
 	if err != nil {
-		return false, fmt.Errorf("error evaluating the symbolic link %q: %s", source, err)
+		return fmt.Errorf("error evaluating the symbolic link %q: %s", source, err)
 	}
 
 	_, deviceName := filepath.Split(out)
 	if deviceName == "" {
-		return false, fmt.Errorf("error device name is empty for path %s", out)
+		return fmt.Errorf("error device name is empty for path %s", out)
 	}
 
 	deviceStateFilePath := fmt.Sprintf("/sys/class/block/%s/device/state", deviceName)
 	deviceStateFileContent, err := m.attachmentValidator.readFile(deviceStateFilePath)
 	if err != nil {
-		return false, fmt.Errorf("error reading the device state file %q: %s", deviceStateFilePath, err)
+		return fmt.Errorf("error reading the device state file %q: %s", deviceStateFilePath, err)
 	}
 
 	if string(deviceStateFileContent) != strings.TrimSpace(runningState) {
-		return false, fmt.Errorf("error comparing the state file content, expected: %s, got: %s", runningState, string(deviceStateFileContent))
+		return fmt.Errorf("error comparing the state file content, expected: %s, got: %s", runningState, string(deviceStateFileContent))
 	}
 
-	return true, nil
+	return nil
 }
 
 func (m *mounter) IsFormatted(source string) (bool, error) {
