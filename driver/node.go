@@ -130,6 +130,12 @@ func (d *Driver) NodeStageVolume(ctx context.Context, req *csi.NodeStageVolumeRe
 	if noFormat {
 		log.Info("skipping formatting the source device")
 	} else {
+		if d.validateAttachment {
+			if err := d.mounter.IsAttached(source); err != nil {
+				return nil, fmt.Errorf("error retrieving the attachement status %q: %s", source, err)
+			}
+		}
+
 		formatted, err := d.mounter.IsFormatted(source)
 		if err != nil {
 			return nil, err

@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-FROM alpine:3.16
+FROM amd64/alpine:3.16
 
 # e2fsprogs-extra is required for resize2fs used for the resize operation
 # blkid: block device identification tool from util-linux

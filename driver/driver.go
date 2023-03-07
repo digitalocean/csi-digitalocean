@@ -68,6 +68,7 @@ type Driver struct {
 	doTag                  string
 	isController           bool
 	defaultVolumesPageSize uint
+	validateAttachment     bool
 
 	srv     *grpc.Server
 	httpSrv *http.Server
@@ -100,6 +101,7 @@ type NewDriverParams struct {
 	DebugAddr              string
 	DefaultVolumesPageSize uint
 	DOAPIRateLimitQPS      float64
+	ValidateAttachment     bool
 }
 
 // NewDriver returns a CSI plugin that contains the necessary gRPC

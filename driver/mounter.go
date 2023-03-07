@@ -33,6 +33,25 @@ import (
 	kexec "k8s.io/utils/exec"
 )
 
+const (
+	runningState = "running"
+)
+
+type prodAttachmentValidator struct{}
+
+func (av *prodAttachmentValidator) readFile(name string) ([]byte, error) {
+	return os.ReadFile(name)
+}
+
+func (av *prodAttachmentValidator) evalSymlinks(path string) (string, error) {
+	return filepath.EvalSymlinks(path)
+}
+
+type AttachmentValidator interface {
+	readFile(name string) ([]byte, error)
+	evalSymlinks(path string) (string, error)
+}
+
 type findmntResponse struct {
 	FileSystems []fileSystem `json:"filesystems"`
 }
@@ -67,6 +86,9 @@ type Mounter interface {
 	// Unmount unmounts the given target
 	Unmount(target string) error
 
+	// IsAttached checks whether the source device is in the running state.
+	IsAttached(source string) error
+
 	// IsFormatted checks whether the source device is formatted or not. It
 	// returns true if the source device is already formatted.
 	IsFormatted(source string) (bool, error)
@@ -90,8 +112,9 @@ type Mounter interface {
 // architecture specific code in the future, such as mounter_darwin.go,
 // mounter_linux.go, etc..
 type mounter struct {
-	log      *logrus.Entry
-	kMounter *mount.SafeFormatAndMount
+	log                 *logrus.Entry
+	kMounter            *mount.SafeFormatAndMount
+	attachmentValidator AttachmentValidator
 }
 
 // newMounter returns a new mounter instance
@@ -102,8 +125,9 @@ func newMounter(log *logrus.Entry) *mounter {
 	}
 
 	return &mounter{
-		kMounter: kMounter,
-		log:      log,
+		kMounter:            kMounter,
+		log:                 log,
+		attachmentValidator: &prodAttachmentValidator{},
 	}
 }
 
@@ -206,6 +230,30 @@ func (m *mounter) Mount(source, target, fsType string, opts ...string) error {
 
 func (m *mounter) Unmount(target string) error {
 	return mount.CleanupMountPoint(target, m.kMounter, true)
+}
+
+func (m *mounter) IsAttached(source string) error {
+	out, err := m.attachmentValidator.evalSymlinks(source)
+	if err != nil {
+		return fmt.Errorf("error evaluating the symbolic link %q: %s", source, err)
+	}
+
+	_, deviceName := filepath.Split(out)
+	if deviceName == "" {
+		return fmt.Errorf("error device name is empty for path %s", out)
+	}
+
+	deviceStateFilePath := fmt.Sprintf("/sys/class/block/%s/device/state", deviceName)
+	deviceStateFileContent, err := m.attachmentValidator.readFile(deviceStateFilePath)
+	if err != nil {
+		return fmt.Errorf("error reading the device state file %q: %s", deviceStateFilePath, err)
+	}
+
+	if string(deviceStateFileContent) != strings.TrimSpace(runningState) {
+		return fmt.Errorf("error comparing the state file content, expected: %s, got: %s", runningState, string(deviceStateFileContent))
+	}
+
+	return nil
 }
 
 func (m *mounter) IsFormatted(source string) (bool, error) {

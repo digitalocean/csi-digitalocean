@@ -539,6 +539,10 @@ func (f *fakeMounter) GetDeviceName(_ mount.Interface, mountPath string) (string
 	return "", nil
 }
 
+func (f *fakeMounter) IsAttached(source string) error {
+	return nil
+}
+
 func (f *fakeMounter) IsFormatted(source string) (bool, error) {
 	return true, nil
 }
