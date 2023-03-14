@@ -18,7 +18,6 @@ package driver
 
 import (
 	"context"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"net/http"
@@ -185,15 +184,13 @@ func (d *Driver) CreateVolume(ctx context.Context, req *csi.CreateVolumeRequest)
 	log.WithField("volume_req", volumeReq).Info("creating volume")
 	vol, cvResp, err := d.storage.CreateVolume(ctx, volumeReq)
 	if err != nil {
-		if cvResp != nil && cvResp.StatusCode == http.StatusForbidden {
-			var cvErrResp godo.ErrorResponse
-			if err = json.NewDecoder(cvResp.Body).Decode(&cvErrResp); err != nil {
-				return nil, status.Errorf(codes.Internal, "failed to decode create volume forbidden response: %s", err)
-			}
-			if strings.Contains(cvErrResp.Message, "capacity limit exceeded") {
+		errResp := godo.CheckResponse(cvResp.Response)
+		if errResp != nil {
+			if strings.Contains(errResp.(*godo.ErrorResponse).Message, "capacity limit exceeded") {
 				return nil, status.Errorf(codes.ResourceExhausted, "volume limit has been reached. Please contact support.")
 			}
 		}
+		
 		return nil, status.Error(codes.Internal, err.Error())
 	}
 
