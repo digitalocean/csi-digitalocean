@@ -184,13 +184,10 @@ func (d *Driver) CreateVolume(ctx context.Context, req *csi.CreateVolumeRequest)
 	log.WithField("volume_req", volumeReq).Info("creating volume")
 	vol, cvResp, err := d.storage.CreateVolume(ctx, volumeReq)
 	if err != nil {
-		errResp := godo.CheckResponse(cvResp.Response)
-		if errResp != nil {
-			message := errResp.(*godo.ErrorResponse).Message
-			if strings.Contains(message, "capacity limit exceeded") &&
-				message == strings.ToLower(http.StatusText(http.StatusForbidden)) {
-				return nil, status.Errorf(codes.ResourceExhausted, "volume limit has been reached. Please contact support.")
-			}
+		if errResp := godo.CheckResponse(cvResp.Response); errResp != nil &&
+			strings.Contains(errResp.(*godo.ErrorResponse).Message, "capacity limit exceeded") &&
+			cvResp.StatusCode == http.StatusForbidden {
+			return nil, status.Errorf(codes.ResourceExhausted, "volume limit has been reached. Please contact support.")
 		}
 
 		return nil, status.Error(codes.Internal, err.Error())
