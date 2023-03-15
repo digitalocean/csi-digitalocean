@@ -215,7 +215,7 @@ func (f *fakeStorageDriver) GetVolume(ctx context.Context, id string) (*godo.Vol
 }
 
 func (f *fakeStorageDriver) CreateVolume(ctx context.Context, req *godo.VolumeCreateRequest) (*godo.Volume, *godo.Response, error) {
-	if f.createVolumeErr != nil && f.createVolumeErrResponse != nil {
+	if f.createVolumeErr != nil || f.createVolumeErrResponse != nil {
 		return nil, f.createVolumeErrResponse, f.createVolumeErr
 	}
 

@@ -312,6 +312,13 @@ func TestCreateVolume(t *testing.T) {
 				},
 			},
 			createVolumeErr: &godo.ErrorResponse{
+				Response: &http.Response{
+					Request: &http.Request{
+						Method: http.MethodPost,
+						URL:    &url.URL{},
+					},
+					StatusCode: http.StatusForbidden,
+				},
 				Message: "failed to create volume: volume/snapshot capacity limit exceeded",
 			},
 			createVolumeResponseErr: &godo.Response{
@@ -355,7 +362,7 @@ func TestCreateVolume(t *testing.T) {
 					getSnapshotErr: test.getSnapshotErr,
 					snapshots:      test.snapchots,
 				},
-				log: logrus.New().WithField("test_enabed", true),
+				log: logrus.New().WithField("test_enabled", true),
 			}
 
 			_, err := d.CreateVolume(context.Background(), &csi.CreateVolumeRequest{
