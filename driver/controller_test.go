@@ -21,6 +21,7 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"net/url"
 	"strconv"
 	"strings"
 	"testing"
@@ -284,10 +285,16 @@ func TestControllerExpandVolume(t *testing.T) {
 }
 
 func TestCreateVolume(t *testing.T) {
+	snapshotId := "snapshotId"
+
 	tests := []struct {
-		name           string
-		listVolumesErr error
-		getSnapshotErr error
+		name                    string
+		listVolumesErr          error
+		getSnapshotErr          error
+		snapshots               map[string]*godo.Snapshot
+		wantErr                 error
+		createVolumeErr         error
+		createVolumeResponseErr *godo.Response
 	}{
 		{
 			name:           "listing volumes failing",
@@ -297,24 +304,75 @@ func TestCreateVolume(t *testing.T) {
 			name:           "fetching snapshot failing",
 			getSnapshotErr: errors.New("failed to get snapshot"),
 		},
+		{
+			name: "volume limit has been reached",
+			snapshots: map[string]*godo.Snapshot{
+				snapshotId: {
+					ID: snapshotId,
+				},
+			},
+			createVolumeErr: &godo.ErrorResponse{
+				Response: &http.Response{
+					Request: &http.Request{
+						Method: http.MethodPost,
+						URL:    &url.URL{},
+					},
+					StatusCode: http.StatusForbidden,
+				},
+				Message: "failed to create volume: volume/snapshot capacity limit exceeded",
+			},
+			createVolumeResponseErr: &godo.Response{
+				Response: &http.Response{
+					StatusCode: http.StatusForbidden,
+				},
+			},
+			wantErr: errors.New("volume limit has been reached. Please contact support"),
+		},
+		{
+			name: "error occurred when creating a volume",
+			snapshots: map[string]*godo.Snapshot{
+				snapshotId: {
+					ID: snapshotId,
+				},
+			},
+			createVolumeErr: &godo.ErrorResponse{
+				Response: &http.Response{
+					Request: &http.Request{
+						Method: http.MethodPost,
+						URL:    &url.URL{},
+					},
+					StatusCode: http.StatusInternalServerError,
+				},
+				Message: "internal server error",
+			},
+			createVolumeResponseErr: &godo.Response{
+				Response: &http.Response{
+					StatusCode: http.StatusInternalServerError,
+				},
+			},
+			wantErr: errors.New("internal server error"),
+		},
 	}
 
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
 			d := &Driver{
 				storage: &fakeStorageDriver{
-					listVolumesErr: test.listVolumesErr,
+					listVolumesErr:          test.listVolumesErr,
+					createVolumeErr:         test.createVolumeErr,
+					createVolumeErrResponse: test.createVolumeResponseErr,
 				},
 				snapshots: &fakeSnapshotsDriver{
 					getSnapshotErr: test.getSnapshotErr,
+					snapshots:      test.snapshots,
 				},
-				log: logrus.New().WithField("test_enabed", true),
+				log: logrus.New().WithField("test_enabled", true),
 			}
 
 			_, err := d.CreateVolume(context.Background(), &csi.CreateVolumeRequest{
 				Name: "name",
 				VolumeCapabilities: []*csi.VolumeCapability{
-					&csi.VolumeCapability{
+					{
 						AccessType: &csi.VolumeCapability_Mount{
 							Mount: &csi.VolumeCapability_MountVolume{},
 						},
@@ -338,6 +396,8 @@ func TestCreateVolume(t *testing.T) {
 				wantErr = test.listVolumesErr
 			case test.getSnapshotErr != nil:
 				wantErr = test.getSnapshotErr
+			case test.createVolumeErr != nil:
+				wantErr = test.wantErr
 			}
 
 			if wantErr == nil && err != nil {

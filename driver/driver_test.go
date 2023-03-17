@@ -155,9 +155,11 @@ func (f *fakeAccountDriver) Get(context.Context) (*godo.Account, *godo.Response,
 }
 
 type fakeStorageDriver struct {
-	volumes        map[string]*godo.Volume
-	snapshots      map[string]*godo.Snapshot
-	listVolumesErr error
+	volumes                 map[string]*godo.Volume
+	snapshots               map[string]*godo.Snapshot
+	listVolumesErr          error
+	createVolumeErr         error
+	createVolumeErrResponse *godo.Response
 }
 
 func (f *fakeStorageDriver) ListVolumes(ctx context.Context, param *godo.ListVolumeParams) ([]godo.Volume, *godo.Response, error) {
@@ -213,6 +215,10 @@ func (f *fakeStorageDriver) GetVolume(ctx context.Context, id string) (*godo.Vol
 }
 
 func (f *fakeStorageDriver) CreateVolume(ctx context.Context, req *godo.VolumeCreateRequest) (*godo.Volume, *godo.Response, error) {
+	if f.createVolumeErr != nil || f.createVolumeErrResponse != nil {
+		return nil, f.createVolumeErrResponse, f.createVolumeErr
+	}
+
 	id := randString(10)
 	vol := &godo.Volume{
 		ID:            id,
