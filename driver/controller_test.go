@@ -291,7 +291,7 @@ func TestCreateVolume(t *testing.T) {
 		name                    string
 		listVolumesErr          error
 		getSnapshotErr          error
-		snapchots               map[string]*godo.Snapshot
+		snapshots               map[string]*godo.Snapshot
 		wantErr                 error
 		createVolumeErr         error
 		createVolumeResponseErr *godo.Response
@@ -306,7 +306,7 @@ func TestCreateVolume(t *testing.T) {
 		},
 		{
 			name: "volume limit has been reached",
-			snapchots: map[string]*godo.Snapshot{
+			snapshots: map[string]*godo.Snapshot{
 				snapshotId: {
 					ID: snapshotId,
 				},
@@ -330,7 +330,7 @@ func TestCreateVolume(t *testing.T) {
 		},
 		{
 			name: "error occurred when creating a volume",
-			snapchots: map[string]*godo.Snapshot{
+			snapshots: map[string]*godo.Snapshot{
 				snapshotId: {
 					ID: snapshotId,
 				},
@@ -345,8 +345,12 @@ func TestCreateVolume(t *testing.T) {
 				},
 				Message: "internal server error",
 			},
-			createVolumeResponseErr: &godo.Response{},
-			wantErr:                 errors.New("internal server error"),
+			createVolumeResponseErr: &godo.Response{
+				Response: &http.Response{
+					StatusCode: http.StatusInternalServerError,
+				},
+			},
+			wantErr: errors.New("internal server error"),
 		},
 	}
 
@@ -360,7 +364,7 @@ func TestCreateVolume(t *testing.T) {
 				},
 				snapshots: &fakeSnapshotsDriver{
 					getSnapshotErr: test.getSnapshotErr,
-					snapshots:      test.snapchots,
+					snapshots:      test.snapshots,
 				},
 				log: logrus.New().WithField("test_enabled", true),
 			}
