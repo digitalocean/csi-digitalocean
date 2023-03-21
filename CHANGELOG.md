@@ -1,11 +1,14 @@
 ## unreleased
 
+## v4.5.1 - 2023.03.21
+
 * Validate CreateVolume limits with forbidden error response
   [[GH-481]](https://github.com/digitalocean/csi-digitalocean/pull/481)
 * CSI driver can accidentally format existing volume
   [[GH-478]](https://github.com/digitalocean/csi-digitalocean/pull/478)
 
 ## v4.5.0 - 2023.01.11
+
 * Update CSI driver for Kubernetes 1.26
   [[GH-469]](https://github.com/digitalocean/csi-digitalocean/pull/469)
 * Update CSI sidecars to latest
