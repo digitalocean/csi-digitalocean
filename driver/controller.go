@@ -590,12 +590,28 @@ func (d *Driver) ListVolumes(ctx context.Context, req *csi.ListVolumesRequest) (
 
 // GetCapacity returns the capacity of the storage pool
 func (d *Driver) GetCapacity(ctx context.Context, req *csi.GetCapacityRequest) (*csi.GetCapacityResponse, error) {
-	// TODO(arslan): check if we can provide this information somehow
+	volumes, _, err := d.storage.ListVolumes(ctx, &godo.ListVolumeParams{})
+	if err != nil {
+		return nil, err
+	}
+
+	totalCapacity := int64(0)
+	for _, volume := range volumes {
+		if volume.Region.Slug == d.region {
+			totalCapacity += int64(volume.SizeGigaBytes) * 1024 * 1024 * 1024
+		}
+	}
+
+	// Create a new response object
+	resp := &csi.GetCapacityResponse{
+		AvailableCapacity: totalCapacity,
+	}
 	d.log.WithFields(logrus.Fields{
-		"params": req.Parameters,
-		"method": "get_capacity",
-	}).Warn("get capacity is not implemented")
-	return nil, status.Error(codes.Unimplemented, "")
+		"response": resp,
+		"method":   "controller_get_capacity",
+	}).Info("controller get capacity called")
+	return resp, nil
+
 }
 
 // ControllerGetCapabilities returns the capabilities of the controller service.
