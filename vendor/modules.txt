@@ -8,11 +8,6 @@ github.com/blang/semver
 # github.com/container-storage-interface/spec v1.5.0
 ## explicit; go 1.16
 github.com/container-storage-interface/spec/lib/go/csi
-# github.com/containerd/containerd v1.5.8
-## explicit; go 1.16
-github.com/containerd/containerd/errdefs
-github.com/containerd/containerd/log
-github.com/containerd/containerd/platforms
 # github.com/digitalocean/go-metadata v0.0.0-20180111002115-15bd36e5f6f7
 ## explicit
 github.com/digitalocean/go-metadata
@@ -24,8 +19,7 @@ github.com/digitalocean/godo/metrics
 ## explicit
 github.com/docker/distribution/digestset
 github.com/docker/distribution/reference
-github.com/docker/distribution/registry/api/errcode
-# github.com/docker/docker v20.10.2+incompatible
+# github.com/docker/docker v20.10.24+incompatible
 ## explicit
 github.com/docker/docker/api
 github.com/docker/docker/api/types
@@ -95,6 +89,8 @@ github.com/magiconair/properties/assert
 # github.com/moby/sys/mountinfo v0.6.2
 ## explicit; go 1.16
 github.com/moby/sys/mountinfo
+# github.com/moby/term v0.0.0-20220808134915-39b0c02b01ae
+## explicit; go 1.13
 # github.com/morikuni/aec v1.0.0
 ## explicit
 # github.com/nxadm/tail v1.4.8
