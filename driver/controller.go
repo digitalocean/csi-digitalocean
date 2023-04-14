@@ -588,23 +588,34 @@ func (d *Driver) ListVolumes(ctx context.Context, req *csi.ListVolumesRequest) (
 	return resp, nil
 }
 
-// GetCapacity returns the capacity of the storage pool
+// GetCapacity returns the capacity of the storage pool and return it in GigaBytes
 func (d *Driver) GetCapacity(ctx context.Context, req *csi.GetCapacityRequest) (*csi.GetCapacityResponse, error) {
 	volumes, _, err := d.storage.ListVolumes(ctx, &godo.ListVolumeParams{})
 	if err != nil {
 		return nil, err
 	}
 
-	totalCapacity := int64(0)
+	usedCapacity := int64(0)
 	for _, volume := range volumes {
 		if volume.Region.Slug == d.region {
-			totalCapacity += int64(volume.SizeGigaBytes) * 1024 * 1024 * 1024
+			if volume.DropletIDs != nil && len(volume.DropletIDs) > 0 {
+				usedCapacity += volume.SizeGigaBytes
+			}
 		}
 	}
 
+	// Get the limit on the total storage capacity that can be used
+	limitdetails, err := d.checkLimit(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	limit := int64(limitdetails.limit)
+	availableCapacity := limit - usedCapacity
+
 	// Create a new response object
 	resp := &csi.GetCapacityResponse{
-		AvailableCapacity: totalCapacity,
+		AvailableCapacity: availableCapacity,
 	}
 	d.log.WithFields(logrus.Fields{
 		"response": resp,
