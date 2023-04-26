@@ -18,7 +18,7 @@ func (cli *Client) ContainerInspect(ctx context.Context, containerID string) (ty
 	serverResp, err := cli.get(ctx, "/containers/"+containerID+"/json", nil, nil)
 	defer ensureReaderClosed(serverResp)
 	if err != nil {
-		return types.ContainerJSON{}, err
+		return types.ContainerJSON{}, wrapResponseError(err, serverResp, "container", containerID)
 	}
 
 	var response types.ContainerJSON
@@ -38,7 +38,7 @@ func (cli *Client) ContainerInspectWithRaw(ctx context.Context, containerID stri
 	serverResp, err := cli.get(ctx, "/containers/"+containerID+"/json", query, nil)
 	defer ensureReaderClosed(serverResp)
 	if err != nil {
-		return types.ContainerJSON{}, nil, err
+		return types.ContainerJSON{}, nil, wrapResponseError(err, serverResp, "container", containerID)
 	}
 
 	body, err := io.ReadAll(serverResp.body)

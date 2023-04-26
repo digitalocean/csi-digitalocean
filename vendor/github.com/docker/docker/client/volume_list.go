@@ -6,12 +6,12 @@ import (
 	"net/url"
 
 	"github.com/docker/docker/api/types/filters"
-	"github.com/docker/docker/api/types/volume"
+	volumetypes "github.com/docker/docker/api/types/volume"
 )
 
 // VolumeList returns the volumes configured in the docker host.
-func (cli *Client) VolumeList(ctx context.Context, filter filters.Args) (volume.ListResponse, error) {
-	var volumes volume.ListResponse
+func (cli *Client) VolumeList(ctx context.Context, filter filters.Args) (volumetypes.VolumeListOKBody, error) {
+	var volumes volumetypes.VolumeListOKBody
 	query := url.Values{}
 
 	if filter.Len() > 0 {

@@ -36,7 +36,7 @@ func (cli *Client) NetworkInspectWithRaw(ctx context.Context, networkID string, 
 	resp, err = cli.get(ctx, "/networks/"+networkID, query, nil)
 	defer ensureReaderClosed(resp)
 	if err != nil {
-		return networkResource, nil, err
+		return networkResource, nil, wrapResponseError(err, resp, "network", networkID)
 	}
 
 	body, err := io.ReadAll(resp.body)

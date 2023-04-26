@@ -25,7 +25,7 @@ func (cli *Client) PluginList(ctx context.Context, filter filters.Args) (types.P
 	resp, err := cli.get(ctx, "/plugins", query, nil)
 	defer ensureReaderClosed(resp)
 	if err != nil {
-		return plugins, err
+		return plugins, wrapResponseError(err, resp, "plugin", "")
 	}
 
 	err = json.NewDecoder(resp.body).Decode(&plugins)

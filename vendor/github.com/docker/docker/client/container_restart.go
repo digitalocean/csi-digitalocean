@@ -3,22 +3,18 @@ package client // import "github.com/docker/docker/client"
 import (
 	"context"
 	"net/url"
-	"strconv"
+	"time"
 
-	"github.com/docker/docker/api/types/container"
-	"github.com/docker/docker/api/types/versions"
+	timetypes "github.com/docker/docker/api/types/time"
 )
 
 // ContainerRestart stops and starts a container again.
-// It makes the daemon wait for the container to be up again for
+// It makes the daemon to wait for the container to be up again for
 // a specific amount of time, given the timeout.
-func (cli *Client) ContainerRestart(ctx context.Context, containerID string, options container.StopOptions) error {
+func (cli *Client) ContainerRestart(ctx context.Context, containerID string, timeout *time.Duration) error {
 	query := url.Values{}
-	if options.Timeout != nil {
-		query.Set("t", strconv.Itoa(*options.Timeout))
-	}
-	if options.Signal != "" && versions.GreaterThanOrEqualTo(cli.version, "1.42") {
-		query.Set("signal", options.Signal)
+	if timeout != nil {
+		query.Set("t", timetypes.DurationToSecondsString(*timeout))
 	}
 	resp, err := cli.post(ctx, "/containers/"+containerID+"/restart", query, nil, nil)
 	ensureReaderClosed(resp)

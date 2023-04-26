@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"net/url"
+	"strconv"
 
 	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/api/types/swarm"
@@ -34,7 +35,7 @@ func (cli *Client) ServiceUpdate(ctx context.Context, serviceID string, version 
 		query.Set("rollback", options.Rollback)
 	}
 
-	query.Set("version", version.String())
+	query.Set("version", strconv.FormatUint(version.Index, 10))
 
 	if err := validateServiceSpec(service); err != nil {
 		return response, err
