@@ -167,7 +167,9 @@ Summaries:
 		fmt.Println("Stopping container")
 		// A nil timeout means we use the timeout configured on the container
 		// Config.
-		err := cli.ContainerStop(context.Background(), cont.ID, nil)
+		err := cli.ContainerStop(context.Background(), cont.ID, container.StopOptions{
+			Timeout: nil,
+		})
 		if err != nil {
 			retErr = utilerrors.NewAggregate([]error{retErr, fmt.Errorf("failed to stop container: %s", err)})
 			return
