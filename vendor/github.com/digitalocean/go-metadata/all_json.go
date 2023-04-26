@@ -42,4 +42,11 @@ type Metadata struct {
 			Active    bool   `json:"active,omitempty"`
 		} `json:"ipv4,omitempty"`
 	} `json:"floating_ip",omitempty"`
+
+	ReservedIP struct {
+		IPv4 struct {
+			IPAddress string `json:"ip_address,omitempty"`
+			Active    bool   `json:"active,omitempty"`
+		} `json:"ipv4,omitempty"`
+	} `json:"reserved_ip",omitempty"`
 }
