@@ -13,7 +13,7 @@
 # limitations under the License.
 
 ### base build containers
-FROM golang:1.13 AS builder
+FROM golang:1.20 AS builder
 
 RUN apt-get update && \
     DEBIAN_FRONTEND=noninteractive apt-get install --yes --no-install-recommends rsync
@@ -62,10 +62,10 @@ RUN cp ginkgo /ginkgo-1.24
 
 FROM golang:1.20 AS tools
 # See comment at the bottom on why we need tini.
-ARG TINI_VERSION=0.18.0
+ARG TINI_VERSION=0.19.0
 # doctl is needed to support clusters that had their kubeconfig fetched via the
 # CLI because those leverage a kubeconfig authentication plugin based on doctl.
-ARG DOCTL_VERSION=1.76.2
+ARG DOCTL_VERSION=1.94.0
 
 RUN curl --fail --location --output /tini https://github.com/krallin/tini/releases/download/v${TINI_VERSION}/tini
 RUN chmod u+x /tini
