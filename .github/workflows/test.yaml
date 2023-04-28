@@ -88,6 +88,7 @@ jobs:
     runs-on: ubuntu-20.04
     needs: push-images
     strategy:
+      fail-fast: false
       matrix:
         kube-release: ['1.26', '1.25', '1.24', '1.23']
 
