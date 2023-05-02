@@ -27,8 +27,7 @@ DriverInfo:
     fsGroup: true
     volumeMountGroup: false
     exec: true
-    snapshotDataSource: true
-    FSResizeFromSourceNotSupported: false
+    snapshotDataSource: false
     pvcDataSource: false
     multipods: true
     RWX: false
