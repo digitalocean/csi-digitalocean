@@ -1,4 +1,4 @@
-# Copyright 2020 DigitalOcean
+# Copyright 2023 DigitalOcean
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -25,8 +25,9 @@ DriverInfo:
     persistence: true
     block: true
     fsGroup: true
+    volumeMountGroup: false
     exec: true
-    snapshotDataSource: true
+    snapshotDataSource: false
     pvcDataSource: false
     multipods: true
     RWX: false
@@ -36,6 +37,7 @@ DriverInfo:
     volumeLimits: true
     singleNodeVolume: true
     topology: true
+    capacity: false
   SupportedFsType:
     ext3:
     ext4:
