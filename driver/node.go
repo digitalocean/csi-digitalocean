@@ -180,7 +180,7 @@ func (d *Driver) NodeStageVolume(ctx context.Context, req *csi.NodeStageVolumeRe
 			return nil, status.Errorf(codes.Internal, "Could not determine if volume %q need to be resized: %v", req.VolumeId, err)
 		}
 
-		log.Info(fmt.Sprintf("---- test no error need resize %b ----", needResize))
+		log.Info(fmt.Sprintf("---- test no error need resize %t ----", needResize))
 		if needResize {
 			log.Info("---- test hit inside need resize ----")
 			klog.V(4).Infof("NodeStageVolume: Resizing volume %q created from a snapshot/volume", req.VolumeId)
