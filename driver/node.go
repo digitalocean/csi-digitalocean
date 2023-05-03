@@ -35,7 +35,7 @@ import (
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"k8s.io/mount-utils"
-	//mountutil "k8s.io/mount-utils"
+	mountutil "k8s.io/mount-utils"
 	utilexec "k8s.io/utils/exec"
 )
 
@@ -167,9 +167,9 @@ func (d *Driver) NodeStageVolume(ctx context.Context, req *csi.NodeStageVolumeRe
 		log.Info("source device is already mounted to the target path")
 	}
 
-	//log.Info("---- test hit ----")
-	//r := mountutil.NewResizeFs(utilexec.New())
-	//_, err = r.NeedResize(source, target)
+	log.Info("---- test hit ----")
+	r := mountutil.NewResizeFs(utilexec.New())
+	_, err = r.NeedResize(source, target)
 
 	//if err != nil {
 	//	log.Info("---- test hit inside err need resize ----")
