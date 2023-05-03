@@ -4,6 +4,8 @@
 
 * Update CSI driver for Kubernetes 1.27
   [[GH-486]](https://github.com/digitalocean/csi-digitalocean/pull/486)
+* Remove pre-stop driver unregistration
+  [[GH-487]](https://github.com/digitalocean/csi-digitalocean/pull/487)
 
 ## v4.5.1 - 2023.03.21
 
