@@ -27,6 +27,7 @@ package driver
 import (
 	"context"
 	"fmt"
+	"os"
 	"path/filepath"
 	"strings"
 
@@ -171,13 +172,17 @@ func (d *Driver) NodeStageVolume(ctx context.Context, req *csi.NodeStageVolumeRe
 	log.Info(fmt.Sprintf("source: %s", source))
 	log.Info(fmt.Sprintf("target: %s", target))
 
-	r := mountutil.NewResizeFs(utilexec.New())
-	_, err = r.NeedResize(source, target)
+	if _, err := os.Stat(source); err == nil {
+		fmt.Printf("File exists\n");
+		r := mountutil.NewResizeFs(utilexec.New())
+		_, err = r.NeedResize(source, target)
 
-	if err != nil {
-		log.Info("---- test hit inside err need resize ----")
-		return nil, status.Errorf(codes.Internal, "Could not determine if volume %q need to be resized: %v", req.VolumeId, err)
+		if err != nil {
+			log.Info("---- test hit inside err need resize ----")
+			return nil, status.Errorf(codes.Internal, "Could not determine if volume %q need to be resized: %v", req.VolumeId, err)
+		}
 	}
+
 	//
 	//if needResize {
 	//	log.Info("---- test hit inside need resize ----")
