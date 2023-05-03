@@ -168,6 +168,9 @@ func (d *Driver) NodeStageVolume(ctx context.Context, req *csi.NodeStageVolumeRe
 	}
 
 	log.Info("---- test hit ----")
+	log.Info(fmt.Sprintf("source: %s", source))
+	log.Info(fmt.Sprintf("target: %s", target))
+
 	r := mountutil.NewResizeFs(utilexec.New())
 	_, err = r.NeedResize(source, target)
 
