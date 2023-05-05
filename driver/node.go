@@ -27,8 +27,6 @@ package driver
 import (
 	"context"
 	"fmt"
-	"k8s.io/klog/v2"
-	"os"
 	"path/filepath"
 	"strings"
 
@@ -37,7 +35,6 @@ import (
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"k8s.io/mount-utils"
-	mountutil "k8s.io/mount-utils"
 	utilexec "k8s.io/utils/exec"
 )
 
@@ -168,30 +165,6 @@ func (d *Driver) NodeStageVolume(ctx context.Context, req *csi.NodeStageVolumeRe
 	} else {
 		log.Info("source device is already mounted to the target path")
 	}
-
-	log.Info("---- test hit ----")
-	if _, err := os.Stat(source); err == nil {
-		log.Info("---- test hit inside file exist if ----")
-		r := mountutil.NewResizeFs(utilexec.New())
-		needResize, err := r.NeedResize(source, target)
-
-		if err != nil {
-			log.Info("---- test hit inside err need resize ----")
-			return nil, status.Errorf(codes.Internal, "Could not determine if volume %q need to be resized: %v", req.VolumeId, err)
-		}
-
-		log.Info(fmt.Sprintf("---- test no error need resize %t ----", needResize))
-		if needResize {
-			log.Info("---- test hit inside need resize ----")
-			klog.V(4).Infof("NodeStageVolume: Resizing volume %q created from a snapshot/volume", req.VolumeId)
-			if _, err := r.Resize(source, target); err != nil {
-				log.Info("---- test hit inside need error resizing volume ----")
-				return nil, status.Errorf(codes.Internal, "Could not resize volume %q:  %v", req.VolumeId, err)
-			}
-		}
-	}
-
-
 
 	log.Info("formatting and mounting stage volume is finished")
 	return &csi.NodeStageVolumeResponse{}, nil
