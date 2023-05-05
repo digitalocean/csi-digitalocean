@@ -191,7 +191,9 @@ func (d *Driver) CreateVolume(ctx context.Context, req *csi.CreateVolumeRequest)
 		return nil, status.Error(codes.Internal, err.Error())
 	}
 
+	log.Info("---- just before the volumeReq.SnapshotID != \"\"")
 	if volumeReq.SnapshotID != "" {
+		log.Info("---- hit inside the volume snapshot ")
 		action, _, err := d.storageActions.Resize(ctx, vol.ID, int(volumeReq.SizeGigaBytes), volumeReq.Region)
 		if err != nil {
 			return nil, status.Errorf(codes.Internal, "cannot resize volume %s: %s", vol.ID, err.Error())
