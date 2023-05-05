@@ -179,6 +179,7 @@ func (d *Driver) CreateVolume(ctx context.Context, req *csi.CreateVolumeRequest)
 			return nil, err
 		}
 
+		log.WithField("response", resp).Info("snapshot was fetched")
 		log.WithField("snapshot_id", snapshotID).Info("using snapshot as volume source")
 		volumeReq.SnapshotID = snapshotID
 	}
@@ -193,13 +194,6 @@ func (d *Driver) CreateVolume(ctx context.Context, req *csi.CreateVolumeRequest)
 		return nil, status.Error(codes.Internal, err.Error())
 	}
 
-	log.Info("---- just before the volumeReq.SnapshotID != \"\"")
-	log.WithField("volume_req_size_giga_bytes", volumeReq.SizeGigaBytes).Info("volume_req_size_giga_bytes")
-	log.WithField("volume_req_size_giga_bytes_int", int(volumeReq.SizeGigaBytes)).Info("volume_req_size_giga_bytes_int")
-	if snapshot != nil {
-		log.WithField("snapshot_size_giga_bytes", snapshot.SizeGigaBytes).Info("snapshot_size_giga_bytes")
-		log.WithField("snapshot_size_giga_bytes_int", int(snapshot.SizeGigaBytes)).Info("snapshot_size_giga_bytes_int")
-	}
 	if volumeReq.SnapshotID != "" && snapshot != nil && int(volumeReq.SizeGigaBytes) > int(snapshot.SizeGigaBytes) {
 		log.Info("---- hit inside the volume snapshot ")
 		_, _, err := d.storageActions.Resize(ctx, vol.ID, int(volumeReq.SizeGigaBytes), volumeReq.Region)
