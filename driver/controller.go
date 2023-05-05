@@ -162,6 +162,7 @@ func (d *Driver) CreateVolume(ctx context.Context, req *csi.CreateVolumeRequest)
 	}
 
 	contentSource := req.GetVolumeContentSource()
+	var snapshot *godo.Snapshot
 	if contentSource != nil && contentSource.GetSnapshot() != nil {
 		snapshotID := contentSource.GetSnapshot().GetSnapshotId()
 		if snapshotID == "" {
@@ -169,7 +170,8 @@ func (d *Driver) CreateVolume(ctx context.Context, req *csi.CreateVolumeRequest)
 		}
 
 		// check if the snapshot exist before we continue
-		_, resp, err := d.snapshots.Get(ctx, snapshotID)
+		var resp *godo.Response
+		snapshot, resp, err = d.snapshots.Get(ctx, snapshotID)
 		if err != nil {
 			if resp != nil && resp.StatusCode == http.StatusNotFound {
 				return nil, status.Errorf(codes.NotFound, "snapshot %q does not exist", snapshotID)
@@ -192,20 +194,15 @@ func (d *Driver) CreateVolume(ctx context.Context, req *csi.CreateVolumeRequest)
 	}
 
 	log.Info("---- just before the volumeReq.SnapshotID != \"\"")
-	if volumeReq.SnapshotID != "" {
+	log.WithField("volume_req_size_giga_bytes", volumeReq.SizeGigaBytes).Info("volume_req_size_giga_bytes")
+	log.WithField("volume_req_size_giga_bytes_int", int(volumeReq.SizeGigaBytes)).Info("volume_req_size_giga_bytes_int")
+	log.WithField("snapshot_size_giga_bytes", snapshot.SizeGigaBytes).Info("snapshot_size_giga_bytes")
+	log.WithField("snapshot_size_giga_bytes_int", int(volumeReq.SizeGigaBytes)).Info("snapshot_size_giga_bytes_int")
+	if volumeReq.SnapshotID != "" && int(volumeReq.SizeGigaBytes) > int(snapshot.SizeGigaBytes) {
 		log.Info("---- hit inside the volume snapshot ")
-		action, _, err := d.storageActions.Resize(ctx, vol.ID, int(volumeReq.SizeGigaBytes), volumeReq.Region)
+		_, _, err := d.storageActions.Resize(ctx, vol.ID, int(volumeReq.SizeGigaBytes), volumeReq.Region)
 		if err != nil {
 			return nil, status.Errorf(codes.Internal, "cannot resize volume %s: %s", vol.ID, err.Error())
-		}
-		log = log.WithField("new_volume_size", volumeReq.SizeGigaBytes)
-
-		if action != nil {
-			log = logWithAction(log, action)
-			log.Info("waiting until volume is resized")
-			if err := d.waitAction(ctx, log, vol.ID, action.ID); err != nil {
-				return nil, status.Errorf(codes.Internal, "failed waiting on action ID %d for volume ID %s to get resized: %s", action.ID, vol.ID, err)
-			}
 		}
 		log.Info("volume was resized")
 	}
