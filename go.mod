@@ -20,6 +20,7 @@ require (
 	google.golang.org/grpc v1.51.0
 	gotest.tools/v3 v3.4.0
 	k8s.io/apimachinery v0.27.1
+	k8s.io/klog/v2 v2.90.1
 	k8s.io/mount-utils v0.27.1
 	k8s.io/utils v0.0.0-20230209194617-a36077c30491
 )
@@ -53,7 +54,6 @@ require (
 	gopkg.in/tomb.v1 v1.0.0-20141024135613-dd632973f1e7 // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
-	k8s.io/klog/v2 v2.90.1 // indirect
 )
 
 replace k8s.io/api => k8s.io/api v0.27.1
