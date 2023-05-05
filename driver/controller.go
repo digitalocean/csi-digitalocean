@@ -194,13 +194,13 @@ func (d *Driver) CreateVolume(ctx context.Context, req *csi.CreateVolumeRequest)
 		return nil, status.Error(codes.Internal, err.Error())
 	}
 
-	if snapshot != nil && vol != nil && volumeReq.SnapshotID != "" && int(volumeReq.SizeGigaBytes) > int(snapshot.SizeGigaBytes) {
+	if snapshot != nil && vol != nil && volumeReq.SnapshotID != "" && int(volumeReq.SizeGigaBytes) > int(snapshot.SizeGigaBytes) && int(volumeReq.SizeGigaBytes) > 1 {
 		log.Infof("volume %s will be resize from %d to %d", vol.ID, int(snapshot.SizeGigaBytes), int(volumeReq.SizeGigaBytes))
 		_, resp, err := d.storageActions.Resize(ctx, vol.ID, int(volumeReq.SizeGigaBytes), volumeReq.Region)
+		log.WithField("response", resp).Info("volume was resized")
 		if err != nil {
 			return nil, status.Errorf(codes.Internal, "cannot resize volume %s: %s", vol.ID, err.Error())
 		}
-		log.WithField("response", resp).Info("volume was resized")
 	}
 
 	resp := &csi.CreateVolumeResponse{
