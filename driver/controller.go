@@ -196,9 +196,11 @@ func (d *Driver) CreateVolume(ctx context.Context, req *csi.CreateVolumeRequest)
 	log.Info("---- just before the volumeReq.SnapshotID != \"\"")
 	log.WithField("volume_req_size_giga_bytes", volumeReq.SizeGigaBytes).Info("volume_req_size_giga_bytes")
 	log.WithField("volume_req_size_giga_bytes_int", int(volumeReq.SizeGigaBytes)).Info("volume_req_size_giga_bytes_int")
-	log.WithField("snapshot_size_giga_bytes", snapshot.SizeGigaBytes).Info("snapshot_size_giga_bytes")
-	log.WithField("snapshot_size_giga_bytes_int", int(volumeReq.SizeGigaBytes)).Info("snapshot_size_giga_bytes_int")
-	if volumeReq.SnapshotID != "" && int(volumeReq.SizeGigaBytes) > int(snapshot.SizeGigaBytes) {
+	if snapshot != nil {
+		log.WithField("snapshot_size_giga_bytes", snapshot.SizeGigaBytes).Info("snapshot_size_giga_bytes")
+		log.WithField("snapshot_size_giga_bytes_int", int(snapshot.SizeGigaBytes)).Info("snapshot_size_giga_bytes_int")
+	}
+	if volumeReq.SnapshotID != "" && snapshot != nil && int(volumeReq.SizeGigaBytes) > int(snapshot.SizeGigaBytes) {
 		log.Info("---- hit inside the volume snapshot ")
 		_, _, err := d.storageActions.Resize(ctx, vol.ID, int(volumeReq.SizeGigaBytes), volumeReq.Region)
 		if err != nil {
