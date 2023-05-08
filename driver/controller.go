@@ -178,10 +178,12 @@ func (d *Driver) CreateVolume(ctx context.Context, req *csi.CreateVolumeRequest)
 			}
 			return nil, err
 		}
+		log = log.WithFields(logrus.Fields{
+			"snapshot_id":              snapshotID,
+			"snapshot_size_giga_bytes": snapshot.SizeGigaBytes,
+		})
+		log.Info("using snapshot as volume source")
 
-		log.WithField("snapshot_id", snapshotID).
-			WithField("snapshot_size_giga_bytes", snapshot.SizeGigaBytes).
-			Info("using snapshot as volume source")
 		volumeReq.SnapshotID = snapshotID
 	}
 
@@ -195,22 +197,17 @@ func (d *Driver) CreateVolume(ctx context.Context, req *csi.CreateVolumeRequest)
 		return nil, status.Error(codes.Internal, err.Error())
 	}
 
-	if snapshot != nil && int(volumeReq.SizeGigaBytes) > int(snapshot.SizeGigaBytes) && int(volumeReq.SizeGigaBytes) > 1 {
-		action, _, err := d.storageActions.Resize(ctx, vol.ID, int(volumeReq.SizeGigaBytes), volumeReq.Region)
-		log.WithField("resized_from", int(snapshot.SizeGigaBytes)).
-			WithField("resized_to", int(volumeReq.SizeGigaBytes)).
-			Info("volume was resized when it's being created at a greater size than the snapshot size")
+	if snapshot != nil && volumeReq.SizeGigaBytes > int64(snapshot.SizeGigaBytes) && volumeReq.SizeGigaBytes > 1 {
+		_, _, err := d.storageActions.Resize(ctx, vol.ID, int(volumeReq.SizeGigaBytes), volumeReq.Region)
+		log.Info("resizing volume because its requested size is larger than the size of the backing snapshot")
 		if err != nil {
 			return nil, status.Errorf(codes.Internal, "cannot resize volume %s: %s", vol.ID, err.Error())
 		}
-
-		if action != nil {
-			log = logWithAction(log, action)
-			log.Info("waiting until volume is resized")
-			if err := d.waitAction(ctx, log, vol.ID, action.ID); err != nil {
-				return nil, status.Errorf(codes.Internal, "failed waiting on action ID %d for volume ID %s to get resized: %s", action.ID, vol.ID, err)
-			}
-		}
+		log = log.WithFields(logrus.Fields{
+			"resized_from": int(snapshot.SizeGigaBytes),
+			"resized_to":   int(volumeReq.SizeGigaBytes),
+		})
+		log.Info("resize completed")
 	}
 
 	resp := &csi.CreateVolumeResponse{
