@@ -199,7 +199,7 @@ func (d *Driver) CreateVolume(ctx context.Context, req *csi.CreateVolumeRequest)
 
 	if snapshot != nil && volumeReq.SizeGigaBytes > int64(snapshot.SizeGigaBytes) && volumeReq.SizeGigaBytes > 1 {
 		log.Info("resizing volume because its requested size is larger than the size of the backing snapshot")
-		_, _, err := d.storageActions.Resize(ctx, vol.ID, int(volumeReq.SizeGigaBytes), volumeReq.Region)
+		action, _, err := d.storageActions.Resize(ctx, vol.ID, int(volumeReq.SizeGigaBytes), volumeReq.Region)
 		if err != nil {
 			return nil, status.Errorf(codes.Internal, "cannot resize volume %s: %s", vol.ID, err.Error())
 		}
@@ -207,6 +207,13 @@ func (d *Driver) CreateVolume(ctx context.Context, req *csi.CreateVolumeRequest)
 			"resized_from": int(snapshot.SizeGigaBytes),
 			"resized_to":   int(volumeReq.SizeGigaBytes),
 		})
+		if action != nil {
+			log = logWithAction(log, action)
+			log.Info("waiting until volume is resized")
+			if err := d.waitAction(ctx, log, vol.ID, action.ID); err != nil {
+				return nil, status.Errorf(codes.Internal, "failed waiting on action ID %d for volume ID %s to get resized: %s", action.ID, req.VolumeId, err)
+			}
+		}
 		log.Info("resize completed")
 	}
 
