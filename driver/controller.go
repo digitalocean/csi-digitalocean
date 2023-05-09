@@ -196,8 +196,24 @@ func (d *Driver) CreateVolume(ctx context.Context, req *csi.CreateVolumeRequest)
 
 		return nil, status.Error(codes.Internal, err.Error())
 	}
+	log.WithField("volume_response", cvResp)
 
 	if snapshot != nil && volumeReq.SizeGigaBytes > int64(snapshot.SizeGigaBytes) && volumeReq.SizeGigaBytes > 1 {
+		log.WithField("volume_id", vol.ID)
+		log.WithField("volume_name", vol.Name)
+		//for {
+		//	volumes, _, err = d.storage.ListVolumes(ctx, &godo.ListVolumeParams{
+		//		Region: d.region,
+		//		Name:   vol.Name,
+		//	})
+		//	if len(volumes) > 1 {
+		//		break
+		//	}
+		//	if err != nil {
+		//		return nil, status.Errorf(codes.ResourceExhausted, "volume limit has been reached. Please contact support")
+		//	}
+		//
+		//}
 		log.Info("resizing volume because its requested size is larger than the size of the backing snapshot")
 		action, _, err := d.storageActions.Resize(ctx, vol.ID, int(volumeReq.SizeGigaBytes), volumeReq.Region)
 		if err != nil {
