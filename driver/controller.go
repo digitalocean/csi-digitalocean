@@ -210,7 +210,7 @@ func (d *Driver) CreateVolume(ctx context.Context, req *csi.CreateVolumeRequest)
 		if action != nil {
 			log = logWithAction(log, action)
 			log.Info("waiting until volume is resized")
-			waitActionCtx, waitActionCancel := context.WithTimeout(ctx, time.Now().Add(time.Second*15))
+			waitActionCtx, waitActionCancel := context.WithDeadline(ctx, time.Now().Add(time.Second*15))
 			defer waitActionCancel()
 			if err := d.waitAction(waitActionCtx, log, vol.ID, action.ID); err != nil {
 				return nil, status.Errorf(codes.Internal, "failed waiting on action ID %d for volume ID %s to get resized: %s", action.ID, vol.ID, err)
