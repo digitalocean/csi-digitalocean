@@ -6,6 +6,10 @@
   [[GH-486]](https://github.com/digitalocean/csi-digitalocean/pull/486)
 * Remove pre-stop driver unregistration
   [[GH-487]](https://github.com/digitalocean/csi-digitalocean/pull/487)
+* Fix snapshot resizing
+  [[GH-490]](https://github.com/digitalocean/csi-digitalocean/pull/490)
+* Fix VolumeSnapshot spec 
+  [[GH-485]](https://github.com/digitalocean/csi-digitalocean/pull/485)
 
 ## v4.5.1 - 2023.03.21
 
