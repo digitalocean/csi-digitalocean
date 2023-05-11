@@ -45,8 +45,9 @@ kind: VolumeSnapshot
 metadata:
   name: snapshot-manual
 spec:
-  snapshotContentName: snapshotcontent-manual
-  snapshotClassName: do-block-storage
+  volumeSnapshotClassName: do-block-storage
+  source:
+    volumeSnapshotContentName: snapshotcontent-manual
 ```
 
 Make sure the name references between the `VolumeSnapshot` and the previously created `VolumeSnapshotContent` line up correctly.
