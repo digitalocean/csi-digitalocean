@@ -67,6 +67,9 @@ const (
 	// maxVolumesPerDropletErrorMessage is the error message returned by the DO
 	// API when the per-droplet volume limit would be exceeded.
 	maxVolumesPerDropletErrorMessage = "cannot attach more than 7 volumes to a single Droplet"
+
+	// doneActionStatus is used to determine if a Digital Ocean resize action is completed.
+	doneActionStatus = "done"
 )
 
 var (
@@ -162,6 +165,7 @@ func (d *Driver) CreateVolume(ctx context.Context, req *csi.CreateVolumeRequest)
 	}
 
 	contentSource := req.GetVolumeContentSource()
+	var snapshot *godo.Snapshot
 	if contentSource != nil && contentSource.GetSnapshot() != nil {
 		snapshotID := contentSource.GetSnapshot().GetSnapshotId()
 		if snapshotID == "" {
@@ -169,15 +173,20 @@ func (d *Driver) CreateVolume(ctx context.Context, req *csi.CreateVolumeRequest)
 		}
 
 		// check if the snapshot exist before we continue
-		_, resp, err := d.snapshots.Get(ctx, snapshotID)
+		var resp *godo.Response
+		snapshot, resp, err = d.snapshots.Get(ctx, snapshotID)
 		if err != nil {
 			if resp != nil && resp.StatusCode == http.StatusNotFound {
 				return nil, status.Errorf(codes.NotFound, "snapshot %q does not exist", snapshotID)
 			}
 			return nil, err
 		}
+		log = log.WithFields(logrus.Fields{
+			"snapshot_id":              snapshotID,
+			"snapshot_size_giga_bytes": snapshot.SizeGigaBytes,
+		})
+		log.Info("using snapshot as volume source")
 
-		log.WithField("snapshot_id", snapshotID).Info("using snapshot as volume source")
 		volumeReq.SnapshotID = snapshotID
 	}
 
@@ -189,6 +198,26 @@ func (d *Driver) CreateVolume(ctx context.Context, req *csi.CreateVolumeRequest)
 		}
 
 		return nil, status.Error(codes.Internal, err.Error())
+	}
+
+	if snapshot != nil && volumeReq.SizeGigaBytes > int64(snapshot.SizeGigaBytes) && volumeReq.SizeGigaBytes > 1 {
+		log.Info("resizing volume because its requested size is larger than the size of the backing snapshot")
+		action, _, err := d.storageActions.Resize(ctx, vol.ID, int(volumeReq.SizeGigaBytes), volumeReq.Region)
+		if err != nil {
+			return nil, status.Errorf(codes.Internal, "cannot resize volume %s: %s", vol.ID, err.Error())
+		}
+		log = log.WithFields(logrus.Fields{
+			"resized_from": int(snapshot.SizeGigaBytes),
+			"resized_to":   int(volumeReq.SizeGigaBytes),
+		})
+		if action != nil && action.Status != doneActionStatus {
+			log = logWithAction(log, action)
+			log.Info("waiting until volume is resized")
+			if err := d.waitAction(ctx, log, vol.ID, action.ID); err != nil {
+				return nil, status.Errorf(codes.Internal, "failed waiting on action ID %d for volume ID %s to get resized: %s", action.ID, vol.ID, err)
+			}
+		}
+		log.Info("resize completed")
 	}
 
 	resp := &csi.CreateVolumeResponse{
@@ -1023,7 +1052,7 @@ func (d *Driver) waitAction(ctx context.Context, log *logrus.Entry, volumeID str
 		}
 		log = log.WithField("action_status", action.Status)
 
-		if action.Status == godo.ActionCompleted {
+		if action.Status == godo.ActionCompleted || action.Status == doneActionStatus {
 			log.Info("action completed")
 			return true, nil
 		}
