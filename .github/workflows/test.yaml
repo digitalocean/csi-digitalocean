@@ -39,7 +39,7 @@ jobs:
           fetch-depth: 1
 
       - name: Go setup
-        uses: actions/setup-go@268d8c0ca0432bb2cf416faae41297df9d262d7f  # v3.3.0
+        uses: actions/setup-go@4d34df0c2316fe8122ab82dc22947d607c0c91f9  # v4.0.0
         with:
           go-version-file: go.mod
 
@@ -99,7 +99,7 @@ jobs:
           fetch-depth: 1
 
       - name: Go setup
-        uses: actions/setup-go@268d8c0ca0432bb2cf416faae41297df9d262d7f  # v3.3.0
+        uses: actions/setup-go@4d34df0c2316fe8122ab82dc22947d607c0c91f9  # v4.0.0
         with:
           go-version-file: go.mod
 
