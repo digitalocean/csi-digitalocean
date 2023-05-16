@@ -200,7 +200,7 @@ func (d *Driver) CreateVolume(ctx context.Context, req *csi.CreateVolumeRequest)
 		return nil, status.Error(codes.Internal, err.Error())
 	}
 
-	if snapshot != nil && vol.SizeGigaBytes < volumeReq.SizeGigaBytes {
+	if vol.SizeGigaBytes < volumeReq.SizeGigaBytes {
 		log.Info("resizing volume because its requested size is larger than the size of the backing snapshot")
 		action, _, err := d.storageActions.Resize(ctx, vol.ID, int(volumeReq.SizeGigaBytes), volumeReq.Region)
 		if err != nil {
