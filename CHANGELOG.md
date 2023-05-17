@@ -1,6 +1,6 @@
 ## unreleased
 
-## v4.6.1 - 2023.05.15
+## v4.6.1 - 2023.05.17
 * Update CSI sidecars to latest
   [[GH-502]](https://github.com/digitalocean/csi-digitalocean/pull/502)
 
