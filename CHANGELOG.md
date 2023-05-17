@@ -1,5 +1,9 @@
 ## unreleased
 
+## v4.6.1 - 2023.05.17
+* Update CSI sidecars to latest
+  [[GH-502]](https://github.com/digitalocean/csi-digitalocean/pull/502)
+
 ## v4.6.0 - 2023.05.02
 
 * Update CSI driver for Kubernetes 1.27
