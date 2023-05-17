@@ -4,7 +4,7 @@
 * Update CSI sidecars to latest
   [[GH-502]](https://github.com/digitalocean/csi-digitalocean/pull/502)
 * Fix snapshot resizing
-  [[GH-502]](https://github.com/digitalocean/csi-digitalocean/pull/504)
+  [[GH-504]](https://github.com/digitalocean/csi-digitalocean/pull/504)
 
 ## v4.6.0 - 2023.05.02
 
