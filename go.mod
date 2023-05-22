@@ -13,7 +13,7 @@ require (
 	github.com/google/uuid v1.3.0
 	github.com/kubernetes-csi/csi-test/v4 v4.4.0
 	github.com/magiconair/properties v1.8.7
-	github.com/sirupsen/logrus v1.9.0
+	github.com/sirupsen/logrus v1.9.2
 	golang.org/x/oauth2 v0.8.0
 	golang.org/x/sync v0.1.0
 	golang.org/x/sys v0.8.0
