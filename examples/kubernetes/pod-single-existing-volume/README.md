@@ -10,7 +10,7 @@ Make sure the volume to be imported is not attached anywhere yet. For a volume t
 ## Example
 
 To use an existing volume, we have to create manually a `PersistentVolume` (PV)
-resource. Here is an example `PersistenVolume` resource for an existing volume:
+resource. Here is an example `PersistentVolume` resource for an existing volume:
 
 ```yaml
 kind: PersistentVolume
