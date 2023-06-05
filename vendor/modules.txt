@@ -148,7 +148,7 @@ github.com/opencontainers/image-spec/specs-go/v1
 github.com/pkg/errors
 # github.com/rogpeppe/go-internal v1.10.0
 ## explicit; go 1.19
-# github.com/sirupsen/logrus v1.9.0
+# github.com/sirupsen/logrus v1.9.3
 ## explicit; go 1.13
 github.com/sirupsen/logrus
 # golang.org/x/net v0.10.0
