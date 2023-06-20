@@ -17,6 +17,7 @@ FROM amd64/alpine:3.16
 # e2fsprogs-extra is required for resize2fs used for the resize operation
 # blkid: block device identification tool from util-linux
 RUN apk add --no-cache ca-certificates \
+                       cryptsetup \
                        e2fsprogs \
                        findmnt \
                        xfsprogs \

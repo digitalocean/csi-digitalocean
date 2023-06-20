@@ -45,6 +45,12 @@ const (
 )
 
 const (
+	// PublishInfoVolumeName is used to pass the volume name from
+	// `ControllerPublishVolume` to `NodeStageVolume or `NodePublishVolume`
+	PublishInfoVolumeName = DefaultDriverName + "/volume-name"
+)
+
+const (
 	// minimumVolumeSizeInBytes is used to validate that the user is not trying
 	// to create a volume that is smaller than what we support
 	minimumVolumeSizeInBytes int64 = 1 * giB
@@ -115,12 +121,17 @@ func (d *Driver) CreateVolume(ctx context.Context, req *csi.CreateVolumeRequest)
 	}
 
 	volumeName := req.Name
+	luksEncrypted := "false"
+	if req.Parameters[LuksEncryptedAttribute] == "true" {
+		luksEncrypted = "true"
+	}
 
 	log := d.log.WithFields(logrus.Fields{
 		"volume_name":             volumeName,
 		"storage_size_giga_bytes": size / giB,
 		"method":                  "create_volume",
 		"volume_capabilities":     req.VolumeCapabilities,
+		"luks_encrypted":          luksEncrypted,
 	})
 	log.Info("create volume called")
 
@@ -131,6 +142,26 @@ func (d *Driver) CreateVolume(ctx context.Context, req *csi.CreateVolumeRequest)
 	})
 	if err != nil {
 		return nil, status.Error(codes.Internal, err.Error())
+	}
+
+	csiVolume := csi.Volume{
+		AccessibleTopology: []*csi.Topology{
+			{
+				Segments: map[string]string{
+					"region": d.region,
+				},
+			},
+		},
+		CapacityBytes: size,
+		VolumeContext: map[string]string{
+			LuksEncryptedAttribute: luksEncrypted,
+			PublishInfoVolumeName:  volumeName,
+		},
+	}
+
+	if luksEncrypted == "true" {
+		csiVolume.VolumeContext[LuksCipherAttribute] = req.Parameters[LuksCipherAttribute]
+		csiVolume.VolumeContext[LuksKeySizeAttribute] = req.Parameters[LuksKeySizeAttribute]
 	}
 
 	// volume already exist, do nothing
@@ -145,12 +176,9 @@ func (d *Driver) CreateVolume(ctx context.Context, req *csi.CreateVolumeRequest)
 		}
 
 		log.Info("volume already created")
-		return &csi.CreateVolumeResponse{
-			Volume: &csi.Volume{
-				VolumeId:      vol.ID,
-				CapacityBytes: vol.SizeGigaBytes * giB,
-			},
-		}, nil
+		csiVolume.VolumeId = vol.ID
+		csiVolume.CapacityBytes = vol.SizeGigaBytes * giB
+		return &csi.CreateVolumeResponse{Volume: &csiVolume}, nil
 	}
 
 	volumeReq := &godo.VolumeCreateRequest{
@@ -220,19 +248,8 @@ func (d *Driver) CreateVolume(ctx context.Context, req *csi.CreateVolumeRequest)
 		log.Info("resize completed")
 	}
 
-	resp := &csi.CreateVolumeResponse{
-		Volume: &csi.Volume{
-			VolumeId:      vol.ID,
-			CapacityBytes: size,
-			AccessibleTopology: []*csi.Topology{
-				{
-					Segments: map[string]string{
-						"region": d.region,
-					},
-				},
-			},
-		},
-	}
+	csiVolume.VolumeId = vol.ID
+	resp := &csi.CreateVolumeResponse{Volume: &csiVolume}
 
 	// external-provisioner expects a content source to be returned if the PVC
 	// specified a data source, which corresponds to us having received a
@@ -349,6 +366,9 @@ func (d *Driver) ControllerPublishVolume(ctx context.Context, req *csi.Controlle
 			return &csi.ControllerPublishVolumeResponse{
 				PublishContext: map[string]string{
 					d.publishInfoVolumeName: vol.Name,
+					LuksEncryptedAttribute:  req.VolumeContext[LuksEncryptedAttribute],
+					LuksCipherAttribute:     req.VolumeContext[LuksCipherAttribute],
+					LuksKeySizeAttribute:    req.VolumeContext[LuksKeySizeAttribute],
 				},
 			}, nil
 		}
@@ -374,6 +394,9 @@ func (d *Driver) ControllerPublishVolume(ctx context.Context, req *csi.Controlle
 				return &csi.ControllerPublishVolumeResponse{
 					PublishContext: map[string]string{
 						d.publishInfoVolumeName: vol.Name,
+						LuksEncryptedAttribute:  req.VolumeContext[LuksEncryptedAttribute],
+						LuksCipherAttribute:     req.VolumeContext[LuksCipherAttribute],
+						LuksKeySizeAttribute:    req.VolumeContext[LuksKeySizeAttribute],
 					},
 				}, nil
 			}
@@ -406,6 +429,9 @@ func (d *Driver) ControllerPublishVolume(ctx context.Context, req *csi.Controlle
 	return &csi.ControllerPublishVolumeResponse{
 		PublishContext: map[string]string{
 			d.publishInfoVolumeName: vol.Name,
+			LuksEncryptedAttribute:  req.VolumeContext[LuksEncryptedAttribute],
+			LuksCipherAttribute:     req.VolumeContext[LuksCipherAttribute],
+			LuksKeySizeAttribute:    req.VolumeContext[LuksKeySizeAttribute],
 		},
 	}, nil
 }
@@ -838,6 +864,7 @@ func (d *Driver) ListSnapshots(ctx context.Context, req *csi.ListSnapshotsReques
 
 		untypedSnapshots, nextToken, err := listResources(ctx, log, startingToken, req.MaxEntries, func(ctx context.Context, listOpts *godo.ListOptions) ([]interface{}, *godo.Response, error) {
 			snapshots, resp, err := d.snapshots.ListVolume(ctx, listOpts)
+
 			if err != nil {
 				return nil, resp, err
 			}

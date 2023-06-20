@@ -277,6 +277,21 @@ $ kubectl exec -ti my-csi-app /bin/sh
 hello-world
 ```
 
+## Volume parameters
+
+This plugin supports the following `StorageClass` parameters:
+
+For LUKS encryption:
+
+* `dobs.csi.digitalocean.com/luks-encrypted`: set to the string `"true"` if the volume should be encrypted
+  with LUKS
+* `dobs.csi.digitalocean.com/luks-cipher`: cipher to use; must be supported by the kernel and luks
+* `dobs.csi.digitalocean.com/luks-key-size`: key-size to use
+
+For LUKS encrypted volumes, a secret that contains the LUKS key needs to be referenced through
+the `csi.storage.k8s.io/node-stage-secret-name` and `csi.storage.k8s.io/node-stage-secret-namespace`
+parameter. See the included `StorageClass` definition.
+
 ## Upgrading
 
 When upgrading to a new Kubernetes minor version, you should upgrade the CSI
