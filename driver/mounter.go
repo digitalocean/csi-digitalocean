@@ -172,7 +172,7 @@ func (m *mounter) Format(source, fsType string, luksContext LuksContext) error {
 	} else {
 		err := luksContext.validate()
 		if err != nil {
-			return err
+			return fmt.Errorf("validation failed: %s", err.Error())
 		}
 
 		err = luksFormat(source, mkfsCmd, mkfsArgs, luksContext, m.log)
