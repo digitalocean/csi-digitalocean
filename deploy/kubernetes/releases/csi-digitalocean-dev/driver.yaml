@@ -41,36 +41,6 @@ deletionPolicy: Delete
 kind: StorageClass
 apiVersion: storage.k8s.io/v1
 metadata:
-  name: do-block-storage-luks-global
-provisioner: dobs.csi.digitalocean.com
-allowVolumeExpansion: true
-parameters:
-  dobs.csi.digitalocean.com/luks-encrypted: "true"
-  dobs.csi.digitalocean.com/luks-cipher: "aes-xts-plain64"
-  dobs.csi.digitalocean.com/luks-key-size: "512"
-  csi.storage.k8s.io/node-stage-secret-namespace: "kube-system"
-  csi.storage.k8s.io/node-stage-secret-name: "luks-key"
-
----
-
-kind: StorageClass
-apiVersion: storage.k8s.io/v1
-metadata:
-  name: do-block-storage-luks
-provisioner: dobs.csi.digitalocean.com
-allowVolumeExpansion: true
-parameters:
-  dobs.csi.digitalocean.com/luks-encrypted: "true"
-  dobs.csi.digitalocean.com/luks-cipher: "aes-xts-plain64"
-  dobs.csi.digitalocean.com/luks-key-size: "512"
-  csi.storage.k8s.io/node-stage-secret-namespace: ${pvc.namespace}
-  csi.storage.k8s.io/node-stage-secret-name: ${pvc.name}-luks-key
-
----
-
-kind: StorageClass
-apiVersion: storage.k8s.io/v1
-metadata:
   name: do-block-storage
   annotations:
     storageclass.kubernetes.io/is-default-class: "true"
