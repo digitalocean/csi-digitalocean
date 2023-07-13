@@ -1,9 +1,5 @@
 ## unreleased
 
-## v4.7.0 - 2023.06.23
-* Add LUKS encryption support
-  [[GH-514]](https://github.com/digitalocean/csi-digitalocean/pull/514)
-
 ## v4.6.1 - 2023.05.17
 * Update CSI sidecars to latest
   [[GH-502]](https://github.com/digitalocean/csi-digitalocean/pull/502)
