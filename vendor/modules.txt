@@ -11,7 +11,7 @@ github.com/container-storage-interface/spec/lib/go/csi
 # github.com/digitalocean/go-metadata v0.0.0-20220602160802-6f1b22e9ba8c
 ## explicit
 github.com/digitalocean/go-metadata
-# github.com/digitalocean/godo v1.99.0
+# github.com/digitalocean/godo v1.100.0
 ## explicit; go 1.18
 github.com/digitalocean/godo
 github.com/digitalocean/godo/metrics
