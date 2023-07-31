@@ -67,9 +67,6 @@ const (
 	// maxVolumesPerDropletErrorMessage is the error message returned by the DO
 	// API when the per-droplet volume limit would be exceeded.
 	maxVolumesPerDropletErrorMessage = "cannot attach more than 7 volumes to a single Droplet"
-
-	// doneActionStatus is used to determine if a Digital Ocean resize action is completed.
-	doneActionStatus = "done"
 )
 
 var (
@@ -210,7 +207,7 @@ func (d *Driver) CreateVolume(ctx context.Context, req *csi.CreateVolumeRequest)
 			"resized_from": int(snapshot.SizeGigaBytes),
 			"resized_to":   int(volumeReq.SizeGigaBytes),
 		})
-		if action != nil && action.Status != doneActionStatus {
+		if action != nil && action.Status != godo.ActionCompleted {
 			log = logWithAction(log, action)
 			log.Info("waiting until volume is resized")
 			if err := d.waitAction(ctx, log, vol.ID, action.ID); err != nil {
@@ -1052,7 +1049,7 @@ func (d *Driver) waitAction(ctx context.Context, log *logrus.Entry, volumeID str
 		}
 		log = log.WithField("action_status", action.Status)
 
-		if action.Status == godo.ActionCompleted || action.Status == doneActionStatus {
+		if action.Status == godo.ActionCompleted {
 			log.Info("action completed")
 			return true, nil
 		}
