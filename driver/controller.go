@@ -207,7 +207,7 @@ func (d *Driver) CreateVolume(ctx context.Context, req *csi.CreateVolumeRequest)
 			"resized_from": int(snapshot.SizeGigaBytes),
 			"resized_to":   int(volumeReq.SizeGigaBytes),
 		})
-		if action != nil && action.Status != godo.ActionCompleted {
+		if action.Status != godo.ActionCompleted {
 			log = logWithAction(log, action)
 			log.Info("waiting until volume is resized")
 			if err := d.waitAction(ctx, log, vol.ID, action.ID); err != nil {
