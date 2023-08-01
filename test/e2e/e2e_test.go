@@ -21,7 +21,6 @@ import (
 	"errors"
 	"flag"
 	"fmt"
-	"io/ioutil"
 	"net/http"
 	"os"
 	"os/signal"
@@ -257,7 +256,7 @@ func TestE2E(t *testing.T) {
 				// Create temporary directory where the test lives. The operating
 				// system-specific temporary folder would not be bind-mountable into
 				// our e2e container by default on Mac.
-				tmpfile, err := ioutil.TempFile(sourceFileDir, "csi-e2e-kubeconfig-*")
+				tmpfile, err := os.CreateTemp(sourceFileDir, "csi-e2e-kubeconfig-*")
 				if err != nil {
 					t.Fatalf("failed to create temporary file: %s", err)
 				}
