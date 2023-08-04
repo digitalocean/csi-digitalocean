@@ -60,6 +60,14 @@ RUN echo "${KUBE_VERSION_1_24_E2E_BIN_SHA256_CHECKSUM}" e2e.test | sha256sum --c
 RUN cp e2e.test /e2e.1.24.test
 RUN cp ginkgo /ginkgo-1.24
 
+### LUKS
+FROM builder AS luks
+
+ADD luks /luks
+RUN cd /luks && go install github.com/onsi/ginkgo/v2/ginkgo
+RUN cd /luks && GOOS=linux GOARCH=amd64 CGO_ENABLED=0 ginkgo build
+RUN cp /luks/luks.test /e2e.luks.test
+
 FROM golang:1.20 AS tools
 # See comment at the bottom on why we need tini.
 ARG TINI_VERSION=0.19.0
@@ -90,6 +98,7 @@ COPY --from=tests-1.25 /e2e.1.25.test /
 COPY --from=tests-1.25 /ginkgo-1.25 /usr/local/bin
 COPY --from=tests-1.24 /e2e.1.24.test /
 COPY --from=tests-1.24 /ginkgo-1.24 /usr/local/bin
+COPY --from=luks /e2e.luks.test /
 COPY --from=tools /tini /sbin/
 COPY --from=tools /doctl /usr/local/bin/
 COPY --from=tools /kubectl /usr/local/bin/

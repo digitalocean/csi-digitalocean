@@ -55,6 +55,9 @@ if [[ "${FOCUS:-}" ]]; then
   focus=".*${FOCUS}"
 fi
 
+echo 'Running LUKS tests'
+"ginkgo-${KUBE_VER}" -v /e2e.luks.test -- "-storage.testdriver=${TD_FILE}"
+
 if [[ "${SKIP_PARALLEL_TESTS:-}" ]]; then
   echo 'Skipping parallel tests'
 else
