@@ -1,5 +1,9 @@
 ## unreleased
 
+## v4.6.2 - 2023.08.14
+* Use godo action status for handling resize operation
+  [[GH-522]](https://github.com/digitalocean/csi-digitalocean/pull/522)
+
 ## v4.6.1 - 2023.05.17
 * Update CSI sidecars to latest
   [[GH-502]](https://github.com/digitalocean/csi-digitalocean/pull/502)
