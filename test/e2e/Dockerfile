@@ -81,7 +81,7 @@ RUN cp kubectl /
 FROM bitnami/minideb:buster AS runtime
 # Certificates needed to trust the CA for any HTTPS connections to the DO API.
 RUN apt-get update && \
-    DEBIAN_FRONTEND=noninteractive apt-get install --yes --no-install-recommends ca-certificates \
+    DEBIAN_FRONTEND=noninteractive apt-get install --yes --no-install-recommends ca-certificates
 COPY --from=tests-1.28 /e2e.1.28.test /
 COPY --from=tests-1.28 /ginkgo-1.28 /usr/local/bin
 COPY --from=tests-1.27 /e2e.1.27.test /
