@@ -1,5 +1,9 @@
 ## unreleased
 
+## v4.7.0 - 2023.08.17
+* Update CSI driver for Kubernetes 1.28
+  [[GH-528]](https://github.com/digitalocean/csi-digitalocean/pull/528)
+
 ## v4.6.2 - 2023.08.14
 * Use godo action status for handling resize operation
   [[GH-522]](https://github.com/digitalocean/csi-digitalocean/pull/522)
