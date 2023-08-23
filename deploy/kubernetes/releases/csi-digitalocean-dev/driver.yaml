@@ -138,7 +138,7 @@ spec:
             - name: socket-dir
               mountPath: /var/lib/csi/sockets/pluginproxy/
         - name: csi-snapshotter
-          image: registry.k8s.io/sig-storage/csi-snapshotter:v6.2.1
+          image: registry.k8s.io/sig-storage/csi-snapshotter:v6.2.2
           args:
             - "--csi-address=$(ADDRESS)"
             - "--v=5"

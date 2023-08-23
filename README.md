@@ -380,6 +380,7 @@ To run the integration tests on a DOKS cluster, follow [the instructions](test/k
 
 1. Review recently merged PRs and any in-progress / planned work to ensure any bugs scheduled for the release have been fixed and merged.
 2. [Bump kubernetes dependency versions](#updating-the-kubernetes-dependencies)
+   1. If needed, update the `deploy/kubernetes/releases/csi-digitalocean-dev` images to their latest stable version.
 3. [Support running e2e on new $MAJOR.$MINOR](test/e2e/README.md#add-support-for-a-new-kubernetes-release)
    1. Since we only support three minor versions at a time. E2e tests for the oldest supported version can be removed.
 4. Verify [e2e tests pass](.github/workflows/test.yaml) - see [here](#end-to-end-tests) about running tests locally
