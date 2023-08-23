@@ -3,7 +3,7 @@
 ## v4.7.1 - 2023.08.23
 
 * Update CSI sidecars to latest
-  [[GH-531]](https://github.com/digitalocean/csi-digitalocean/pull/531)
+  [[GH-532]](https://github.com/digitalocean/csi-digitalocean/pull/532)
 
 ## v4.7.0 - 2023.08.17
 
