@@ -87,10 +87,10 @@ Command-line arguments are passed as-in to the test tool. Run `e2e.sh -h` for us
    ARG KUBE_VERSION_1_X=1.X.Y
    ARG KUBE_VERSION_1_X_E2E_BIN_SHA256_CHECKSUM=807f5ce07395f01e916873847a553dc32d437341695360bbcad5932e9fed094e
 
-       RUN curl --fail --location https://dl.k8s.io/v${KUBE_VERSION_1_X}/kubernetes-test-linux-amd64.tar.gz | tar xvzf - --strip-components 3 kubernetes/test/bin/e2e.test kubernetes/test/bin/ginkgo
-       RUN echo "${KUBE_VERSION_1_X_E2E_BIN_SHA256_CHECKSUM}" e2e.test | sha256sum --check
-       RUN cp e2e.test /e2e.1.X.test
-       RUN cp ginkgo /ginkgo-1.X
+   RUN curl --fail --location https://dl.k8s.io/v${KUBE_VERSION_1_X}/kubernetes-test-linux-amd64.tar.gz | tar xvzf - --strip-components 3 kubernetes/test/bin/e2e.test kubernetes/test/bin/ginkgo
+   RUN echo "${KUBE_VERSION_1_X_E2E_BIN_SHA256_CHECKSUM}" e2e.test | sha256sum --check
+   RUN cp e2e.test /e2e.1.X.test
+   RUN cp ginkgo /ginkgo-1.X
    ```
 10. If needed, [remove deprecated version in Dockerfile](https://github.com/digitalocean/csi-digitalocean/blob/master/test/e2e/Dockerfile)
 11. [Upgrade DOCTL_VERSION environment variable with latest version](https://github.com/digitalocean/csi-digitalocean/blob/master/test/e2e/Dockerfile)
