@@ -385,7 +385,10 @@ To run the integration tests on a DOKS cluster, follow [the instructions](test/k
    1. Since we only support three minor versions at a time. E2e tests for the oldest supported version can be removed.
 4. Verify [e2e tests pass](.github/workflows/test.yaml) - see [here](#end-to-end-tests) about running tests locally
 5. Prepare for [release](#releasing)
-6. Perform [release](.github/workflows/release.yaml)
+6. If necessary, update Go version to the latest stable Go Binary 
+   1. Update [Dockerfile](https://github.com/digitalocean/csi-digitalocean/blob/master/test/e2e/Dockerfile#L16)
+   2. Update [go.mod](https://github.com/digitalocean/csi-digitalocean/blob/615b91ab948a08cb04ab43ddb62720d5bfb68c87/go.mod#L3)
+7. Perform [release](.github/workflows/release.yaml)
 
 > See [e2e test README](test/e2e/README.md) on how to run conformance tests locally.
 
