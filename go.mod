@@ -6,7 +6,7 @@ require (
 	github.com/blang/semver v3.5.1+incompatible
 	github.com/container-storage-interface/spec v1.8.0
 	github.com/digitalocean/go-metadata v0.0.0-20220602160802-6f1b22e9ba8c
-	github.com/digitalocean/godo v1.99.0
+	github.com/digitalocean/godo v1.105.0
 	github.com/docker/docker v20.10.24+incompatible
 	github.com/golang/protobuf v1.5.3
 	github.com/google/go-cmp v0.5.9
@@ -16,7 +16,7 @@ require (
 	github.com/sirupsen/logrus v1.9.0
 	golang.org/x/oauth2 v0.8.0
 	golang.org/x/sync v0.1.0
-	golang.org/x/sys v0.10.0
+	golang.org/x/sys v0.13.0
 	google.golang.org/grpc v1.51.0
 	gotest.tools/v3 v3.4.0
 	k8s.io/apimachinery v0.27.1
@@ -34,6 +34,8 @@ require (
 	github.com/go-logr/logr v1.2.4 // indirect
 	github.com/gogo/protobuf v1.3.2 // indirect
 	github.com/google/go-querystring v1.1.0 // indirect
+	github.com/hashicorp/go-cleanhttp v0.5.2 // indirect
+	github.com/hashicorp/go-retryablehttp v0.7.4 // indirect
 	github.com/kr/text v0.2.0 // indirect
 	github.com/moby/sys/mountinfo v0.6.2 // indirect
 	github.com/moby/term v0.0.0-20221205130635-1aeaba878587 // indirect
@@ -44,8 +46,8 @@ require (
 	github.com/opencontainers/go-digest v1.0.0 // indirect
 	github.com/opencontainers/image-spec v1.0.2 // indirect
 	github.com/pkg/errors v0.9.1 // indirect
-	golang.org/x/net v0.13.0 // indirect
-	golang.org/x/text v0.11.0 // indirect
+	golang.org/x/net v0.17.0 // indirect
+	golang.org/x/text v0.13.0 // indirect
 	golang.org/x/time v0.3.0 // indirect
 	google.golang.org/appengine v1.6.7 // indirect
 	google.golang.org/genproto v0.0.0-20220502173005-c8bf987b8c21 // indirect
