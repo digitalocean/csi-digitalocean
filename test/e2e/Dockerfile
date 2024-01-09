@@ -21,7 +21,7 @@ RUN mkdir -p /go/src/k8s.io
 WORKDIR /go/src/k8s.io
 
 ### Kubernetes 1.29
-FROM builder As test-1.29
+FROM builder As tests-1.29
 ARG KUBE_VERSION_1_29=1.29.0
 ARG KUBE_VERSION_1_29_E2E_BIN_SHA256_CHECKSUM=b0d19ce356dce19eeb6d36bba99545ca334d0964ac68f1088ec0ee68cfcee530
 
