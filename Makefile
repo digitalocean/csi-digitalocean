@@ -29,7 +29,7 @@ ifneq ($(VERSION),)
 else
   VERSION ?= $(shell cat VERSION)
 endif
-KUBERNETES_VERSION ?= 1.28.0
+KUBERNETES_VERSION ?= 1.29.0
 DOCKER_REPO ?= digitalocean/do-csi-plugin
 CANONICAL_RUNNER_IMAGE = digitalocean/k8s-e2e-test-runner
 RUNNER_IMAGE ?= $(CANONICAL_RUNNER_IMAGE)
