@@ -313,7 +313,7 @@ k8s.io/apimachinery v0.29.0/go.mod h1:eVBxQ/cwiJxH58eK/jd/vAk4mrxmVlnpBH5J2GbMei
 k8s.io/klog/v2 v2.60.1/go.mod h1:y1WjHnz7Dj687irZUWR/WLkLc5N1YHtjLdmgWjndZn0=
 k8s.io/klog/v2 v2.110.1 h1:U/Af64HJf7FcwMcXyKm2RPM22WZzyR7OSpYj5tg3cL0=
 k8s.io/klog/v2 v2.110.1/go.mod h1:YGtd1984u+GgbuZ7e08/yBuAfKLSO0+uR1Fhi6ExXjo=
-k8s.io/mount-utils v0.30.0-alpha.0 h1:hga3HePjAnYTofEKHmjvTZZzSCTV4auLQ9D172n1Gig=
-k8s.io/mount-utils v0.30.0-alpha.0/go.mod h1:N3lDK/G1B8R/IkAt4NhHyqB07OqEr7P763z3TNge94U=
+k8s.io/mount-utils v0.29.0 h1:KcUE0bFHONQC10V3SuLWQ6+l8nmJggw9lKLpDftIshI=
+k8s.io/mount-utils v0.29.0/go.mod h1:N3lDK/G1B8R/IkAt4NhHyqB07OqEr7P763z3TNge94U=
 k8s.io/utils v0.0.0-20230726121419-3b25d923346b h1:sgn3ZU783SCgtaSJjpcVVlRqd6GSnlTLKgpAAttJvpI=
 k8s.io/utils v0.0.0-20230726121419-3b25d923346b/go.mod h1:OLgZIPagt7ERELqWJFomSt595RzquPNLL48iOWgYOg0=

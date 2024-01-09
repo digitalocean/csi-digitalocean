@@ -330,7 +330,7 @@ k8s.io/klog/v2/internal/dbg
 k8s.io/klog/v2/internal/serialize
 k8s.io/klog/v2/internal/severity
 k8s.io/klog/v2/internal/sloghandler
-# k8s.io/mount-utils v0.27.1 => k8s.io/mount-utils v0.30.0-alpha.0
+# k8s.io/mount-utils v0.27.1 => k8s.io/mount-utils v0.29.0
 ## explicit; go 1.21
 k8s.io/mount-utils
 # k8s.io/utils v0.0.0-20230726121419-3b25d923346b
@@ -361,7 +361,7 @@ k8s.io/utils/keymutex
 # k8s.io/kubelet => k8s.io/kubelet v0.29.0
 # k8s.io/legacy-cloud-providers => k8s.io/legacy-cloud-providers v0.29.0
 # k8s.io/metrics => k8s.io/metrics v0.29.0
-# k8s.io/mount-utils => k8s.io/mount-utils v0.30.0-alpha.0
+# k8s.io/mount-utils => k8s.io/mount-utils v0.29.0
 # k8s.io/pod-security-admission => k8s.io/pod-security-admission v0.29.0
 # k8s.io/sample-apiserver => k8s.io/sample-apiserver v0.29.0
 # k8s.io/dynamic-resource-allocation => k8s.io/dynamic-resource-allocation v0.29.0
