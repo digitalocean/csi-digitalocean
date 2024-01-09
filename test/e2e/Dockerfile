@@ -75,7 +75,7 @@ FROM golang:1.21 AS tools
 ARG TINI_VERSION=0.19.0
 # doctl is needed to support clusters that had their kubeconfig fetched via the
 # CLI because those leverage a kubeconfig authentication plugin based on doctl.
-ARG DOCTL_VERSION=1.97.1
+ARG DOCTL_VERSION=1.102.0
 
 RUN curl --fail --location --output /tini https://github.com/krallin/tini/releases/download/v${TINI_VERSION}/tini
 RUN chmod u+x /tini
@@ -92,6 +92,8 @@ FROM bitnami/minideb:buster AS runtime
 # Certificates needed to trust the CA for any HTTPS connections to the DO API.
 RUN apt-get update && \
     DEBIAN_FRONTEND=noninteractive apt-get install --yes --no-install-recommends ca-certificates
+COPY --from=tests-1.29 /e2e.1.29.test /
+COPY --from=tests-1.29 /ginkgo-1.29 /usr/local/bin
 COPY --from=tests-1.28 /e2e.1.28.test /
 COPY --from=tests-1.28 /ginkgo-1.28 /usr/local/bin
 COPY --from=tests-1.27 /e2e.1.27.test /
