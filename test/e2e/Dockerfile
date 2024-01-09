@@ -20,6 +20,16 @@ RUN apt-get update && \
 RUN mkdir -p /go/src/k8s.io
 WORKDIR /go/src/k8s.io
 
+### Kubernetes 1.29
+FROM builder As test-1.29
+ARG KUBE_VERSION_1_29=1.29.0
+ARG KUBE_VERSION_1_29_E2E_BIN_SHA256_CHECKSUM=b0d19ce356dce19eeb6d36bba99545ca334d0964ac68f1088ec0ee68cfcee530
+
+RUN curl --fail --location https://dl.k8s.io/v${KUBE_VERSION_1_29}/kubernetes-test-linux-amd64.tar.gz | tar xvzf - --strip-components 3 kubernetes/test/bin/e2e.test kubernetes/test/bin/ginkgo
+RUN echo "${KUBE_VERSION_1_29_E2E_BIN_SHA256_CHECKSUM}" e2e.test | sha256sum --check
+RUN cp e2e.test /e2e.1.29.test
+RUN cp ginkgo /ginkgo-1.29
+
 ### Kubernetes 1.28
 FROM builder AS tests-1.28
 ARG KUBE_VERSION_1_28=1.28.0
