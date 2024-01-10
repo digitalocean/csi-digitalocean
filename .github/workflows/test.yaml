@@ -90,7 +90,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        kube-release: ['1.28', '1.27', '1.26', '1.25']
+        kube-release: ['1.29', '1.28', '1.27', '1.26']
 
     steps:
       - name: checkout

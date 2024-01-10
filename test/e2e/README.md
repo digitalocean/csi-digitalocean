@@ -70,37 +70,36 @@ Command-line arguments are passed as-in to the test tool. Run `e2e.sh -h` for us
 
 ### Add support for a new Kubernetes release
 
-1. Add a new Kubernetes version-specific block to the runner image Dockerfile; make sure to update the `SHA_*` commit hash and/or `*_SHA256_*` e2e.test binary checksum variables as well. (You can use `scripts/get-e2etest-sha256` to generate the e2e.test binary checksum for a given Kubernetes version.)
-   1. Ensure that a version specific ginkgo binary is copied into the final runner image
+1. Add a new Kubernetes version-specific block to the [runner image Dockerfile](https://github.com/digitalocean/csi-digitalocean/blob/master/test/e2e/Dockerfile); make sure to update the `SHA_*` commit hash and/or `*_SHA256_*` e2e.test binary checksum variables as well. (You can use `scripts/get-e2etest-sha256` to generate the e2e.test binary checksum for a given Kubernetes version.)
+   1. Like so: [X is your minor version and Y is the patch version]()
+      ```Dockerfile
+      ### Kubernetes 1.XX
+      FROM builder AS tests-X.Y
+      ARG KUBE_VERSION_1_X=1.X.Y
+      ARG KUBE_VERSION_1_X_E2E_BIN_SHA256_CHECKSUM=<generated-sha-hash>
+
+      RUN curl --fail --location https://dl.k8s.io/v${KUBE_VERSION_1_X}/kubernetes-test-linux-amd64.tar.gz | tar xvzf - --strip-components 3 kubernetes/test/bin/e2e.test kubernetes/test/bin/ginkgo
+      RUN echo "${KUBE_VERSION_1_X_E2E_BIN_SHA256_CHECKSUM}" e2e.test | sha256sum --check
+      RUN cp e2e.test /e2e.1.X.test
+      RUN cp ginkgo /ginkgo-1.X
+      ```
+   2. Ensure that a version specific ginkgo binary is copied into the final runner image
 2. Update the Makefile `runner-build` and `runner-push` targets.
-3. Extend the Kubernetes release-specific build arguments in the `handle-images.sh` script.
+3. Extend the Kubernetes release-specific build arguments in the [`handle-images.sh`](https://github.com/digitalocean/csi-digitalocean/blob/master/test/e2e/handle-image.sh) script.
 4. Add a new testdriver YAML configuration file.
 5. Extend the list of supported Kubernetes releases in `e2e_test.go`.
    1. [Update the `e2e_test.go` file `supportedKubernetesVersions` variable with the up-to-date versions](https://github.com/digitalocean/csi-digitalocean/blob/master/test/e2e/e2e_test.go)
 6. Extend the list of tested Kubernetes releases in `.github/workflows/test.yaml`.
 7. Extend the list of deleted container images in `.github/workflows/delete.yaml`.
 8. Update the [_Kubernetes Compatibility_ matrix](../../README.md#kubernetes-compatibility) in the README file.
-9. [Add new minor release section in Dockerfile where X is your minor version and Y is the patch version](https://github.com/digitalocean/csi-digitalocean/blob/master/test/e2e/Dockerfile)
-   ```Dockerfile
-   ### Kubernetes 1.XX
-   FROM builder AS tests-X.Y
-   ARG KUBE_VERSION_1_X=1.X.Y
-   ARG KUBE_VERSION_1_X_E2E_BIN_SHA256_CHECKSUM=807f5ce07395f01e916873847a553dc32d437341695360bbcad5932e9fed094e
-
-   RUN curl --fail --location https://dl.k8s.io/v${KUBE_VERSION_1_X}/kubernetes-test-linux-amd64.tar.gz | tar xvzf - --strip-components 3 kubernetes/test/bin/e2e.test kubernetes/test/bin/ginkgo
-   RUN echo "${KUBE_VERSION_1_X_E2E_BIN_SHA256_CHECKSUM}" e2e.test | sha256sum --check
-   RUN cp e2e.test /e2e.1.X.test
-   RUN cp ginkgo /ginkgo-1.X
-   ```
-10. If needed, [remove deprecated version in Dockerfile](https://github.com/digitalocean/csi-digitalocean/blob/master/test/e2e/Dockerfile)
-11. [Upgrade DOCTL_VERSION environment variable with latest version](https://github.com/digitalocean/csi-digitalocean/blob/master/test/e2e/Dockerfile)
+9. If needed, [remove deprecated version in Dockerfile](https://github.com/digitalocean/csi-digitalocean/blob/master/test/e2e/Dockerfile)
+10. [Upgrade DOCTL_VERSION environment variable with latest version](https://github.com/digitalocean/csi-digitalocean/blob/master/test/e2e/Dockerfile)
     1. Latest, version can be found [here](https://github.com/digitalocean/doctl/releases)
-12. [Add copy commands under the `final test container section` to the Dockerfile where XX is the minor version](https://github.com/digitalocean/csi-digitalocean/blob/master/test/e2e/Dockerfile)
+11. [Add copy commands under the `final test container section` to the Dockerfile where XX is the minor version](https://github.com/digitalocean/csi-digitalocean/blob/master/test/e2e/Dockerfile)
        ```Dockerfile
        COPY --from=tests-1.XX /e2e.1.XX.test /
        COPY --from=tests-1.XX /ginkgo-1.XX /usr/local/bin
        ```
-13. [Update the `handle-image.sh` file with the up to date versions](https://github.com/digitalocean/csi-digitalocean/blob/master/test/e2e/handle-image.sh)
 
 ### handle-image.sh
 
