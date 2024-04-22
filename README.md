@@ -350,16 +350,10 @@ make test
 
 ### End-to-End Tests
 
-To manually run the end-to-end tests, you need to build a container image for your change first and publish it to a registry. Repository owners can publish under `digitalocean/do-csi-plugin:dev`:
-
-```shell
-VERSION=dev make publish
-```
-
 If you do not have write permissions to `digitalocean/do-csi-plugin` on Docker Hub or are worried about conflicting usage of that tag, you can also publish under a different (presumably personal) organization:
 
 ```shell
-DOCKER_REPO=johndoe VERSION=latest-feature make publish
+DOCKER_REPO=johndoe/do-csi-plugin VERSION=latest-feature make publish
 ```
 
 This would yield the published container image `johndoe/do-csi-plugin:latest-feature`.
@@ -367,7 +361,7 @@ This would yield the published container image `johndoe/do-csi-plugin:latest-fea
 Assuming you have your DO API token assigned to the `DIGITALOCEAN_ACCESS_TOKEN` environment variable, you can then spin up a DOKS cluster on-the-fly and execute the upstream end-to-end tests for a given set of Kubernetes versions like this:
 
 ```shell
-make test-e2e E2E_ARGS="-driver-image johndoe/do-csi-plugin:latest-feature 1.16 1.15 1.14"
+make test-e2e E2E_ARGS="-driver-image johndoe/do-csi-plugin:latest-feature 1.30 1.29 1.28"
 ```
 
 See [our documentation](test/e2e/README.md) for an overview on how the end-to-end tests work as well as usage instructions.
