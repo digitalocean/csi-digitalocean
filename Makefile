@@ -205,8 +205,6 @@ runner-build:
         --cache-from $(CANONICAL_RUNNER_IMAGE):tests-1.28 \
 	    --cache-from $(RUNNER_IMAGE):$(RUNNER_IMAGE_TAG_PREFIX)tests-1.27 \
         --cache-from $(CANONICAL_RUNNER_IMAGE):tests-1.27 \
-		--cache-from $(RUNNER_IMAGE):$(RUNNER_IMAGE_TAG_PREFIX)tests-1.26 \
-        --cache-from $(CANONICAL_RUNNER_IMAGE):tests-1.26 \
 		--cache-from $(RUNNER_IMAGE):$(RUNNER_IMAGE_TAG_PREFIX)tools \
 		--cache-from $(CANONICAL_RUNNER_IMAGE):tools \
 		-t $(RUNNER_IMAGE):$(RUNNER_IMAGE_TAG_PREFIX)tools -f test/e2e/Dockerfile test/e2e
@@ -221,8 +219,6 @@ runner-build:
         --cache-from $(CANONICAL_RUNNER_IMAGE):tests-1.28 \
 		--cache-from $(RUNNER_IMAGE):$(RUNNER_IMAGE_TAG_PREFIX)tests-1.27 \
         --cache-from $(CANONICAL_RUNNER_IMAGE):tests-1.27 \
-		--cache-from $(RUNNER_IMAGE):$(RUNNER_IMAGE_TAG_PREFIX)tests-1.26 \
-        --cache-from $(CANONICAL_RUNNER_IMAGE):tests-1.26 \
 		--cache-from $(RUNNER_IMAGE):$(RUNNER_IMAGE_TAG_PREFIX)tools \
 		--cache-from $(CANONICAL_RUNNER_IMAGE):tools \
 		--cache-from $(RUNNER_IMAGE):$(RUNNER_IMAGE_TAG_PREFIX)runtime \
@@ -239,8 +235,6 @@ runner-build:
         --cache-from $(CANONICAL_RUNNER_IMAGE):tests-1.28 \
 		--cache-from $(RUNNER_IMAGE):$(RUNNER_IMAGE_TAG_PREFIX)tests-1.27 \
         --cache-from $(CANONICAL_RUNNER_IMAGE):tests-1.27 \
-		--cache-from $(RUNNER_IMAGE):$(RUNNER_IMAGE_TAG_PREFIX)tests-1.26 \
-        --cache-from $(CANONICAL_RUNNER_IMAGE):tests-1.26 \
 		--cache-from $(RUNNER_IMAGE):$(RUNNER_IMAGE_TAG_PREFIX)tools \
 		--cache-from $(CANONICAL_RUNNER_IMAGE):tools \
 		--cache-from $(RUNNER_IMAGE):$(RUNNER_IMAGE_TAG_PREFIX)runtime \
