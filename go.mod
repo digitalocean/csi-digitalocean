@@ -2,6 +2,8 @@ module github.com/digitalocean/csi-digitalocean
 
 go 1.22
 
+toolchain go1.22.2
+
 require (
 	github.com/blang/semver v3.5.1+incompatible
 	github.com/container-storage-interface/spec v1.8.0
