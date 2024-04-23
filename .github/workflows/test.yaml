@@ -44,7 +44,7 @@ jobs:
           go-version-file: go.mod
 
       - name: Run unit tests
-        run: make all
+        run: make test
 
   push-images:
     runs-on: ubuntu-20.04
