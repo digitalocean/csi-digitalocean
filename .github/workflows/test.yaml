@@ -43,6 +43,9 @@ jobs:
         with:
           go-version-file: go.mod
 
+      - name: Check go mod and vendor
+        run: make check-unused
+
       - name: Run unit tests
         run: make test
 
