@@ -20,6 +20,16 @@ RUN apt-get update && \
 RUN mkdir -p /go/src/k8s.io
 WORKDIR /go/src/k8s.io
 
+### Kubernetes 1.30
+FROM builder As tests-1.30
+ARG KUBE_VERSION_1_30=1.30.0
+ARG KUBE_VERSION_1_30_E2E_BIN_SHA256_CHECKSUM=6f6f0acf7935197b47a69c56a4e14d4ac7edc78054372da0d86eb601bebd308c
+
+RUN curl --fail --location https://dl.k8s.io/v${KUBE_VERSION_1_30}/kubernetes-test-linux-amd64.tar.gz | tar xvzf - --strip-components 3 kubernetes/test/bin/e2e.test kubernetes/test/bin/ginkgo
+RUN echo "${KUBE_VERSION_1_30_E2E_BIN_SHA256_CHECKSUM}" e2e.test | sha256sum --check
+RUN cp e2e.test /e2e.1.30.test
+RUN cp ginkgo /ginkgo-1.30
+
 ### Kubernetes 1.29
 FROM builder As tests-1.29
 ARG KUBE_VERSION_1_29=1.29.0
@@ -50,22 +60,12 @@ RUN echo "${KUBE_VERSION_1_27_E2E_BIN_SHA256_CHECKSUM}" e2e.test | sha256sum --c
 RUN cp e2e.test /e2e.1.27.test
 RUN cp ginkgo /ginkgo-1.27
 
-### Kubernetes 1.26
-FROM builder AS tests-1.26
-ARG KUBE_VERSION_1_26=1.26.0
-ARG KUBE_VERSION_1_26_E2E_BIN_SHA256_CHECKSUM=6d337b8bd7789105e95682ff1ad7da8d3e8c6c40e8d85021ef72d4ae117f08a9
-
-RUN curl --fail --location https://dl.k8s.io/v${KUBE_VERSION_1_26}/kubernetes-test-linux-amd64.tar.gz | tar xvzf - --strip-components 3 kubernetes/test/bin/e2e.test kubernetes/test/bin/ginkgo
-RUN echo "${KUBE_VERSION_1_26_E2E_BIN_SHA256_CHECKSUM}" e2e.test | sha256sum --check
-RUN cp e2e.test /e2e.1.26.test
-RUN cp ginkgo /ginkgo-1.26
-
 FROM golang:1.21 AS tools
 # See comment at the bottom on why we need tini.
 ARG TINI_VERSION=0.19.0
 # doctl is needed to support clusters that had their kubeconfig fetched via the
 # CLI because those leverage a kubeconfig authentication plugin based on doctl.
-ARG DOCTL_VERSION=1.102.0
+ARG DOCTL_VERSION=1.105.0
 
 RUN curl --fail --location --output /tini https://github.com/krallin/tini/releases/download/v${TINI_VERSION}/tini
 RUN chmod u+x /tini
@@ -82,14 +82,14 @@ FROM bitnami/minideb:buster AS runtime
 # Certificates needed to trust the CA for any HTTPS connections to the DO API.
 RUN apt-get update && \
     DEBIAN_FRONTEND=noninteractive apt-get install --yes --no-install-recommends ca-certificates
+COPY --from=tests-1.30 /e2e.1.30.test /
+COPY --from=tests-1.30 /ginkgo-1.30 /usr/local/bin
 COPY --from=tests-1.29 /e2e.1.29.test /
 COPY --from=tests-1.29 /ginkgo-1.29 /usr/local/bin
 COPY --from=tests-1.28 /e2e.1.28.test /
 COPY --from=tests-1.28 /ginkgo-1.28 /usr/local/bin
 COPY --from=tests-1.27 /e2e.1.27.test /
 COPY --from=tests-1.27 /ginkgo-1.27 /usr/local/bin
-COPY --from=tests-1.26 /e2e.1.26.test /
-COPY --from=tests-1.26 /ginkgo-1.26 /usr/local/bin
 COPY --from=tools /tini /sbin/
 COPY --from=tools /doctl /usr/local/bin/
 COPY --from=tools /kubectl /usr/local/bin/

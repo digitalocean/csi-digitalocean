@@ -43,8 +43,11 @@ jobs:
         with:
           go-version-file: go.mod
 
+      - name: Check go mod and vendor
+        run: make check-unused
+
       - name: Run unit tests
-        run: make all
+        run: make test
 
   push-images:
     runs-on: ubuntu-20.04
@@ -90,7 +93,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        kube-release: ['1.29', '1.28', '1.27', '1.26']
+        kube-release: ['1.30', '1.29', '1.28', '1.27']
 
     steps:
       - name: checkout
