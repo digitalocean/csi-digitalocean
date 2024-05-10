@@ -1,5 +1,10 @@
 ## unreleased
 
+## v4.9.0 - 2024.05.09
+
+* Update CSI driver for Kubernetes 1.30
+  [[GH-571]](https://github.com/digitalocean/csi-digitalocean/pull/571)
+
 ## v4.8.0 - 2024.01.10
 
 * Update CSI driver for Kubernetes 1.29
