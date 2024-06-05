@@ -1,5 +1,10 @@
 ## unreleased
 
+## v4.10.0 - 2024.06.05
+
+* Handle new max-volumes-per-node error message
+  [[GH-573]](https://github.com/digitalocean/csi-digitalocean/pull/573)
+
 ## v4.9.0 - 2024.05.09
 
 * Update CSI driver for Kubernetes 1.30
