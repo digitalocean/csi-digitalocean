@@ -45,9 +45,6 @@ const (
 	diskIDPath   = "/dev/disk/by-id"
 	diskDOPrefix = "scsi-0DO_Volume_"
 
-	// See: https://www.digitalocean.com/docs/volumes/overview/#limits
-	maxVolumesPerNode = 7
-
 	volumeModeBlock      = "block"
 	volumeModeFilesystem = "filesystem"
 )
@@ -343,7 +340,7 @@ func (d *Driver) NodeGetInfo(ctx context.Context, req *csi.NodeGetInfoRequest) (
 	d.log.WithField("method", "node_get_info").Info("node get info called")
 	return &csi.NodeGetInfoResponse{
 		NodeId:            d.hostID(),
-		MaxVolumesPerNode: maxVolumesPerNode,
+		MaxVolumesPerNode: int64(d.volumeLimit),
 
 		// make sure that the driver works on this particular region only
 		AccessibleTopology: &csi.Topology{
