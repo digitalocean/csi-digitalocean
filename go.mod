@@ -12,7 +12,7 @@ require (
 	github.com/docker/docker v20.10.24+incompatible
 	github.com/golang/protobuf v1.5.4
 	github.com/google/go-cmp v0.6.0
-	github.com/google/uuid v1.3.0
+	github.com/google/uuid v1.6.0
 	github.com/kubernetes-csi/csi-test/v4 v4.4.0
 	github.com/magiconair/properties v1.8.7
 	github.com/sirupsen/logrus v1.9.0
