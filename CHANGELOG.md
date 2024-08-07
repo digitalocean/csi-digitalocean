@@ -1,5 +1,8 @@
 ## unreleased
 
+* Make volumes-per-node limit configurable
+  [[GH-575]](https://github.com/digitalocean/csi-digitalocean/pull/575)
+
 ## v4.10.0 - 2024.06.05
 
 * Handle new max-volumes-per-node error message
