@@ -42,6 +42,8 @@ const (
 	// DefaultDriverName defines the name that is used in Kubernetes and the CSI
 	// system for the canonical, official name of this plugin
 	DefaultDriverName = "dobs.csi.digitalocean.com"
+
+	defaultMaxVolumesPerNode = 7
 )
 
 var (
@@ -86,8 +88,9 @@ type Driver struct {
 
 	// ready defines whether the driver is ready to function. This value will
 	// be used by the `Identity` service via the `Probe()` method.
-	readyMu sync.Mutex // protects ready
-	ready   bool
+	readyMu     sync.Mutex // protects ready
+	ready       bool
+	volumeLimit uint
 }
 
 // NewDriverParams defines the parameters that can be passed to NewDriver.
@@ -102,6 +105,7 @@ type NewDriverParams struct {
 	DefaultVolumesPageSize uint
 	DOAPIRateLimitQPS      float64
 	ValidateAttachment     bool
+	VolumeLimit            uint
 }
 
 // NewDriver returns a CSI plugin that contains the necessary gRPC
@@ -167,6 +171,7 @@ func NewDriver(p NewDriverParams) (*Driver, error) {
 		endpoint:               p.Endpoint,
 		debugAddr:              p.DebugAddr,
 		defaultVolumesPageSize: p.DefaultVolumesPageSize,
+		volumeLimit:            p.VolumeLimit,
 
 		hostID:  func() string { return hostID },
 		region:  region,
@@ -236,7 +241,7 @@ func (d *Driver) Run(ctx context.Context) error {
 			d.log.WithFields(logrus.Fields{
 				"limit":       details.limit,
 				"num_volumes": details.numVolumes,
-			}).Warn("CSI plugin will not function correctly, please resolve volume limit")
+			}).Warn("CSI plugin may not function correctly, please resolve volume limit")
 		}
 
 		if d.debugAddr != "" {

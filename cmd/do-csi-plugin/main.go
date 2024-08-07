@@ -40,6 +40,7 @@ func main() {
 		defaultVolumesPageSize = flag.Uint("default-volumes-page-size", 0, "The default page size used when paging through volumes results (default: do not specify and let the DO API choose)")
 		doAPIRateLimitQPS      = flag.Float64("do-api-rate-limit", 0, "Impose QPS rate limit on DigitalOcean API usage (default: do not rate limit)")
 		validateAttachment     = flag.Bool("validate-attachment", false, "Validate if the attachment has fully completed before formatting/mounting the device")
+		volumeLimit            = flag.Uint("volume-limit", 7, "Volumes per node limit to report; needs to match limit imposed by DO storage backend (honored by Node service only)")
 		version                = flag.Bool("version", false, "Print the version and exit.")
 	)
 	flag.Parse()
@@ -64,6 +65,7 @@ func main() {
 		DefaultVolumesPageSize: *defaultVolumesPageSize,
 		DOAPIRateLimitQPS:      *doAPIRateLimitQPS,
 		ValidateAttachment:     *validateAttachment,
+		VolumeLimit:            *volumeLimit,
 	})
 	if err != nil {
 		log.Fatalln(err)

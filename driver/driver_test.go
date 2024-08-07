@@ -311,7 +311,7 @@ func (f *fakeStorageActionsDriver) Attach(ctx context.Context, volumeID string, 
 		return nil, resp, errors.New("droplet was not found")
 	}
 
-	if len(droplet.VolumeIDs) >= maxVolumesPerNode {
+	if len(droplet.VolumeIDs) >= defaultMaxVolumesPerNode {
 		resp.Response = &http.Response{
 			StatusCode: http.StatusUnprocessableEntity,
 		}
