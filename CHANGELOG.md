@@ -1,5 +1,7 @@
 ## unreleased
 
+## v4.11.0 - 2024.08.09
+
 * Make volumes-per-node limit configurable
   [[GH-575]](https://github.com/digitalocean/csi-digitalocean/pull/575)
 
