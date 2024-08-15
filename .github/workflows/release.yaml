@@ -20,12 +20,15 @@ env:
   DOCKER_USER: ${{ secrets.DockerHubUser }}
 
 on:
+  # push:
+  #   tags-ignore:
+  #     # The tags below are for Kubernetes <1.14 which are not supported by the
+  #     # upstream end-to-end tests and are not actively maintained anymore.
+  #     - v0.*
+  #     - v1.0.*
   push:
-    tags-ignore:
-      # The tags below are for Kubernetes <1.14 which are not supported by the
-      # upstream end-to-end tests and are not actively maintained anymore.
-      - v0.*
-      - v1.0.*
+    branches:
+      - dkomsa/debug-release-gha
 
 jobs:
   release:
@@ -37,19 +40,19 @@ jobs:
         with:
           fetch-depth: 1
 
-      - name: Log into container registry
-        run: echo "${{ secrets.DockerHubToken }}" | docker login --username ${DOCKER_USER} --password-stdin
+      # - name: Log into container registry
+      #   run: echo "${{ secrets.DockerHubToken }}" | docker login --username ${DOCKER_USER} --password-stdin
 
-      # Rebuild plugin instead of just promoting the latest :master image so
-      # that the right version is correctly baked into the release via the -X
-      # flag.
-      - name: Build and push released plugin image
-        run: |
-          VERSION="$(git describe --tags)"
-          DOCKER_REPO=${DOCKER_ORG}/do-csi-plugin make publish
+      # # Rebuild plugin instead of just promoting the latest :master image so
+      # # that the right version is correctly baked into the release via the -X
+      # # flag.
+      # - name: Build and push released plugin image
+      #   run: |
+      #     VERSION="$(git describe --tags)"
+      #     DOCKER_REPO=${DOCKER_ORG}/do-csi-plugin make publish
 
       - name: create Github release
-        uses: softprops/action-gh-release@b7e450da2a4b4cb4bfbae528f788167786cfcedf  # v0.1.5
+        uses: softprops/action-gh-release@c062e08bd532815e2082a85e87e3ef29c3e6d191  # v2.0.8
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
@@ -57,4 +60,5 @@ jobs:
             See the [change log](CHANGELOG.md) for release details.
 
             Refer to the [installation instructions](README.md#installing-to-kubernetes) to learn how the CSI driver can be installed. (**Note:** The driver comes pre-installed already for [DOKS](https://www.digitalocean.com/products/kubernetes/) users.)
-          draft: false
+          draft: true
+          tag_name: v4.11.0
