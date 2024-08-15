@@ -20,7 +20,7 @@ require (
 	golang.org/x/sync v0.8.0
 	golang.org/x/sys v0.24.0
 	google.golang.org/grpc v1.65.0
-	gotest.tools/v3 v3.4.0
+	gotest.tools/v3 v3.5.1
 	k8s.io/apimachinery v0.27.1
 	k8s.io/klog/v2 v2.130.1
 	k8s.io/mount-utils v0.27.1
