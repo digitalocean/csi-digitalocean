@@ -49,7 +49,7 @@ jobs:
           DOCKER_REPO=${DOCKER_ORG}/do-csi-plugin make publish
 
       - name: create Github release
-        uses: softprops/action-gh-release@b7e450da2a4b4cb4bfbae528f788167786cfcedf  # v0.1.5
+        uses: softprops/action-gh-release@c062e08bd532815e2082a85e87e3ef29c3e6d191  # v2.0.8
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
