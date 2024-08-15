@@ -16,10 +16,10 @@ require (
 	github.com/kubernetes-csi/csi-test/v4 v4.4.0
 	github.com/magiconair/properties v1.8.7
 	github.com/sirupsen/logrus v1.9.3
-	golang.org/x/oauth2 v0.8.0
+	golang.org/x/oauth2 v0.20.0
 	golang.org/x/sync v0.7.0
 	golang.org/x/sys v0.24.0
-	google.golang.org/grpc v1.51.0
+	google.golang.org/grpc v1.65.0
 	gotest.tools/v3 v3.4.0
 	k8s.io/apimachinery v0.27.1
 	k8s.io/klog/v2 v2.130.1
@@ -55,7 +55,6 @@ require (
 	golang.org/x/net v0.26.0 // indirect
 	golang.org/x/text v0.16.0 // indirect
 	golang.org/x/time v0.3.0 // indirect
-	google.golang.org/appengine v1.6.7 // indirect
 	google.golang.org/genproto v0.0.0-20220502173005-c8bf987b8c21 // indirect
 	google.golang.org/protobuf v1.34.2 // indirect
 	gopkg.in/tomb.v1 v1.0.0-20141024135613-dd632973f1e7 // indirect
