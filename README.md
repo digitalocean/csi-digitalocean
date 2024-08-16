@@ -114,6 +114,7 @@ The following table describes the required DigitalOcean CSI driver version per s
 | 1.28               | v4.7.0+                         |
 | 1.29               | v4.8.0+                         |
 | 1.30               | v4.9.0+                         |
+| 1.31               | v4.12.0+                        |
 
 ---
 **Note:**

@@ -54,7 +54,7 @@ var (
 	errTokenMissing = errors.New("token must be specified in DIGITALOCEAN_ACCESS_TOKEN environment variable")
 
 	// De-facto global variables that require initialization at runtime.
-	supportedKubernetesVersions     = []string{"1.30", "1.29", "1.28", "1.27"}
+	supportedKubernetesVersions     = []string{"1.31", "1.30", "1.29", "1.28"}
 	sourceFileDir                   string
 	testdriverDirectoryAbsolutePath string
 	deployScriptPath                string
