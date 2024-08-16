@@ -1,5 +1,7 @@
 ## unreleased
 
+## v4.12.0 - 2024.08.16
+
 * Update CSI driver for Kubernetes 1.31
   Update CSI sidecars to latest
   Update Go to 1.23
