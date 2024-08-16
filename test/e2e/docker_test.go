@@ -24,8 +24,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/api/types/container"
+	"github.com/docker/docker/api/types/image"
 	"github.com/docker/docker/api/types/mount"
 	"github.com/docker/docker/api/types/network"
 	"github.com/docker/docker/client"
@@ -56,7 +56,7 @@ func runContainer(ctx context.Context, p containerParams) (retErr error) {
 	}
 
 	// Find and remove any previous container.
-	conts, err := cli.ContainerList(ctx, types.ContainerListOptions{
+	conts, err := cli.ContainerList(ctx, container.ListOptions{
 		All: true,
 	})
 	if err != nil {
@@ -67,7 +67,7 @@ ContList:
 	for _, cont := range conts {
 		for _, name := range cont.Names {
 			if strings.TrimPrefix(name, "/") == e2eContainerName {
-				err := cli.ContainerRemove(ctx, cont.ID, types.ContainerRemoveOptions{
+				err := cli.ContainerRemove(ctx, cont.ID, container.RemoveOptions{
 					Force: true,
 				})
 				if err != nil {
@@ -79,7 +79,7 @@ ContList:
 	}
 
 	// Check if image exists locally.
-	summaries, err := cli.ImageList(ctx, types.ImageListOptions{})
+	summaries, err := cli.ImageList(ctx, image.ListOptions{})
 	if err != nil {
 		return fmt.Errorf("failed to list images: %s", err)
 	}
@@ -95,7 +95,7 @@ Summaries:
 	}
 	if !imageExists {
 		// Pull image.
-		pull, err := cli.ImagePull(ctx, p.image, types.ImagePullOptions{})
+		pull, err := cli.ImagePull(ctx, p.image, image.PullOptions{})
 		if err != nil {
 			return fmt.Errorf("failed to pull image %q: %s", p.image, err)
 		}
@@ -140,7 +140,7 @@ Summaries:
 		return fmt.Errorf("failed to create container: %s", err)
 	}
 
-	err = cli.ContainerStart(ctx, cont.ID, types.ContainerStartOptions{})
+	err = cli.ContainerStart(ctx, cont.ID, container.StartOptions{})
 	if err != nil {
 		return fmt.Errorf("failed to start container: %s", err)
 	}
@@ -175,7 +175,7 @@ Summaries:
 		fmt.Println("Container stopped")
 	}()
 
-	r, err = cli.ContainerLogs(logCtx, cont.ID, types.ContainerLogsOptions{
+	r, err = cli.ContainerLogs(logCtx, cont.ID, container.LogsOptions{
 		ShowStdout: true,
 		ShowStderr: true,
 		// Follow is essential or otherwise the returned reader will close as
