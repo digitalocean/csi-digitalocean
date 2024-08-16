@@ -1,5 +1,24 @@
 ## unreleased
 
+## v4.12.0 - 2024.08.16
+
+* Update CSI driver for Kubernetes 1.31
+
+  Update CSI sidecars to latest
+
+  Update Go to 1.23
+
+  Update other go.mod dependencies
+
+  Update VolumeSnapshot, VolumeSnapshotContent, and VolumeSnapshotClass CRDs to pull in CEL validation rules new in external-snapshotter v8 release
+
+  Remove VolumeSnapshot and VolumeSnapshotContent from the snapshot validating webhook configuration as those are now validated via CEL rules on their CRDs
+
+  [[GH-589]](https://github.com/digitalocean/csi-digitalocean/pull/589)
+  
+* Update github.com/docker/docker to address a vulnerability
+  [[GH-590]](https://github.com/digitalocean/csi-digitalocean/pull/590)
+
 ## v4.11.0 - 2024.08.09
 
 * Make volumes-per-node limit configurable
