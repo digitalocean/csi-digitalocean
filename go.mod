@@ -6,7 +6,7 @@ require (
 	github.com/blang/semver v3.5.1+incompatible
 	github.com/container-storage-interface/spec v1.8.0
 	github.com/digitalocean/go-metadata v0.0.0-20220602160802-6f1b22e9ba8c
-	github.com/digitalocean/godo v1.120.0
+	github.com/digitalocean/godo v1.123.0
 	github.com/docker/docker v26.1.5+incompatible
 	github.com/golang/protobuf v1.5.4
 	github.com/google/go-cmp v0.6.0

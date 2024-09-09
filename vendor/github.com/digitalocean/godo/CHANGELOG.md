@@ -1,5 +1,21 @@
 # Change Log
 
+## [v1.123.0] - 2024-09-06
+
+- #719 - @andrewsomething - apps: mark ListTiers and GetTier as deprecated
+
+## [v1.122.0] - 2024-09-04
+
+- #717 - @danaelhe - DB: Fix Logsink Attribute Types
+- #716 - @bhardwajRahul - Databases: Add support for OpenSearch ACL
+
+## [v1.121.0] - 2024-08-20
+
+- #715 - @danaelhe - Databases: Bring back Logsink Support
+- #710 - @bhardwajRahul - Update GODO to include new Openseach index crud changes
+- #712 - @danaelhe - Database: Namespace logsink
+- #711 - @danaelhe - Databases: Add Logsinks CRUD support
+
 ## [v1.120.0] - 2024-08-08
 
 - #708 - @markusthoemmes - APPS-9201 Add `UpdateAllSourceVersions` parameter to update app calls
