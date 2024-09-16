@@ -16,7 +16,7 @@ github.com/coreos/go-systemd/v22/dbus
 # github.com/digitalocean/go-metadata v0.0.0-20220602160802-6f1b22e9ba8c
 ## explicit
 github.com/digitalocean/go-metadata
-# github.com/digitalocean/godo v1.120.0
+# github.com/digitalocean/godo v1.124.0
 ## explicit; go 1.20
 github.com/digitalocean/godo
 github.com/digitalocean/godo/metrics
