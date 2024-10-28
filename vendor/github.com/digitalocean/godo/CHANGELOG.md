@@ -1,5 +1,51 @@
 # Change Log
 
+## [v1.128.0] - 2024-10-24
+
+- #746 - @blesswinsamuel - Add archive field to AppSpec to archive/restore apps
+- #745 - @asaha2 - Add load balancer monitoring endpoints
+- #744 - @asaha2 - Adjust delete dangerous
+- #743 - @asaha2 - Introduce droplet autoscale godo methods
+- #740 - @blesswinsamuel - Add maintenance field to AppSpec to enable/disable maintenance mode
+- #739 - @markusthoemmes - Add protocol to AppSpec and pending to detect responses
+
+## [v1.127.0] - 2024-10-18
+
+- #737 - @loosla - [databases]: change Opensearch ism_history_max_docs type to int64 to …
+- #735 - @loosla - [databases]: add a missing field to Opensearch advanced configuration
+- #729 - @loosla - [databases]: add support for Opensearch advanced configuration
+
+## [v1.126.0] - 2024-09-25
+
+- #732 - @gottwald - DOKS: add custom CIDR fields
+- #727 - @loosla - [databases]: add support for Kafka advanced configuration
+
+## [v1.125.0] - 2024-09-17
+
+- #726 - @loosla - [databases]: add support for MongoDB advanced configuration
+- #724 - @andrewsomething - Bump go version to 1.22
+- #723 - @jauderho - Update Go dependencies and remove replace statements
+
+## [v1.124.0] - 2024-09-10
+
+- #721 - @vsharma6855 - [DBAAS] | Add API endpoint for applying cluster patches
+
+## [v1.123.0] - 2024-09-06
+
+- #719 - @andrewsomething - apps: mark ListTiers and GetTier as deprecated
+
+## [v1.122.0] - 2024-09-04
+
+- #717 - @danaelhe - DB: Fix Logsink Attribute Types
+- #716 - @bhardwajRahul - Databases: Add support for OpenSearch ACL
+
+## [v1.121.0] - 2024-08-20
+
+- #715 - @danaelhe - Databases: Bring back Logsink Support
+- #710 - @bhardwajRahul - Update GODO to include new Openseach index crud changes
+- #712 - @danaelhe - Database: Namespace logsink
+- #711 - @danaelhe - Databases: Add Logsinks CRUD support
+
 ## [v1.120.0] - 2024-08-08
 
 - #708 - @markusthoemmes - APPS-9201 Add `UpdateAllSourceVersions` parameter to update app calls
