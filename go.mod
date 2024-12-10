@@ -14,7 +14,7 @@ require (
 	github.com/kubernetes-csi/csi-test/v4 v4.4.0
 	github.com/magiconair/properties v1.8.7
 	github.com/sirupsen/logrus v1.9.3
-	golang.org/x/oauth2 v0.22.0
+	golang.org/x/oauth2 v0.24.0
 	golang.org/x/sync v0.8.0
 	golang.org/x/sys v0.24.0
 	google.golang.org/grpc v1.65.0
