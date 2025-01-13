@@ -20,6 +20,16 @@ RUN apt-get update && \
 RUN mkdir -p /go/src/k8s.io
 WORKDIR /go/src/k8s.io
 
+### Kubernetes 1.32
+FROM builder As tests-1.32
+ARG KUBE_VERSION_1_32=1.32.0
+ARG KUBE_VERSION_1_32_E2E_BIN_SHA256_CHECKSUM=742dee5fdbab14202db14142b1387c13076421666383bd6259350899b049c2c1
+
+RUN curl --fail --location https://dl.k8s.io/v${KUBE_VERSION_1_32}/kubernetes-test-linux-amd64.tar.gz | tar xvzf - --strip-components 3 kubernetes/test/bin/e2e.test kubernetes/test/bin/ginkgo
+RUN echo "${KUBE_VERSION_1_32_E2E_BIN_SHA256_CHECKSUM}" e2e.test | sha256sum --check
+RUN cp e2e.test /e2e.1.32.test
+RUN cp ginkgo /ginkgo-1.32
+
 ### Kubernetes 1.31
 FROM builder As tests-1.31
 ARG KUBE_VERSION_1_31=1.31.0
@@ -65,7 +75,7 @@ FROM golang:1.23 AS tools
 ARG TINI_VERSION=0.19.0
 # doctl is needed to support clusters that had their kubeconfig fetched via the
 # CLI because those leverage a kubeconfig authentication plugin based on doctl.
-ARG DOCTL_VERSION=1.111.0
+ARG DOCTL_VERSION=1.120.1
 
 RUN curl --fail --location --output /tini https://github.com/krallin/tini/releases/download/v${TINI_VERSION}/tini
 RUN chmod u+x /tini
@@ -81,7 +91,9 @@ RUN cp kubectl /
 FROM bitnami/minideb:buster AS runtime
 # Certificates needed to trust the CA for any HTTPS connections to the DO API.
 RUN apt-get update && \
-    DEBIAN_FRONTEND=noninteractive apt-get install --yes --no-install-recommends ca-certificates
+    DEBIAN_FRONTEND=noninteractive apt-get install --yes --no-install-recommends ca-certificates \
+COPY --from=tests-1.32 /e2e.1.32.test /
+COPY --from=tests-1.32 /ginkgo-1.32 /usr/local/bin
 COPY --from=tests-1.31 /e2e.1.31.test /
 COPY --from=tests-1.31 /ginkgo-1.31 /usr/local/bin
 COPY --from=tests-1.30 /e2e.1.30.test /
