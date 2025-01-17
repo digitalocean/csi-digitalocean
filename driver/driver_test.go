@@ -378,18 +378,9 @@ func (f *fakeStorageActionsDriver) Resize(ctx context.Context, volumeID string, 
 
 type fakeDropletsDriver struct {
 	droplets map[int]*godo.Droplet
-}
 
-func (f *fakeDropletsDriver) List(context.Context, *godo.ListOptions) ([]godo.Droplet, *godo.Response, error) {
-	panic("not implemented")
-}
-
-func (f *fakeDropletsDriver) ListByName(context.Context, string, *godo.ListOptions) ([]godo.Droplet, *godo.Response, error) {
-	panic("not implemented")
-}
-
-func (f *fakeDropletsDriver) ListByTag(context.Context, string, *godo.ListOptions) ([]godo.Droplet, *godo.Response, error) {
-	panic("not implemented")
+	// satisfy interface for unimplemented methods
+	godo.DropletsService
 }
 
 func (f *fakeDropletsDriver) Get(ctx context.Context, dropletID int) (*godo.Droplet, *godo.Response, error) {
@@ -403,42 +394,6 @@ func (f *fakeDropletsDriver) Get(ctx context.Context, dropletID int) (*godo.Drop
 	}
 
 	return droplet, godoResponse(), nil
-}
-
-func (f *fakeDropletsDriver) Create(context.Context, *godo.DropletCreateRequest) (*godo.Droplet, *godo.Response, error) {
-	panic("not implemented")
-}
-
-func (f *fakeDropletsDriver) CreateMultiple(context.Context, *godo.DropletMultiCreateRequest) ([]godo.Droplet, *godo.Response, error) {
-	panic("not implemented")
-}
-
-func (f *fakeDropletsDriver) Delete(context.Context, int) (*godo.Response, error) {
-	panic("not implemented")
-}
-
-func (f *fakeDropletsDriver) DeleteByTag(context.Context, string) (*godo.Response, error) {
-	panic("not implemented")
-}
-
-func (f *fakeDropletsDriver) Kernels(context.Context, int, *godo.ListOptions) ([]godo.Kernel, *godo.Response, error) {
-	panic("not implemented")
-}
-
-func (f *fakeDropletsDriver) Snapshots(context.Context, int, *godo.ListOptions) ([]godo.Image, *godo.Response, error) {
-	panic("not implemented")
-}
-
-func (f *fakeDropletsDriver) Backups(context.Context, int, *godo.ListOptions) ([]godo.Image, *godo.Response, error) {
-	panic("not implemented")
-}
-
-func (f *fakeDropletsDriver) Actions(context.Context, int, *godo.ListOptions) ([]godo.Action, *godo.Response, error) {
-	panic("not implemented")
-}
-
-func (f *fakeDropletsDriver) Neighbors(context.Context, int) ([]godo.Droplet, *godo.Response, error) {
-	panic("not implemented")
 }
 
 type fakeSnapshotsDriver struct {
