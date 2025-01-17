@@ -111,7 +111,7 @@ spec:
       serviceAccount: csi-do-controller-sa
       containers:
         - name: csi-provisioner
-          image: registry.k8s.io/sig-storage/csi-provisioner:v5.1.0
+          image: registry.k8s.io/sig-storage/csi-provisioner:v5.2.0
           args:
             - "--csi-address=$(ADDRESS)"
             - "--default-fstype=ext4"
@@ -150,7 +150,7 @@ spec:
             - name: socket-dir
               mountPath: /var/lib/csi/sockets/pluginproxy/
         - name: csi-resizer
-          image: registry.k8s.io/sig-storage/csi-resizer:v1.12.0
+          image: registry.k8s.io/sig-storage/csi-resizer:v1.13.1
           args:
             - "--csi-address=$(ADDRESS)"
             - "--timeout=30s"
