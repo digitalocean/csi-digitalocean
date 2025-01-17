@@ -330,7 +330,7 @@ fully attached which can be misinterpreted by the CSI implementation causing a f
 
 Requirements:
 
-* Go at the version specified in `.github/workflows/test.yaml`
+* Go at the version specified in `go.mod`
 * Docker (for building via the Makefile, post-unit testing, and publishing)
 
 Dependencies are managed via [Go modules](https://github.com/golang/go/wiki/Modules).
