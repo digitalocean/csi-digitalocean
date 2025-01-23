@@ -7,7 +7,7 @@ require (
 	github.com/container-storage-interface/spec v1.8.0
 	github.com/digitalocean/go-metadata v0.0.0-20241007135954-c6c417d75f63
 	github.com/digitalocean/godo v1.134.0
-	github.com/docker/docker v27.5.0+incompatible
+	github.com/docker/docker v26.1.5+incompatible
 	github.com/golang/protobuf v1.5.4
 	github.com/google/go-cmp v0.6.0
 	github.com/google/uuid v1.6.0

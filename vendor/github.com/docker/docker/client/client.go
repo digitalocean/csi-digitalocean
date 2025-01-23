@@ -2,7 +2,7 @@
 Package client is a Go client for the Docker Engine API.
 
 For more information about the Engine API, see the documentation:
-https://docs.docker.com/reference/api/engine/
+https://docs.docker.com/engine/api/
 
 # Usage
 
@@ -49,8 +49,6 @@ import (
 	"net/url"
 	"path"
 	"strings"
-	"sync"
-	"sync/atomic"
 	"time"
 
 	"github.com/docker/docker/api"
@@ -133,10 +131,7 @@ type Client struct {
 	negotiateVersion bool
 
 	// negotiated indicates that API version negotiation took place
-	negotiated atomic.Bool
-
-	// negotiateLock is used to single-flight the version negotiation process
-	negotiateLock sync.Mutex
+	negotiated bool
 
 	tp trace.TracerProvider
 
@@ -247,14 +242,6 @@ func (cli *Client) tlsConfig() *tls.Config {
 
 func defaultHTTPClient(hostURL *url.URL) (*http.Client, error) {
 	transport := &http.Transport{}
-	// Necessary to prevent long-lived processes using the
-	// client from leaking connections due to idle connections
-	// not being released.
-	// TODO: see if we can also address this from the server side,
-	// or in go-connections.
-	// see: https://github.com/moby/moby/issues/45539
-	transport.MaxIdleConns = 6
-	transport.IdleConnTimeout = 30 * time.Second
 	err := sockets.ConfigureTransport(transport, hostURL.Scheme, hostURL.Host)
 	if err != nil {
 		return nil, err
@@ -279,16 +266,7 @@ func (cli *Client) Close() error {
 // be negotiated when making the actual requests, and for which cases
 // we cannot do the negotiation lazily.
 func (cli *Client) checkVersion(ctx context.Context) error {
-	if !cli.manualOverride && cli.negotiateVersion && !cli.negotiated.Load() {
-		// Ensure exclusive write access to version and negotiated fields
-		cli.negotiateLock.Lock()
-		defer cli.negotiateLock.Unlock()
-
-		// May have been set during last execution of critical zone
-		if cli.negotiated.Load() {
-			return nil
-		}
-
+	if !cli.manualOverride && cli.negotiateVersion && !cli.negotiated {
 		ping, err := cli.Ping(ctx)
 		if err != nil {
 			return err
@@ -334,10 +312,6 @@ func (cli *Client) ClientVersion() string {
 // added (1.24).
 func (cli *Client) NegotiateAPIVersion(ctx context.Context) {
 	if !cli.manualOverride {
-		// Avoid concurrent modification of version-related fields
-		cli.negotiateLock.Lock()
-		defer cli.negotiateLock.Unlock()
-
 		ping, err := cli.Ping(ctx)
 		if err != nil {
 			// FIXME(thaJeztah): Ping returns an error when failing to connect to the API; we should not swallow the error here, and instead returning it.
@@ -362,10 +336,6 @@ func (cli *Client) NegotiateAPIVersion(ctx context.Context) {
 // added (1.24).
 func (cli *Client) NegotiateAPIVersionPing(pingResponse types.Ping) {
 	if !cli.manualOverride {
-		// Avoid concurrent modification of version-related fields
-		cli.negotiateLock.Lock()
-		defer cli.negotiateLock.Unlock()
-
 		cli.negotiateAPIVersionPing(pingResponse)
 	}
 }
@@ -391,7 +361,7 @@ func (cli *Client) negotiateAPIVersionPing(pingResponse types.Ping) {
 	// Store the results, so that automatic API version negotiation (if enabled)
 	// won't be performed on the next request.
 	if cli.negotiateVersion {
-		cli.negotiated.Store(true)
+		cli.negotiated = true
 	}
 }
 

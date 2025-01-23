@@ -3,12 +3,13 @@ package client // import "github.com/docker/docker/client"
 import (
 	"context"
 
+	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/api/types/network"
 )
 
 // NetworkConnect connects a container to an existent network in the docker host.
 func (cli *Client) NetworkConnect(ctx context.Context, networkID, containerID string, config *network.EndpointSettings) error {
-	nc := network.ConnectOptions{
+	nc := types.NetworkConnect{
 		Container:      containerID,
 		EndpointConfig: config,
 	}
