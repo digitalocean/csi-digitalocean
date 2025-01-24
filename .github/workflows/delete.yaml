@@ -15,6 +15,6 @@ jobs:
         run: |
           BRANCH=$(echo -n ${BRANCH} | tr -c '[:alnum:]._-' '-')
           TOKEN=$(curl -s -H "Content-Type: application/json" -X POST -d '{"username": "'${DOCKER_USER}'", "password": "'${DOCKER_PASS}'"}' https://hub.docker.com/v2/users/login/ | jq -r .token)
-          images=("${BRANCH}-latest" "${BRANCH}-runtime" "${BRANCH}-tools" "${BRANCH}-tests-1.31" "${BRANCH}-tests-1.30" "${BRANCH}-tests-1.29" "${BRANCH}-tests-1.28" "${BRANCH}-builder")
+          images=("${BRANCH}-latest" "${BRANCH}-runtime" "${BRANCH}-tools" "${BRANCH}-tests-1.32" "${BRANCH}-tests-1.31" "${BRANCH}-tests-1.30" "${BRANCH}-tests-1.29" "${BRANCH}-builder")
           for i in ${images[*]}; do curl --fail -sS -X DELETE -H "Authorization: JWT ${TOKEN}" https://hub.docker.com/v2/repositories/digitalocean/k8s-e2e-test-runner/tags/$i/; done
           curl --fail -sS -X DELETE -H "Authorization: JWT ${TOKEN}" https://hub.docker.com/v2/repositories/digitalocean/do-csi-plugin-dev/tags/${BRANCH}/

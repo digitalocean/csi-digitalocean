@@ -65,11 +65,13 @@ type KubernetesServiceOp struct {
 
 // KubernetesClusterCreateRequest represents a request to create a Kubernetes cluster.
 type KubernetesClusterCreateRequest struct {
-	Name        string   `json:"name,omitempty"`
-	RegionSlug  string   `json:"region,omitempty"`
-	VersionSlug string   `json:"version,omitempty"`
-	Tags        []string `json:"tags,omitempty"`
-	VPCUUID     string   `json:"vpc_uuid,omitempty"`
+	Name          string   `json:"name,omitempty"`
+	RegionSlug    string   `json:"region,omitempty"`
+	VersionSlug   string   `json:"version,omitempty"`
+	Tags          []string `json:"tags,omitempty"`
+	VPCUUID       string   `json:"vpc_uuid,omitempty"`
+	ClusterSubnet string   `json:"cluster_subnet,omitempty"`
+	ServiceSubnet string   `json:"service_subnet,omitempty"`
 
 	// Create cluster with highly available control plane
 	HA bool `json:"ha"`
@@ -221,6 +223,7 @@ func (kc KubernetesCluster) URN() string {
 
 // KubernetesClusterUser represents a Kubernetes cluster user.
 type KubernetesClusterUser struct {
+	ID       string   `json:"id,omitempty"`
 	Username string   `json:"username,omitempty"`
 	Groups   []string `json:"groups,omitempty"`
 }
@@ -313,7 +316,7 @@ var (
 
 // KubernetesMaintenanceToDay returns the appropriate KubernetesMaintenancePolicyDay for the given string.
 func KubernetesMaintenanceToDay(day string) (KubernetesMaintenancePolicyDay, error) {
-	d, ok := toDay[day]
+	d, ok := toDay[strings.ToLower(day)]
 	if !ok {
 		return 0, fmt.Errorf("unknown day: %q", day)
 	}
