@@ -60,16 +60,6 @@ RUN echo "${KUBE_VERSION_1_29_E2E_BIN_SHA256_CHECKSUM}" e2e.test | sha256sum --c
 RUN cp e2e.test /e2e.1.29.test
 RUN cp ginkgo /ginkgo-1.29
 
-### Kubernetes 1.28
-FROM builder AS tests-1.28
-ARG KUBE_VERSION_1_28=1.28.0
-ARG KUBE_VERSION_1_28_E2E_BIN_SHA256_CHECKSUM=807f5ce07395f01e916873847a553dc32d437341695360bbcad5932e9fed094e
-
-RUN curl --fail --location https://dl.k8s.io/v${KUBE_VERSION_1_28}/kubernetes-test-linux-amd64.tar.gz | tar xvzf - --strip-components 3 kubernetes/test/bin/e2e.test kubernetes/test/bin/ginkgo
-RUN echo "${KUBE_VERSION_1_28_E2E_BIN_SHA256_CHECKSUM}" e2e.test | sha256sum --check
-RUN cp e2e.test /e2e.1.28.test
-RUN cp ginkgo /ginkgo-1.28
-
 FROM golang:1.23 AS tools
 # See comment at the bottom on why we need tini.
 ARG TINI_VERSION=0.19.0
@@ -100,8 +90,6 @@ COPY --from=tests-1.30 /e2e.1.30.test /
 COPY --from=tests-1.30 /ginkgo-1.30 /usr/local/bin
 COPY --from=tests-1.29 /e2e.1.29.test /
 COPY --from=tests-1.29 /ginkgo-1.29 /usr/local/bin
-COPY --from=tests-1.28 /e2e.1.28.test /
-COPY --from=tests-1.28 /ginkgo-1.28 /usr/local/bin
 COPY --from=tools /tini /sbin/
 COPY --from=tools /doctl /usr/local/bin/
 COPY --from=tools /kubectl /usr/local/bin/
