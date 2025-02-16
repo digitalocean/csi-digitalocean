@@ -1,0 +1,129 @@
+kind: StatefulSet
+apiVersion: apps/v1
+metadata:
+  name: {{ printf "%s-controller" (include "csi-digitalocean.fullname" .) | quote }}
+  namespace: {{ .Release.Namespace | quote }}
+  labels:
+    helm.sh/chart: {{ include "csi-digitalocean.chart" . | quote }}
+    app.kubernetes.io/name: {{ include "csi-digitalocean.name" . | quote }}
+    app.kubernetes.io/instance: {{ .Release.Name | quote }}
+    app.kubernetes.io/managed-by: {{ .Release.Service | quote }}
+    app.kubernetes.io/version: {{ .Chart.AppVersion | quote }}
+    app.kubernetes.io/component: controller
+spec:
+  serviceName: {{ printf "%s-controller" (include "csi-digitalocean.fullname" .) | quote }}
+  replicas: {{ .Values.controller.replicas | int }}
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: {{ printf "%s-controller" (include "csi-digitalocean.fullname" .) | quote }}
+      app.kubernetes.io/instance: {{ .Release.Name | quote }}
+      app.kubernetes.io/component: controller
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: {{ printf "%s-controller" (include "csi-digitalocean.fullname" .) | quote }}
+        app.kubernetes.io/instance: {{ .Release.Name | quote }}
+        app.kubernetes.io/version: {{ .Chart.AppVersion | quote }}
+        app.kubernetes.io/component: controller
+      annotations:
+        checksum/secret: {{ pick (include (print $.Template.BasePath "/secret.yaml") . | fromYaml) "data" | toYaml | sha256sum | quote }}
+    spec:
+      priorityClassName: system-cluster-critical
+      serviceAccountName: {{ printf "%s-controller-sa" (include "csi-digitalocean.fullname" .) | quote }}
+    {{- with .Values.controller.affinity }}
+      affinity: {{- toYaml . | nindent 8 }}
+    {{- end }}
+    {{- with .Values.controller.tolerations }}
+      tolerations: {{- toYaml . | nindent 8 }}
+    {{- end }}
+      containers:
+        - name: csi-provisioner
+          image: {{ printf "%s:%s" .Values.controller.provisioner.image.repository .Values.controller.provisioner.image.tag | quote }}
+          imagePullPolicy: {{ .Values.controller.provisioner.image.pullPolicy | quote }}
+          args:
+            - "--csi-address=$(ADDRESS)"
+            - "--default-fstype=ext4"
+            - "--v=5"
+          {{- with .Values.controller.provisioner.extraArgs }}
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          env:
+            - name: ADDRESS
+              value: /var/lib/csi/sockets/pluginproxy/csi.sock
+          volumeMounts:
+            - name: socket-dir
+              mountPath: /var/lib/csi/sockets/pluginproxy/
+        - name: csi-attacher
+          image: {{ printf "%s:%s" .Values.controller.attacher.image.repository .Values.controller.attacher.image.tag | quote }}
+          imagePullPolicy: {{ .Values.controller.attacher.image.pullPolicy | quote }}
+          args:
+            - "--csi-address=$(ADDRESS)"
+            - "--v=5"
+          {{- with .Values.controller.attacher.extraArgs }}
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          env:
+            - name: ADDRESS
+              value: /var/lib/csi/sockets/pluginproxy/csi.sock
+          volumeMounts:
+            - name: socket-dir
+              mountPath: /var/lib/csi/sockets/pluginproxy/
+        - name: csi-snapshotter
+          image: {{ printf "%s:%s" .Values.controller.snapshotter.image.repository .Values.controller.snapshotter.image.tag | quote }}
+          imagePullPolicy: {{ .Values.controller.snapshotter.image.pullPolicy | quote }}
+          args:
+            - "--csi-address=$(ADDRESS)"
+            - "--v=5"
+          {{- with .Values.controller.snapshotter.extraArgs }}
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          env:
+            - name: ADDRESS
+              value: /var/lib/csi/sockets/pluginproxy/csi.sock
+          volumeMounts:
+            - name: socket-dir
+              mountPath: /var/lib/csi/sockets/pluginproxy/
+        - name: csi-resizer
+          image: {{ printf "%s:%s" .Values.controller.resizer.image.repository .Values.controller.resizer.image.tag | quote }}
+          imagePullPolicy: {{ .Values.controller.resizer.image.pullPolicy | quote }}
+          args:
+            - "--csi-address=$(ADDRESS)"
+            - "--timeout=30s"
+            - "--v=5"
+            # DigitalOcean volumes support online resize.
+            - "--handle-volume-inuse-error=false"
+          {{- with .Values.controller.resizer.extraArgs }}
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          env:
+            - name: ADDRESS
+              value: /var/lib/csi/sockets/pluginproxy/csi.sock
+          volumeMounts:
+            - name: socket-dir
+              mountPath: /var/lib/csi/sockets/pluginproxy/
+        - name: csi-do-plugin
+          image: {{ printf "%s:%s" .Values.plugin.image.repository .Values.plugin.image.tag | quote }}
+          imagePullPolicy: {{ .Values.plugin.image.pullPolicy | quote }}
+          args:
+            - "--endpoint=$(CSI_ENDPOINT)"
+            - "--token=$(DIGITALOCEAN_ACCESS_TOKEN)"
+            - "--url=$(DIGITALOCEAN_API_URL)"
+          {{- with .Values.plugin.extraArgs }}
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          env:
+            - name: CSI_ENDPOINT
+              value: unix:///var/lib/csi/sockets/pluginproxy/csi.sock
+            - name: DIGITALOCEAN_API_URL
+              value: https://api.digitalocean.com/
+            - name: DIGITALOCEAN_ACCESS_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "csi-digitalocean.fullname" . | quote }}
+                  key: access-token
+          volumeMounts:
+            - name: socket-dir
+              mountPath: /var/lib/csi/sockets/pluginproxy/
+      volumes:
+        - name: socket-dir
+          emptyDir: {}
