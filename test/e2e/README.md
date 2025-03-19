@@ -70,7 +70,7 @@ Command-line arguments are passed as-in to the test tool. Run `e2e.sh -h` for us
 
 ### Add support for a new Kubernetes release
 
-1. Add a new Kubernetes version-specific block to the [runner image Dockerfile](https://github.com/digitalocean/csi-digitalocean/blob/master/test/e2e/Dockerfile); make sure to update the `SHA_*` commit hash and/or `*_SHA256_*` e2e.test binary checksum variables as well. (You can use `scripts/get-e2etest-sha256` to generate the e2e.test binary checksum for a given Kubernetes version.)
+1. Add a new Kubernetes version-specific block to the [runner image Dockerfile](https://github.com/digitalocean/csi-digitalocean/blob/master/test/e2e/Dockerfile); make sure to update the `SHA_*` commit hash and/or `*_SHA256_*` e2e.test binary checksum variables as well. (You can use `scripts/get-e2etest-sha256.sh` to generate the e2e.test binary checksum for a given Kubernetes version.)
    1. Like so: [X is your minor version and Y is the patch version]()
       ```Dockerfile
       ### Kubernetes 1.XX

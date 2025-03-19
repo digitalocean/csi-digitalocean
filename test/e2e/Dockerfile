@@ -22,8 +22,8 @@ WORKDIR /go/src/k8s.io
 
 ### Kubernetes 1.32
 FROM builder As tests-1.32
-ARG KUBE_VERSION_1_32=1.32.0
-ARG KUBE_VERSION_1_32_E2E_BIN_SHA256_CHECKSUM=742dee5fdbab14202db14142b1387c13076421666383bd6259350899b049c2c1
+ARG KUBE_VERSION_1_32=1.32.3
+ARG KUBE_VERSION_1_32_E2E_BIN_SHA256_CHECKSUM=c6b9a9a0fe096400a68f6309c46e43edbd0164afc4bc7f0608fa7eb401d6e76d
 
 RUN curl --fail --location https://dl.k8s.io/v${KUBE_VERSION_1_32}/kubernetes-test-linux-amd64.tar.gz | tar xvzf - --strip-components 3 kubernetes/test/bin/e2e.test kubernetes/test/bin/ginkgo
 RUN echo "${KUBE_VERSION_1_32_E2E_BIN_SHA256_CHECKSUM}" e2e.test | sha256sum --check
@@ -32,8 +32,8 @@ RUN cp ginkgo /ginkgo-1.32
 
 ### Kubernetes 1.31
 FROM builder As tests-1.31
-ARG KUBE_VERSION_1_31=1.31.0
-ARG KUBE_VERSION_1_31_E2E_BIN_SHA256_CHECKSUM=aa9747ca53660a3457c5158fa47ed6a5f7fb7a82fa50c0f05dbeb607f579a7e8
+ARG KUBE_VERSION_1_31=1.31.7
+ARG KUBE_VERSION_1_31_E2E_BIN_SHA256_CHECKSUM=8c10ed6ba538cb9fe181b1150e14813e55a73a2db0044c6f014a2e41d98f34ec
 
 RUN curl --fail --location https://dl.k8s.io/v${KUBE_VERSION_1_31}/kubernetes-test-linux-amd64.tar.gz | tar xvzf - --strip-components 3 kubernetes/test/bin/e2e.test kubernetes/test/bin/ginkgo
 RUN echo "${KUBE_VERSION_1_31_E2E_BIN_SHA256_CHECKSUM}" e2e.test | sha256sum --check
@@ -42,23 +42,13 @@ RUN cp ginkgo /ginkgo-1.31
 
 ### Kubernetes 1.30
 FROM builder As tests-1.30
-ARG KUBE_VERSION_1_30=1.30.0
-ARG KUBE_VERSION_1_30_E2E_BIN_SHA256_CHECKSUM=6f6f0acf7935197b47a69c56a4e14d4ac7edc78054372da0d86eb601bebd308c
+ARG KUBE_VERSION_1_30=1.30.11
+ARG KUBE_VERSION_1_30_E2E_BIN_SHA256_CHECKSUM=da82cc62fb2643e1724e5567e9e683ff3e06e177927166043ee853b2668df03f
 
 RUN curl --fail --location https://dl.k8s.io/v${KUBE_VERSION_1_30}/kubernetes-test-linux-amd64.tar.gz | tar xvzf - --strip-components 3 kubernetes/test/bin/e2e.test kubernetes/test/bin/ginkgo
 RUN echo "${KUBE_VERSION_1_30_E2E_BIN_SHA256_CHECKSUM}" e2e.test | sha256sum --check
 RUN cp e2e.test /e2e.1.30.test
 RUN cp ginkgo /ginkgo-1.30
-
-### Kubernetes 1.29
-FROM builder As tests-1.29
-ARG KUBE_VERSION_1_29=1.29.0
-ARG KUBE_VERSION_1_29_E2E_BIN_SHA256_CHECKSUM=b0d19ce356dce19eeb6d36bba99545ca334d0964ac68f1088ec0ee68cfcee530
-
-RUN curl --fail --location https://dl.k8s.io/v${KUBE_VERSION_1_29}/kubernetes-test-linux-amd64.tar.gz | tar xvzf - --strip-components 3 kubernetes/test/bin/e2e.test kubernetes/test/bin/ginkgo
-RUN echo "${KUBE_VERSION_1_29_E2E_BIN_SHA256_CHECKSUM}" e2e.test | sha256sum --check
-RUN cp e2e.test /e2e.1.29.test
-RUN cp ginkgo /ginkgo-1.29
 
 FROM golang:1.23 AS tools
 # See comment at the bottom on why we need tini.
@@ -88,8 +78,6 @@ COPY --from=tests-1.31 /e2e.1.31.test /
 COPY --from=tests-1.31 /ginkgo-1.31 /usr/local/bin
 COPY --from=tests-1.30 /e2e.1.30.test /
 COPY --from=tests-1.30 /ginkgo-1.30 /usr/local/bin
-COPY --from=tests-1.29 /e2e.1.29.test /
-COPY --from=tests-1.29 /ginkgo-1.29 /usr/local/bin
 COPY --from=tools /tini /sbin/
 COPY --from=tools /doctl /usr/local/bin/
 COPY --from=tools /kubectl /usr/local/bin/
