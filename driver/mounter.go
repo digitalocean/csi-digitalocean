@@ -207,6 +207,12 @@ func (m *mounter) Mount(source, target, fsType string, opts ...string) error {
 		}
 	}
 
+	// By default, xfs does not allow mounting of two volumes with the same filesystem uuid.
+	// Force ignore this uuid to be able to mount volume + its clone / restored snapshot on the same node.
+	if fsType == "xfs" {
+		opts = append(opts, "nouuid")
+	}
+
 	if len(opts) > 0 {
 		mountArgs = append(mountArgs, "-o", strings.Join(opts, ","))
 	}
