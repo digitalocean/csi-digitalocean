@@ -68,5 +68,5 @@ if [[ "${SKIP_SEQUENTIAL_TESTS:-}" ]]; then
   echo 'Skipping sequential tests'
 else
   echo 'Running sequential tests'
-  "ginkgo-${KUBE_VER}" -v -focus="External.Storage${focus}.*(\[Feature:|\[Serial\])" -skip='\[Disruptive\]|\[Feature:VolumeSourceXFS\]' "${E2E_TEST_FILE}" -- "-storage.testdriver=${TD_FILE}"
+  "ginkgo-${KUBE_VER}" -v -focus="External.Storage${focus}.*(\[Feature:|\[Serial\])" -skip='\[Disruptive\]' "${E2E_TEST_FILE}" -- "-storage.testdriver=${TD_FILE}"
 fi
