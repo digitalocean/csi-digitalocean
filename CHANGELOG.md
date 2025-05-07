@@ -1,5 +1,13 @@
 ## unreleased
 
+## v4.14.0 - 2025.05.07
+
+* Update CSI driver for Kubernetes 1.33
+
+  [[GH-633]](https://github.com/digitalocean/csi-digitalocean/pull/633)
+  [[GH-631]](https://github.com/digitalocean/csi-digitalocean/pull/631)
+
+
 ## v4.13.0 - 2025.01.24
 
 * Update CSI driver for Kubernetes 1.32
