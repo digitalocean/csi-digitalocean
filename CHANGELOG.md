@@ -4,8 +4,17 @@
 
 * Update CSI driver for Kubernetes 1.33
 
-  [[GH-633]](https://github.com/digitalocean/csi-digitalocean/pull/633)
-  [[GH-631]](https://github.com/digitalocean/csi-digitalocean/pull/631)
+* Update external-resizer
+
+  [[GH-631]](https://github.com/digitalocean/csi-digitalocean/pull/633)
+
+* Remove validation webhook manifests
+
+  [[kubernetes-csi/external-snapshotter@0f21537]](https://github.com/kubernetes-csi/external-snapshotter/releases/tag/v8.2.0)
+
+* Fix mounting of XFS volumes from snapshots
+
+  [[GH-633]](https://github.com/digitalocean/csi-digitalocean/pull/631)
 
 
 ## v4.13.0 - 2025.01.24
