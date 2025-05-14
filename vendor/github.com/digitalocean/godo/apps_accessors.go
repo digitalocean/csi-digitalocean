@@ -941,6 +941,14 @@ func (a *AppIngressSpecRule) GetRedirect() *AppIngressSpecRuleRoutingRedirect {
 	return a.Redirect
 }
 
+// GetAuthority returns the Authority field.
+func (a *AppIngressSpecRuleMatch) GetAuthority() *AppIngressSpecRuleStringMatch {
+	if a == nil {
+		return nil
+	}
+	return a.Authority
+}
+
 // GetPath returns the Path field.
 func (a *AppIngressSpecRuleMatch) GetPath() *AppIngressSpecRuleStringMatch {
 	if a == nil {
@@ -1011,6 +1019,14 @@ func (a *AppIngressSpecRuleRoutingRedirect) GetUri() string {
 		return ""
 	}
 	return a.Uri
+}
+
+// GetExact returns the Exact field.
+func (a *AppIngressSpecRuleStringMatch) GetExact() string {
+	if a == nil {
+		return ""
+	}
+	return a.Exact
 }
 
 // GetPrefix returns the Prefix field.
@@ -1451,6 +1467,14 @@ func (a *AppMaintenanceSpec) GetEnabled() bool {
 		return false
 	}
 	return a.Enabled
+}
+
+// GetOfflinePageURL returns the OfflinePageURL field.
+func (a *AppMaintenanceSpec) GetOfflinePageURL() string {
+	if a == nil {
+		return ""
+	}
+	return a.OfflinePageURL
 }
 
 // GetAppID returns the AppID field.

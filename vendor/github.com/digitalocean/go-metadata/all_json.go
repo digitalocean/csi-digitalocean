@@ -48,6 +48,10 @@ type Metadata struct {
 			IPAddress string `json:"ip_address,omitempty"`
 			Active    bool   `json:"active,omitempty"`
 		} `json:"ipv4,omitempty"`
+		IPv6 struct {
+			IPAddress string `json:"ip_address,omitempty"`
+			Active    bool   `json:"active,omitempty"`
+		} `json:"ipv6,omitempty"`
 	} `json:"reserved_ip,omitempty"`
 
 	Features struct {
