@@ -557,7 +557,7 @@ func (d *Driver) nodePublishVolumeForBlock(req *csi.NodePublishVolumeRequest, mo
 	if !mounted {
 		log.Info("mounting the volume")
 		if err := d.mounter.Mount(source, target, "", mountOptions...); err != nil {
-			return status.Errorf(codes.Internal, err.Error())
+			return status.Error(codes.Internal, err.Error())
 		}
 	} else {
 		log.Info("volume is already mounted")
