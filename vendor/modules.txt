@@ -8,7 +8,7 @@ github.com/Microsoft/go-winio/pkg/guid
 # github.com/blang/semver v3.5.1+incompatible
 ## explicit
 github.com/blang/semver
-# github.com/container-storage-interface/spec v1.9.0
+# github.com/container-storage-interface/spec v1.8.0
 ## explicit; go 1.18
 github.com/container-storage-interface/spec/lib/go/csi
 # github.com/containerd/log v0.1.0

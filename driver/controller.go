@@ -629,6 +629,15 @@ func (d *Driver) GetCapacity(ctx context.Context, req *csi.GetCapacityRequest) (
 	return nil, status.Error(codes.Unimplemented, "")
 }
 
+// ControllerModifyVolume
+func (d *Driver) ControllerModifyVolume(ctx context.Context, req *csi.ControllerModifyVolumeRequest) (*csi.ControllerModifyVolumeResponse, error) {
+	d.log.WithFields(logrus.Fields{
+		"params": req.MutableParameters,
+		"method": "modify_volume",
+	}).Warn("modify volume is not implemented")
+	return nil, status.Error(codes.Unimplemented, "")
+}
+
 // ControllerGetCapabilities returns the capabilities of the controller service.
 func (d *Driver) ControllerGetCapabilities(ctx context.Context, req *csi.ControllerGetCapabilitiesRequest) (*csi.ControllerGetCapabilitiesResponse, error) {
 	newCap := func(cap csi.ControllerServiceCapability_RPC_Type) *csi.ControllerServiceCapability {
