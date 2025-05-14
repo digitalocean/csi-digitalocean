@@ -27,8 +27,8 @@ ARG KUBE_VERSION_1_33_E2E_BIN_SHA256_CHECKSUM=3c44921a69c56cda7a8c4a6f8ac081a8c5
 
 RUN curl --fail --location https://dl.k8s.io/v${KUBE_VERSION_1_33}/kubernetes-test-linux-amd64.tar.gz | tar xvzf - --strip-components 3 kubernetes/test/bin/e2e.test kubernetes/test/bin/ginkgo
 RUN echo "${KUBE_VERSION_1_33_E2E_BIN_SHA256_CHECKSUM}" e2e.test | sha256sum --check
-RUN cp e2e.test /e2e.1.32.test
-RUN cp ginkgo /ginkgo-1.32
+RUN cp e2e.test /e2e.1.33.test
+RUN cp ginkgo /ginkgo-1.33
 
 ### Kubernetes 1.32
 FROM builder As tests-1.32
