@@ -26,7 +26,7 @@ func (cli *Client) ImagePull(ctx context.Context, refStr string, options image.P
 	}
 
 	query := url.Values{}
-	query.Set("fromImage", ref.Name())
+	query.Set("fromImage", reference.FamiliarName(ref))
 	if !options.All {
 		query.Set("tag", getAPITagFromNamedRef(ref))
 	}
