@@ -106,12 +106,3 @@ patchesStrategicMerge:
     name: do-block-storage
     annotations: null
   driver: dobs.csi.digitalocean.com-dev
-- |-
-  apiVersion: admissionregistration.k8s.io/v1
-  kind: ValidatingWebhookConfiguration
-  metadata:
-    name: "validation-webhook.snapshot.storage.k8s.io"
-  webhooks:
-    - name: "validation-webhook.snapshot.storage.k8s.io"
-      clientConfig:
-        caBundle: ${CA_BUNDLE}
