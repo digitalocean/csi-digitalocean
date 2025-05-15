@@ -21,7 +21,6 @@ kind: Kustomization
 resources:
 - ../../../deploy/kubernetes/releases/csi-digitalocean-dev/driver.yaml
 - ../../../deploy/kubernetes/releases/csi-digitalocean-dev/snapshot-controller.yaml
-- ../../../deploy/kubernetes/releases/csi-digitalocean-dev/snapshot-validation-webhook.yaml
 nameSuffix: -dev
 images:
 - name: digitalocean/do-csi-plugin
