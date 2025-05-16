@@ -2,6 +2,7 @@ package godo
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"net/http"
 	"time"
@@ -21,6 +22,8 @@ type PartnerInterconnectAttachmentsService interface {
 	GetServiceKey(context.Context, string) (*ServiceKey, *Response, error)
 	SetRoutes(context.Context, string, *PartnerInterconnectAttachmentSetRoutesRequest) (*PartnerInterconnectAttachment, *Response, error)
 	ListRoutes(context.Context, string, *ListOptions) ([]*RemoteRoute, *Response, error)
+	GetBGPAuthKey(ctx context.Context, iaID string) (*BgpAuthKey, *Response, error)
+	RegenerateServiceKey(ctx context.Context, iaID string) (*RegenerateServiceKey, *Response, error)
 }
 
 var _ PartnerInterconnectAttachmentsService = &PartnerInterconnectAttachmentsServiceOp{}
@@ -46,6 +49,43 @@ type PartnerInterconnectAttachmentCreateRequest struct {
 	BGP BGP `json:"bgp,omitempty"`
 }
 
+type partnerInterconnectAttachmentRequestBody struct {
+	// Name is the name of the Partner Interconnect Attachment
+	Name string `json:"name,omitempty"`
+	// ConnectionBandwidthInMbps is the bandwidth of the connection in Mbps
+	ConnectionBandwidthInMbps int `json:"connection_bandwidth_in_mbps,omitempty"`
+	// Region is the region where the Partner Interconnect Attachment is created
+	Region string `json:"region,omitempty"`
+	// NaaSProvider is the name of the Network as a Service provider
+	NaaSProvider string `json:"naas_provider,omitempty"`
+	// VPCIDs is the IDs of the VPCs to which the Partner Interconnect Attachment is connected
+	VPCIDs []string `json:"vpc_ids,omitempty"`
+	// BGP is the BGP configuration of the Partner Interconnect Attachment
+	BGP *BGPInput `json:"bgp,omitempty"`
+}
+
+func (req *PartnerInterconnectAttachmentCreateRequest) buildReq() *partnerInterconnectAttachmentRequestBody {
+	request := &partnerInterconnectAttachmentRequestBody{
+		Name:                      req.Name,
+		ConnectionBandwidthInMbps: req.ConnectionBandwidthInMbps,
+		Region:                    req.Region,
+		NaaSProvider:              req.NaaSProvider,
+		VPCIDs:                    req.VPCIDs,
+	}
+
+	if req.BGP != (BGP{}) {
+		request.BGP = &BGPInput{
+			LocalASN:      req.BGP.LocalASN,
+			LocalRouterIP: req.BGP.LocalRouterIP,
+			PeerASN:       req.BGP.PeerASN,
+			PeerRouterIP:  req.BGP.PeerRouterIP,
+			AuthKey:       req.BGP.AuthKey,
+		}
+	}
+
+	return request
+}
+
 // PartnerInterconnectAttachmentUpdateRequest represents a request to update a Partner Interconnect Attachment.
 type PartnerInterconnectAttachmentUpdateRequest struct {
 	// Name is the name of the Partner Interconnect Attachment
@@ -69,11 +109,58 @@ type BGP struct {
 	PeerASN int `json:"peer_asn,omitempty"`
 	// PeerRouterIP is the peer router IP
 	PeerRouterIP string `json:"peer_router_ip,omitempty"`
+	// AuthKey is the authentication key
+	AuthKey string `json:"auth_key,omitempty"`
+}
+
+func (b *BGP) UnmarshalJSON(data []byte) error {
+	type Alias BGP
+	aux := &struct {
+		LocalASN       *int `json:"local_asn,omitempty"`
+		LocalRouterASN *int `json:"local_router_asn,omitempty"`
+		PeerASN        *int `json:"peer_asn,omitempty"`
+		PeerRouterASN  *int `json:"peer_router_asn,omitempty"`
+		*Alias
+	}{
+		Alias: (*Alias)(b),
+	}
+	if err := json.Unmarshal(data, &aux); err != nil {
+		return err
+	}
+
+	if aux.LocalASN != nil {
+		b.LocalASN = *aux.LocalASN
+	} else if aux.LocalRouterASN != nil {
+		b.LocalASN = *aux.LocalRouterASN
+	}
+
+	if aux.PeerASN != nil {
+		b.PeerASN = *aux.PeerASN
+	} else if aux.PeerRouterASN != nil {
+		b.PeerASN = *aux.PeerRouterASN
+	}
+	return nil
+}
+
+// BGPInput represents the BGP configuration of a Partner Interconnect Attachment.
+type BGPInput struct {
+	// LocalASN is the local ASN
+	LocalASN int `json:"local_router_asn,omitempty"`
+	// LocalRouterIP is the local router IP
+	LocalRouterIP string `json:"local_router_ip,omitempty"`
+	// PeerASN is the peer ASN
+	PeerASN int `json:"peer_router_asn,omitempty"`
+	// PeerRouterIP is the peer router IP
+	PeerRouterIP string `json:"peer_router_ip,omitempty"`
+	// AuthKey is the authentication key
+	AuthKey string `json:"auth_key,omitempty"`
 }
 
 // ServiceKey represents the service key of a Partner Interconnect Attachment.
 type ServiceKey struct {
-	ServiceKey string `json:"service_key,omitempty"`
+	Value     string    `json:"value,omitempty"`
+	State     string    `json:"state,omitempty"`
+	CreatedAt time.Time `json:"created_at,omitempty"`
 }
 
 // RemoteRoute represents a route for a Partner Interconnect Attachment.
@@ -126,6 +213,21 @@ type remoteRoutesRoot struct {
 	Meta         *Meta          `json:"meta"`
 }
 
+type BgpAuthKey struct {
+	Value string `json:"value"`
+}
+
+type bgpAuthKeyRoot struct {
+	BgpAuthKey *BgpAuthKey `json:"bgp_auth_key"`
+}
+
+type RegenerateServiceKey struct {
+}
+
+type regenerateServiceKeyRoot struct {
+	RegenerateServiceKey *RegenerateServiceKey `json:"-"`
+}
+
 // List returns a list of all Partner Interconnect Attachments, with optional pagination.
 func (s *PartnerInterconnectAttachmentsServiceOp) List(ctx context.Context, opt *ListOptions) ([]*PartnerInterconnectAttachment, *Response, error) {
 	path, err := addOptions(partnerInterconnectAttachmentsBasePath, opt)
@@ -154,7 +256,8 @@ func (s *PartnerInterconnectAttachmentsServiceOp) List(ctx context.Context, opt 
 // Create creates a new Partner Interconnect Attachment.
 func (s *PartnerInterconnectAttachmentsServiceOp) Create(ctx context.Context, create *PartnerInterconnectAttachmentCreateRequest) (*PartnerInterconnectAttachment, *Response, error) {
 	path := partnerInterconnectAttachmentsBasePath
-	req, err := s.client.NewRequest(ctx, http.MethodPost, path, create)
+
+	req, err := s.client.NewRequest(ctx, http.MethodPost, path, create.buildReq())
 	if err != nil {
 		return nil, nil, err
 	}
@@ -234,7 +337,7 @@ func (s *PartnerInterconnectAttachmentsServiceOp) GetServiceKey(ctx context.Cont
 	return root.ServiceKey, resp, nil
 }
 
-// ListRoutes lists all routes for a Partner Interconnect Attachment.
+// ListRoutes lists all remote routes for a Partner Interconnect Attachment.
 func (s *PartnerInterconnectAttachmentsServiceOp) ListRoutes(ctx context.Context, id string, opt *ListOptions) ([]*RemoteRoute, *Response, error) {
 	path, err := addOptions(fmt.Sprintf("%s/%s/remote_routes", partnerInterconnectAttachmentsBasePath, id), opt)
 	if err != nil {
@@ -260,7 +363,7 @@ func (s *PartnerInterconnectAttachmentsServiceOp) ListRoutes(ctx context.Context
 	return root.RemoteRoutes, resp, nil
 }
 
-// SetRoutes  updates specific properties of a Partner Interconnect Attachment.
+// SetRoutes updates specific properties of a Partner Interconnect Attachment.
 func (s *PartnerInterconnectAttachmentsServiceOp) SetRoutes(ctx context.Context, id string, set *PartnerInterconnectAttachmentSetRoutesRequest) (*PartnerInterconnectAttachment, *Response, error) {
 	path := fmt.Sprintf("%s/%s/remote_routes", partnerInterconnectAttachmentsBasePath, id)
 	req, err := s.client.NewRequest(ctx, http.MethodPut, path, set)
@@ -275,4 +378,38 @@ func (s *PartnerInterconnectAttachmentsServiceOp) SetRoutes(ctx context.Context,
 	}
 
 	return root.PartnerInterconnectAttachment, resp, nil
+}
+
+// GetBGPAuthKey returns Partner Interconnect Attachment bgp auth key
+func (s *PartnerInterconnectAttachmentsServiceOp) GetBGPAuthKey(ctx context.Context, iaID string) (*BgpAuthKey, *Response, error) {
+	path := fmt.Sprintf("%s/%s/bgp_auth_key", partnerInterconnectAttachmentsBasePath, iaID)
+	req, err := s.client.NewRequest(ctx, http.MethodGet, path, nil)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	root := new(bgpAuthKeyRoot)
+	resp, err := s.client.Do(ctx, req, root)
+	if err != nil {
+		return nil, resp, err
+	}
+
+	return root.BgpAuthKey, resp, nil
+}
+
+// RegenerateServiceKey regenerates the service key of a Partner Interconnect Attachment.
+func (s *PartnerInterconnectAttachmentsServiceOp) RegenerateServiceKey(ctx context.Context, iaID string) (*RegenerateServiceKey, *Response, error) {
+	path := fmt.Sprintf("%s/%s/service_key", partnerInterconnectAttachmentsBasePath, iaID)
+	req, err := s.client.NewRequest(ctx, http.MethodPost, path, nil)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	root := new(regenerateServiceKeyRoot)
+	resp, err := s.client.Do(ctx, req, root)
+	if err != nil {
+		return nil, resp, err
+	}
+
+	return root.RegenerateServiceKey, resp, nil
 }

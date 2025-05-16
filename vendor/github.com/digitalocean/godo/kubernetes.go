@@ -40,6 +40,7 @@ type KubernetesService interface {
 
 	CreateNodePool(ctx context.Context, clusterID string, req *KubernetesNodePoolCreateRequest) (*KubernetesNodePool, *Response, error)
 	GetNodePool(ctx context.Context, clusterID, poolID string) (*KubernetesNodePool, *Response, error)
+	GetNodePoolTemplate(ctx context.Context, clusterID string, nodePoolName string) (*KubernetesNodePoolTemplate, *Response, error)
 	ListNodePools(ctx context.Context, clusterID string, opts *ListOptions) ([]*KubernetesNodePool, *Response, error)
 	UpdateNodePool(ctx context.Context, clusterID, poolID string, req *KubernetesNodePoolUpdateRequest) (*KubernetesNodePool, *Response, error)
 	// RecycleNodePoolNodes is DEPRECATED please use DeleteNode
@@ -78,20 +79,24 @@ type KubernetesClusterCreateRequest struct {
 
 	NodePools []*KubernetesNodePoolCreateRequest `json:"node_pools,omitempty"`
 
-	MaintenancePolicy    *KubernetesMaintenancePolicy    `json:"maintenance_policy"`
-	AutoUpgrade          bool                            `json:"auto_upgrade"`
-	SurgeUpgrade         bool                            `json:"surge_upgrade"`
-	ControlPlaneFirewall *KubernetesControlPlaneFirewall `json:"control_plane_firewall,omitempty"`
+	MaintenancePolicy              *KubernetesMaintenancePolicy              `json:"maintenance_policy"`
+	AutoUpgrade                    bool                                      `json:"auto_upgrade"`
+	SurgeUpgrade                   bool                                      `json:"surge_upgrade"`
+	ControlPlaneFirewall           *KubernetesControlPlaneFirewall           `json:"control_plane_firewall,omitempty"`
+	ClusterAutoscalerConfiguration *KubernetesClusterAutoscalerConfiguration `json:"cluster_autoscaler_configuration,omitempty"`
+	RoutingAgent                   *KubernetesRoutingAgent                   `json:"routing_agent,omitempty"`
 }
 
 // KubernetesClusterUpdateRequest represents a request to update a Kubernetes cluster.
 type KubernetesClusterUpdateRequest struct {
-	Name                 string                          `json:"name,omitempty"`
-	Tags                 []string                        `json:"tags,omitempty"`
-	MaintenancePolicy    *KubernetesMaintenancePolicy    `json:"maintenance_policy,omitempty"`
-	AutoUpgrade          *bool                           `json:"auto_upgrade,omitempty"`
-	SurgeUpgrade         bool                            `json:"surge_upgrade,omitempty"`
-	ControlPlaneFirewall *KubernetesControlPlaneFirewall `json:"control_plane_firewall,omitempty"`
+	Name                           string                                    `json:"name,omitempty"`
+	Tags                           []string                                  `json:"tags,omitempty"`
+	MaintenancePolicy              *KubernetesMaintenancePolicy              `json:"maintenance_policy,omitempty"`
+	AutoUpgrade                    *bool                                     `json:"auto_upgrade,omitempty"`
+	SurgeUpgrade                   bool                                      `json:"surge_upgrade,omitempty"`
+	ControlPlaneFirewall           *KubernetesControlPlaneFirewall           `json:"control_plane_firewall,omitempty"`
+	ClusterAutoscalerConfiguration *KubernetesClusterAutoscalerConfiguration `json:"cluster_autoscaler_configuration,omitempty"`
+	RoutingAgent                   *KubernetesRoutingAgent                   `json:"routing_agent,omitempty"`
 
 	// Convert cluster to run highly available control plane
 	HA *bool `json:"ha,omitempty"`
@@ -205,11 +210,13 @@ type KubernetesCluster struct {
 
 	NodePools []*KubernetesNodePool `json:"node_pools,omitempty"`
 
-	MaintenancePolicy    *KubernetesMaintenancePolicy    `json:"maintenance_policy,omitempty"`
-	AutoUpgrade          bool                            `json:"auto_upgrade,omitempty"`
-	SurgeUpgrade         bool                            `json:"surge_upgrade,omitempty"`
-	RegistryEnabled      bool                            `json:"registry_enabled,omitempty"`
-	ControlPlaneFirewall *KubernetesControlPlaneFirewall `json:"control_plane_firewall,omitempty"`
+	MaintenancePolicy              *KubernetesMaintenancePolicy              `json:"maintenance_policy,omitempty"`
+	AutoUpgrade                    bool                                      `json:"auto_upgrade,omitempty"`
+	SurgeUpgrade                   bool                                      `json:"surge_upgrade,omitempty"`
+	RegistryEnabled                bool                                      `json:"registry_enabled,omitempty"`
+	ControlPlaneFirewall           *KubernetesControlPlaneFirewall           `json:"control_plane_firewall,omitempty"`
+	ClusterAutoscalerConfiguration *KubernetesClusterAutoscalerConfiguration `json:"cluster_autoscaler_configuration,omitempty"`
+	RoutingAgent                   *KubernetesRoutingAgent                   `json:"routing_agent,omitempty"`
 
 	Status    *KubernetesClusterStatus `json:"status,omitempty"`
 	CreatedAt time.Time                `json:"created_at,omitempty"`
@@ -250,6 +257,17 @@ type KubernetesMaintenancePolicy struct {
 type KubernetesControlPlaneFirewall struct {
 	Enabled          *bool    `json:"enabled"`
 	AllowedAddresses []string `json:"allowed_addresses"`
+}
+
+// KubernetesRoutingAgent represents information about the routing-agent cluster plugin.
+type KubernetesRoutingAgent struct {
+	Enabled *bool `json:"enabled"`
+}
+
+// KubernetesClusterAutoscalerConfiguration represents Kubernetes cluster autoscaler configuration.
+type KubernetesClusterAutoscalerConfiguration struct {
+	ScaleDownUtilizationThreshold *float64 `json:"scale_down_utilization_threshold"`
+	ScaleDownUnneededTime         *string  `json:"scale_down_unneeded_time"`
 }
 
 // KubernetesMaintenancePolicyDay represents the possible days of a maintenance
@@ -417,6 +435,20 @@ type KubernetesNodePool struct {
 	Nodes []*KubernetesNode `json:"nodes,omitempty"`
 }
 
+// KubernetesNodePool represents the node pool template data for a given pool.
+type KubernetesNodePoolTemplate struct {
+	Template *KubernetesNodeTemplate
+}
+
+// KubernetesNodePoolResources represents the resources within a given template for a node pool
+// This follows https://pkg.go.dev/k8s.io/kubernetes@v1.32.1/pkg/scheduler/framework#Resource to represent
+// node resources within the node object.
+type KubernetesNodePoolResources struct {
+	CPU    int64  `json:"cpu,omitempty"`
+	Memory string `json:"memory,omitempty"`
+	Pods   int64  `json:"pods,omitempty"`
+}
+
 // KubernetesNode represents a Node in a node pool in a Kubernetes cluster.
 type KubernetesNode struct {
 	ID        string                `json:"id,omitempty"`
@@ -426,6 +458,17 @@ type KubernetesNode struct {
 
 	CreatedAt time.Time `json:"created_at,omitempty"`
 	UpdatedAt time.Time `json:"updated_at,omitempty"`
+}
+
+// KubernetesNodeTemplate represents a template in a node pool in a Kubernetes cluster.
+type KubernetesNodeTemplate struct {
+	ClusterUUID string                       `json:"cluster_uuid,omitempty"`
+	Name        string                       `json:"name,omitempty"`
+	Slug        string                       `json:"slug,omitempty"`
+	Labels      map[string]string            `json:"labels,omitempty"`
+	Taints      []string                     `json:"taints,omitempty"`
+	Capacity    *KubernetesNodePoolResources `json:"capacity,omitempty"`
+	Allocatable *KubernetesNodePoolResources `json:"allocatable,omitempty"`
 }
 
 // KubernetesNodeStatus represents the status of a particular Node in a Kubernetes cluster.
@@ -793,6 +836,24 @@ func (svc *KubernetesServiceOp) GetNodePool(ctx context.Context, clusterID, pool
 		return nil, resp, err
 	}
 	return root.NodePool, resp, nil
+}
+
+// GetNodePoolTemplate retrieves the template used for a given node pool to scale up from zero.
+func (svc *KubernetesServiceOp) GetNodePoolTemplate(ctx context.Context, clusterID string, nodePoolName string) (*KubernetesNodePoolTemplate, *Response, error) {
+	path, err := url.JoinPath(kubernetesClustersPath, clusterID, "node_pools_template", nodePoolName)
+	if err != nil {
+		return nil, nil, err
+	}
+	req, err := svc.client.NewRequest(ctx, http.MethodGet, path, nil)
+	if err != nil {
+		return nil, nil, err
+	}
+	root := new(KubernetesNodePoolTemplate)
+	resp, err := svc.client.Do(ctx, req, root)
+	if err != nil {
+		return nil, resp, err
+	}
+	return root, resp, nil
 }
 
 // ListNodePools lists all the node pools found in a Kubernetes cluster.

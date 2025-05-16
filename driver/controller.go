@@ -390,7 +390,7 @@ func (d *Driver) ControllerPublishVolume(ctx context.Context, req *csi.Controlle
 
 			if strings.Contains(err.Error(), maxVolumesPerDropletErrorMessage) ||
 				strings.Contains(err.Error(), maxVolumesPerDropletErrorLegacyMessage) {
-				return nil, status.Errorf(codes.ResourceExhausted, err.Error())
+				return nil, status.Error(codes.ResourceExhausted, err.Error())
 			}
 		}
 		return nil, err

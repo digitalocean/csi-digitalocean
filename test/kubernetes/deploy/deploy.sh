@@ -91,5 +91,4 @@ kustomize build . --load-restrictor LoadRestrictionsNone | "${REPO_SCRIPTS_DIR}/
 kubectl -n kube-system wait --timeout=5m --for=condition=Ready pod -l app=csi-do-controller-dev
 kubectl -n kube-system wait --timeout=5m --for=condition=Ready pod -l app=csi-do-node-dev
 kubectl -n kube-system wait --timeout=5m --for=condition=Ready pod -l app=snapshot-controller
-kubectl -n kube-system wait --timeout=5m --for=condition=Ready pod -l app=snapshot-validation
 kubectl -n kube-system get all
