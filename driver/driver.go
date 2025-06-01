@@ -43,7 +43,7 @@ const (
 	// system for the canonical, official name of this plugin
 	DefaultDriverName = "dobs.csi.digitalocean.com"
 
-	defaultMaxVolumesPerNode = 7
+	defaultMaxVolumesPerNode = 15
 )
 
 var (
