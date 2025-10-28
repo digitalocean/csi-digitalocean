@@ -629,6 +629,14 @@ func (d *Driver) GetCapacity(ctx context.Context, req *csi.GetCapacityRequest) (
 	return nil, status.Error(codes.Unimplemented, "")
 }
 
+// GetSnapshot returns the snapshot of the controller service
+func (d *Driver) GetSnapshot(_ context.Context, _ *csi.GetSnapshotRequest) (*csi.GetSnapshotResponse, error) {
+	d.log.WithFields(logrus.Fields{
+		"method": "get_snapshot",
+	}).Warn("get snapshot is not implemented")
+	return nil, status.Error(codes.Unimplemented, "")
+}
+
 // ControllerGetCapabilities returns the capabilities of the controller service.
 func (d *Driver) ControllerGetCapabilities(ctx context.Context, req *csi.ControllerGetCapabilitiesRequest) (*csi.ControllerGetCapabilitiesResponse, error) {
 	newCap := func(cap csi.ControllerServiceCapability_RPC_Type) *csi.ControllerServiceCapability {
@@ -953,6 +961,11 @@ func (d *Driver) ControllerExpandVolume(ctx context.Context, req *csi.Controller
 // (https://github.com/kubernetes/enhancements/pull/1077) which we do not
 // support yet.
 func (d *Driver) ControllerGetVolume(ctx context.Context, req *csi.ControllerGetVolumeRequest) (*csi.ControllerGetVolumeResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "")
+}
+
+// ControllerModifyVolume modify a specific volume.
+func (d *Driver) ControllerModifyVolume(_ context.Context, _ *csi.ControllerModifyVolumeRequest) (*csi.ControllerModifyVolumeResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "")
 }
 

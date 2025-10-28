@@ -405,6 +405,10 @@ func (f *fakeSnapshotsDriver) List(context.Context, *godo.ListOptions) ([]godo.S
 	panic("not implemented")
 }
 
+func (f *fakeSnapshotsDriver) ListVolumeSnapshotByRegion(context.Context, string, *godo.ListOptions) ([]godo.Snapshot, *godo.Response, error) {
+	panic("not implemented")
+}
+
 func (f *fakeSnapshotsDriver) ListVolume(ctx context.Context, opts *godo.ListOptions) ([]godo.Snapshot, *godo.Response, error) {
 	if opts == nil {
 		opts = &godo.ListOptions{}
