@@ -60,7 +60,7 @@ RUN echo "${KUBE_VERSION_1_31_E2E_BIN_SHA256_CHECKSUM}" e2e.test | sha256sum --c
 RUN cp e2e.test /e2e.1.31.test
 RUN cp ginkgo /ginkgo-1.31
 
-FROM golang:1.23 AS tools
+FROM golang:1.25 AS tools
 # See comment at the bottom on why we need tini.
 ARG TINI_VERSION=0.19.0
 # doctl is needed to support clusters that had their kubeconfig fetched via the
