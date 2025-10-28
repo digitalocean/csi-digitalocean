@@ -138,8 +138,6 @@ runner-build:
 	@docker pull $(CANONICAL_RUNNER_IMAGE):tests-1.32 || true
 	@docker pull $(RUNNER_IMAGE):$(RUNNER_IMAGE_TAG_PREFIX)tests-1.31 || true
 	@docker pull $(CANONICAL_RUNNER_IMAGE):tests-1.31 || true
-	@docker pull $(RUNNER_IMAGE):$(RUNNER_IMAGE_TAG_PREFIX)tests-1.30 || true
-	@docker pull $(CANONICAL_RUNNER_IMAGE):tests-1.30 || true
 	@docker pull $(RUNNER_IMAGE):$(RUNNER_IMAGE_TAG_PREFIX)tools || true
 	@docker pull $(CANONICAL_RUNNER_IMAGE):tools || true
 	@docker pull $(RUNNER_IMAGE):$(RUNNER_IMAGE_TAG_PREFIX)runtime || true
