@@ -70,7 +70,7 @@ Command-line arguments are passed as-in to the test tool. Run `e2e.sh -h` for us
 
 ### Add support for a new Kubernetes release
 
-1. Add a new Kubernetes version-specific block to the [runner image Dockerfile](https://github.com/digitalocean/csi-digitalocean/blob/master/test/e2e/Dockerfile); make sure to update the `SHA_*` commit hash and/or `*_SHA256_*` e2e.test binary checksum variables as well. (You can use `scripts/get-e2etest-sha256.sh` to generate the e2e.test binary checksum for a given Kubernetes version.)
+1. Add a new Kubernetes version-specific block to the [runner image Dockerfile](https://github.com/digitalocean/csi-digitalocean/blob/master/test/e2e/Dockerfile); make sure to update the `SHA_*` commit hash and/or `*_SHA256_*` e2e.test binary checksum variables as well. (You can use `scripts/get-e2etest-sha256.sh 1.X.Y` to generate the e2e.test binary checksum for a given Kubernetes version.)
    1. Like so: [X is your minor version and Y is the patch version]()
       ```Dockerfile
       ### Kubernetes 1.XX
@@ -86,7 +86,7 @@ Command-line arguments are passed as-in to the test tool. Run `e2e.sh -h` for us
    2. Ensure that a version specific ginkgo binary is copied into the final runner image
 2. Update the Makefile `runner-build` and `runner-push` targets.
 3. Extend the Kubernetes release-specific build arguments in the [`handle-images.sh`](https://github.com/digitalocean/csi-digitalocean/blob/master/test/e2e/handle-image.sh) script.
-4. Add a new testdriver YAML configuration file.
+4. Add a new testdriver YAML configuration file (test/e2e/testdrivers/1.X.Y.yaml). 
 5. Extend the list of supported Kubernetes releases in `e2e_test.go`.
    1. [Update the `e2e_test.go` file `supportedKubernetesVersions` variable with the up-to-date versions](https://github.com/digitalocean/csi-digitalocean/blob/master/test/e2e/e2e_test.go)
 6. Extend the list of tested Kubernetes releases in `.github/workflows/test.yaml`.
