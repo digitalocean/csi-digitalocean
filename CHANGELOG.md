@@ -1,5 +1,10 @@
 ## unreleased
 
+## v4.15.0 - 2025.10.29
+
+- Update Go to 1.25
+- Update CSI driver for Kubernetes 1.34 [GH-639]
+
 ## v4.14.0 - 2025.05.07
 
 * Update CSI driver for Kubernetes 1.33
