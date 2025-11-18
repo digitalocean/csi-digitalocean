@@ -385,7 +385,7 @@ func createCluster(ctx context.Context, client *godo.Client, nameSuffix, kubeMaj
 
 	cluster, resp, err := client.Kubernetes.Create(ctx, &godo.KubernetesClusterCreateRequest{
 		Name:        clusterName,
-		RegionSlug:  "fra1",
+		RegionSlug:  "tor1",
 		VersionSlug: versionSlug,
 		Tags:        []string{"csi-e2e-test", versionTag, fmt.Sprintf("branch-identifier:%s", nameSuffix)},
 		NodePools: []*godo.KubernetesNodePoolCreateRequest{
