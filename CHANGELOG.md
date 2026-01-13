@@ -1,5 +1,15 @@
 ## unreleased
 
+## v4.16.0 - 2026.01.13
+
+* Update CSI driver for Kubernetes 1.35
+
+  [[GH-644]](https://github.com/digitalocean/csi-digitalocean/pull/644)
+
+* Switch e2e test region to tor1
+  
+  [[GH-642]](https://github.com/digitalocean/csi-digitalocean/pull/642)
+
 ## v4.15.0 - 2025.10.29
 
 - Update Go to 1.25
