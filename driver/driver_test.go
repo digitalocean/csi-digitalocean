@@ -94,10 +94,11 @@ func TestDriverSuite(t *testing.T) {
 			dropletIdx++
 			return strconv.Itoa(droplets[i+1].ID)
 		},
-		doTag:   doTag,
-		region:  "nyc3",
-		mounter: fm,
-		log:     logrus.New().WithField("test_enabed", true),
+		doTag:       doTag,
+		region:      "nyc3",
+		mounter:     fm,
+		log:         logrus.New().WithField("test_enabled", true),
+		volumeLimit: DefaultMaxVolumesPerNode,
 
 		storage: &fakeStorageDriver{
 			volumes:   volumes,
@@ -311,7 +312,7 @@ func (f *fakeStorageActionsDriver) Attach(ctx context.Context, volumeID string, 
 		return nil, resp, errors.New("droplet was not found")
 	}
 
-	if len(droplet.VolumeIDs) >= defaultMaxVolumesPerNode {
+	if len(droplet.VolumeIDs) >= DefaultMaxVolumesPerNode {
 		resp.Response = &http.Response{
 			StatusCode: http.StatusUnprocessableEntity,
 		}

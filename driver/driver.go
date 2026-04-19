@@ -43,7 +43,9 @@ const (
 	// system for the canonical, official name of this plugin
 	DefaultDriverName = "dobs.csi.digitalocean.com"
 
-	defaultMaxVolumesPerNode = 7
+	// DefaultMaxVolumesPerNode defines the default maximum number of volumes
+	// that can be attached to a single node.
+	DefaultMaxVolumesPerNode = 15
 )
 
 var (
