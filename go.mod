@@ -1,6 +1,6 @@
 module github.com/digitalocean/csi-digitalocean
 
-go 1.25.1
+go 1.26.0
 
 require (
 	github.com/blang/semver v3.5.1+incompatible
@@ -15,14 +15,14 @@ require (
 	github.com/magiconair/properties v1.8.10
 	github.com/sirupsen/logrus v1.9.3
 	golang.org/x/oauth2 v0.32.0
-	golang.org/x/sync v0.18.0
-	golang.org/x/sys v0.38.0
+	golang.org/x/sync v0.19.0
+	golang.org/x/sys v0.40.0
 	google.golang.org/grpc v1.76.0
 	gotest.tools/v3 v3.5.2
 	k8s.io/apimachinery v0.34.1
-	k8s.io/klog/v2 v2.130.1
+	k8s.io/klog/v2 v2.140.0
 	k8s.io/mount-utils v0.34.1
-	k8s.io/utils v0.0.0-20251002143259-bc988d571ff4
+	k8s.io/utils v0.0.0-20260210185600-b8788abfbbc2
 )
 
 require (
@@ -58,71 +58,75 @@ require (
 	go.opentelemetry.io/otel/metric v1.37.0 // indirect
 	go.opentelemetry.io/otel/trace v1.37.0 // indirect
 	go.yaml.in/yaml/v3 v3.0.4 // indirect
-	golang.org/x/net v0.47.0 // indirect
-	golang.org/x/text v0.31.0 // indirect
-	golang.org/x/time v0.11.0 // indirect
+	golang.org/x/net v0.49.0 // indirect
+	golang.org/x/text v0.33.0 // indirect
+	golang.org/x/time v0.14.0 // indirect
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20250804133106-a7a43d27e69b // indirect
-	google.golang.org/protobuf v1.36.10 // indirect
+	google.golang.org/protobuf v1.36.12-0.20260120151049-f2248ac996af // indirect
 	gopkg.in/tomb.v1 v1.0.0-20141024135613-dd632973f1e7 // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect
 )
 
 replace google.golang.org/genproto => google.golang.org/genproto v0.0.0-20241209162323-e6fa225c2576
 
-replace k8s.io/api => k8s.io/api v0.35.0
+replace k8s.io/api => k8s.io/api v0.36.0
 
-replace k8s.io/apiextensions-apiserver => k8s.io/apiextensions-apiserver v0.35.0
+replace k8s.io/apiextensions-apiserver => k8s.io/apiextensions-apiserver v0.36.0
 
-replace k8s.io/apimachinery => k8s.io/apimachinery v0.35.0
+replace k8s.io/apimachinery => k8s.io/apimachinery v0.36.0
 
-replace k8s.io/apiserver => k8s.io/apiserver v0.35.0
+replace k8s.io/apiserver => k8s.io/apiserver v0.36.0
 
-replace k8s.io/cli-runtime => k8s.io/cli-runtime v0.35.0
+replace k8s.io/cli-runtime => k8s.io/cli-runtime v0.36.0
 
-replace k8s.io/client-go => k8s.io/client-go v0.35.0
+replace k8s.io/client-go => k8s.io/client-go v0.36.0
 
-replace k8s.io/cloud-provider => k8s.io/cloud-provider v0.35.0
+replace k8s.io/cloud-provider => k8s.io/cloud-provider v0.36.0
 
-replace k8s.io/cluster-bootstrap => k8s.io/cluster-bootstrap v0.35.0
+replace k8s.io/cluster-bootstrap => k8s.io/cluster-bootstrap v0.36.0
 
-replace k8s.io/code-generator => k8s.io/code-generator v0.35.0
+replace k8s.io/code-generator => k8s.io/code-generator v0.36.0
 
-replace k8s.io/component-base => k8s.io/component-base v0.35.0
+replace k8s.io/component-base => k8s.io/component-base v0.36.0
 
-replace k8s.io/component-helpers => k8s.io/component-helpers v0.35.0
+replace k8s.io/component-helpers => k8s.io/component-helpers v0.36.0
 
-replace k8s.io/controller-manager => k8s.io/controller-manager v0.35.0
+replace k8s.io/controller-manager => k8s.io/controller-manager v0.36.0
 
-replace k8s.io/cri-api => k8s.io/cri-api v0.35.0
+replace k8s.io/cri-api => k8s.io/cri-api v0.36.0
 
-replace k8s.io/csi-translation-lib => k8s.io/csi-translation-lib v0.35.0
+replace k8s.io/csi-translation-lib => k8s.io/csi-translation-lib v0.36.0
 
-replace k8s.io/kube-aggregator => k8s.io/kube-aggregator v0.35.0
+replace k8s.io/kube-aggregator => k8s.io/kube-aggregator v0.36.0
 
-replace k8s.io/kube-controller-manager => k8s.io/kube-controller-manager v0.35.0
+replace k8s.io/kube-controller-manager => k8s.io/kube-controller-manager v0.36.0
 
-replace k8s.io/kube-proxy => k8s.io/kube-proxy v0.35.0
+replace k8s.io/kube-proxy => k8s.io/kube-proxy v0.36.0
 
-replace k8s.io/kube-scheduler => k8s.io/kube-scheduler v0.35.0
+replace k8s.io/kube-scheduler => k8s.io/kube-scheduler v0.36.0
 
-replace k8s.io/kubectl => k8s.io/kubectl v0.35.0
+replace k8s.io/kubectl => k8s.io/kubectl v0.36.0
 
-replace k8s.io/kubelet => k8s.io/kubelet v0.35.0
+replace k8s.io/kubelet => k8s.io/kubelet v0.36.0
 
-replace k8s.io/metrics => k8s.io/metrics v0.35.0
+replace k8s.io/metrics => k8s.io/metrics v0.36.0
 
-replace k8s.io/mount-utils => k8s.io/mount-utils v0.35.0
+replace k8s.io/mount-utils => k8s.io/mount-utils v0.36.0
 
-replace k8s.io/pod-security-admission => k8s.io/pod-security-admission v0.35.0
+replace k8s.io/pod-security-admission => k8s.io/pod-security-admission v0.36.0
 
-replace k8s.io/sample-apiserver => k8s.io/sample-apiserver v0.35.0
+replace k8s.io/sample-apiserver => k8s.io/sample-apiserver v0.36.0
 
-replace k8s.io/dynamic-resource-allocation => k8s.io/dynamic-resource-allocation v0.35.0
+replace k8s.io/dynamic-resource-allocation => k8s.io/dynamic-resource-allocation v0.36.0
 
-replace k8s.io/kms => k8s.io/kms v0.35.0
+replace k8s.io/kms => k8s.io/kms v0.36.0
 
-replace k8s.io/endpointslice => k8s.io/endpointslice v0.35.0
+replace k8s.io/endpointslice => k8s.io/endpointslice v0.36.0
 
-replace k8s.io/cri-client => k8s.io/cri-client v0.35.0
+replace k8s.io/cri-client => k8s.io/cri-client v0.36.0
 
-replace k8s.io/externaljwt => k8s.io/externaljwt v0.35.0
+replace k8s.io/externaljwt => k8s.io/externaljwt v0.36.0
+
+replace k8s.io/cri-streaming => k8s.io/cri-streaming v0.36.0
+
+replace k8s.io/streaming => k8s.io/streaming v0.36.0
