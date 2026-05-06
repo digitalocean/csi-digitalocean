@@ -1,5 +1,13 @@
 ## unreleased
 
+## v4.17.0 - 2026.05.06
+
+* Update Go to 1.26
+
+* Update CSI driver for Kubernetes 1.36
+
+  [[GH-648]](https://github.com/digitalocean/csi-digitalocean/pull/648)
+
 ## v4.16.0 - 2026.01.13
 
 * Update CSI driver for Kubernetes 1.35
