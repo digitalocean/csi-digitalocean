@@ -1,6 +1,6 @@
 module github.com/digitalocean/csi-digitalocean
 
-go 1.26.0
+go 1.26.3
 
 require (
 	github.com/blang/semver v3.5.1+incompatible
@@ -93,7 +93,7 @@ replace k8s.io/component-helpers => k8s.io/component-helpers v0.36.0
 
 replace k8s.io/controller-manager => k8s.io/controller-manager v0.36.0
 
-replace k8s.io/cri-api => k8s.io/cri-api v0.36.0
+replace k8s.io/cri-api => k8s.io/cri-api v0.36.1
 
 replace k8s.io/csi-translation-lib => k8s.io/csi-translation-lib v0.36.0
 
@@ -111,7 +111,7 @@ replace k8s.io/kubelet => k8s.io/kubelet v0.36.0
 
 replace k8s.io/metrics => k8s.io/metrics v0.36.0
 
-replace k8s.io/mount-utils => k8s.io/mount-utils v0.36.0
+replace k8s.io/mount-utils => k8s.io/mount-utils v0.36.1
 
 replace k8s.io/pod-security-admission => k8s.io/pod-security-admission v0.36.0
 
@@ -125,8 +125,8 @@ replace k8s.io/endpointslice => k8s.io/endpointslice v0.36.0
 
 replace k8s.io/cri-client => k8s.io/cri-client v0.36.0
 
-replace k8s.io/externaljwt => k8s.io/externaljwt v0.36.0
+replace k8s.io/externaljwt => k8s.io/externaljwt v0.36.1
 
 replace k8s.io/cri-streaming => k8s.io/cri-streaming v0.36.0
 
-replace k8s.io/streaming => k8s.io/streaming v0.36.0
+replace k8s.io/streaming => k8s.io/streaming v0.36.1
