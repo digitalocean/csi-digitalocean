@@ -13,12 +13,22 @@
 # limitations under the License.
 
 ### base build containers
-FROM golang:1.25 AS builder
+FROM golang:1.26 AS builder
 
 RUN apt-get update && \
     DEBIAN_FRONTEND=noninteractive apt-get install --yes --no-install-recommends rsync
 RUN mkdir -p /go/src/k8s.io
 WORKDIR /go/src/k8s.io
+
+### Kubernetes 1.36
+FROM builder AS tests-1.36
+ARG KUBE_VERSION_1_36=1.36.1
+ARG KUBE_VERSION_1_36_E2E_BIN_SHA256_CHECKSUM=5ceb789ac25b3b3031a0f389373766cb77e7d18998c6c4d45a4a7a18aa71ee91
+
+RUN curl --fail --location https://dl.k8s.io/v${KUBE_VERSION_1_36}/kubernetes-test-linux-amd64.tar.gz | tar xvzf - --strip-components 3 kubernetes/test/bin/e2e.test kubernetes/test/bin/ginkgo
+RUN echo "${KUBE_VERSION_1_36_E2E_BIN_SHA256_CHECKSUM}" e2e.test | sha256sum --check
+RUN cp e2e.test /e2e.1.36.test
+RUN cp ginkgo /ginkgo-1.36
 
 ### Kubernetes 1.35
 FROM builder AS tests-1.35
@@ -50,22 +60,12 @@ RUN echo "${KUBE_VERSION_1_33_E2E_BIN_SHA256_CHECKSUM}" e2e.test | sha256sum --c
 RUN cp e2e.test /e2e.1.33.test
 RUN cp ginkgo /ginkgo-1.33
 
-### Kubernetes 1.32
-FROM builder As tests-1.32
-ARG KUBE_VERSION_1_32=1.32.3
-ARG KUBE_VERSION_1_32_E2E_BIN_SHA256_CHECKSUM=c6b9a9a0fe096400a68f6309c46e43edbd0164afc4bc7f0608fa7eb401d6e76d
-
-RUN curl --fail --location https://dl.k8s.io/v${KUBE_VERSION_1_32}/kubernetes-test-linux-amd64.tar.gz | tar xvzf - --strip-components 3 kubernetes/test/bin/e2e.test kubernetes/test/bin/ginkgo
-RUN echo "${KUBE_VERSION_1_32_E2E_BIN_SHA256_CHECKSUM}" e2e.test | sha256sum --check
-RUN cp e2e.test /e2e.1.32.test
-RUN cp ginkgo /ginkgo-1.32
-
-FROM golang:1.25 AS tools
+FROM golang:1.26 AS tools
 # See comment at the bottom on why we need tini.
 ARG TINI_VERSION=0.19.0
 # doctl is needed to support clusters that had their kubeconfig fetched via the
 # CLI because those leverage a kubeconfig authentication plugin based on doctl.
-ARG DOCTL_VERSION=1.148.0
+ARG DOCTL_VERSION=1.159.0
 
 RUN curl --fail --location --output /tini https://github.com/krallin/tini/releases/download/v${TINI_VERSION}/tini
 RUN chmod u+x /tini
@@ -82,14 +82,14 @@ FROM bitnami/minideb:bookworm AS runtime
 # Certificates needed to trust the CA for any HTTPS connections to the DO API.
 RUN apt-get update && \
     DEBIAN_FRONTEND=noninteractive apt-get install --yes --no-install-recommends ca-certificates
+COPY --from=tests-1.36 /e2e.1.36.test /
+COPY --from=tests-1.36 /ginkgo-1.36 /usr/local/bin
 COPY --from=tests-1.35 /e2e.1.35.test /
 COPY --from=tests-1.35 /ginkgo-1.35 /usr/local/bin
 COPY --from=tests-1.34 /e2e.1.34.test /
 COPY --from=tests-1.34 /ginkgo-1.34 /usr/local/bin
 COPY --from=tests-1.33 /e2e.1.33.test /
 COPY --from=tests-1.33 /ginkgo-1.33 /usr/local/bin
-COPY --from=tests-1.32 /e2e.1.32.test /
-COPY --from=tests-1.32 /ginkgo-1.32 /usr/local/bin
 COPY --from=tools /tini /sbin/
 COPY --from=tools /doctl /usr/local/bin/
 COPY --from=tools /kubectl /usr/local/bin/
