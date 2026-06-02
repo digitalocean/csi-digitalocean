@@ -1,6 +1,6 @@
 ## unreleased
 
-* Adjusted max volume mounts from 7 to 15
+* Adjusted default max volume limit per node from 7 to 15.
 
 ## v4.17.0 - 2026.05.06
 
