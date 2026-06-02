@@ -270,7 +270,7 @@ func TestControllerExpandVolume(t *testing.T) {
 						"volume-id": tc.volume,
 					},
 				},
-				log: logrus.New().WithField("test_enabed", true),
+				log: logrus.New().WithField("test_enabled", true),
 			}
 			resp, err := driver.ControllerExpandVolume(context.Background(), tc.req)
 			if err != nil {
@@ -529,13 +529,13 @@ func TestWaitAction(t *testing.T) {
 					fakeStorageActionsDriver: &fakeStorageActionsDriver{},
 					storageGetValsFunc:       test.storageGetValsFunc,
 				},
-				log: logrus.New().WithField("test_enabed", true),
+				log: logrus.New().WithField("test_enabled", true),
 			}
 
 			ctx, _ := context.WithTimeout(context.Background(), test.timeout)
 			err := d.waitAction(
 				ctx,
-				logrus.New().WithField("test_enabed", true),
+				logrus.New().WithField("test_enabled", true),
 				"volumeID",
 				42,
 			)
@@ -650,7 +650,7 @@ func TestListSnapshot(t *testing.T) {
 				snapshots: &fakeSnapshotsDriver{
 					snapshots: snapshots,
 				},
-				log: logrus.New().WithField("test_enabed", true),
+				log: logrus.New().WithField("test_enabled", true),
 			}
 
 			resp, err := d.ListSnapshots(context.Background(), &csi.ListSnapshotsRequest{

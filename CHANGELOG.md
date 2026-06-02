@@ -1,5 +1,7 @@
 ## unreleased
 
+* Adjusted default max volume limit per node from 7 to 15.
+
 ## v4.17.0 - 2026.05.06
 
 * Update Go to 1.26
