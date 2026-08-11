@@ -318,7 +318,7 @@ func (f *fakeStorageActionsDriver) Attach(ctx context.Context, volumeID string, 
 		resp.Response = &http.Response{
 			StatusCode: http.StatusUnprocessableEntity,
 		}
-		return nil, resp, errors.New(maxVolumesPerDropletErrorMessage)
+		return nil, resp, errors.New(godo.ErrPerDropletVolumeCountLimit)
 	}
 	droplet.VolumeIDs = append(droplet.VolumeIDs, volumeID)
 
