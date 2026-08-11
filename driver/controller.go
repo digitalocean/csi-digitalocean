@@ -63,10 +63,6 @@ const (
 	// maxVolumesPerDropletErrorLegacyMessage is the old error message returned by
 	// the DO API when the per-droplet volume limit would be exceeded.
 	maxVolumesPerDropletErrorLegacyMessage = "cannot attach more than 7 volumes to a single Droplet"
-
-	// maxVolumesPerDropletErrorMessage is the error message returned by the DO API
-	// when the per-droplet volume limit would be exceeded.
-	maxVolumesPerDropletErrorMessage = "cannot attach more volumes to the Droplet"
 )
 
 var (
@@ -190,7 +186,7 @@ func (d *Driver) CreateVolume(ctx context.Context, req *csi.CreateVolumeRequest)
 	log.WithField("volume_req", volumeReq).Info("creating volume")
 	vol, cvResp, err := d.storage.CreateVolume(ctx, volumeReq)
 	if err != nil {
-		if cvResp != nil && (cvResp.StatusCode == http.StatusForbidden || cvResp.StatusCode == http.StatusTooManyRequests) && strings.Contains(err.Error(), "capacity limit exceeded") {
+		if cvResp != nil && (cvResp.StatusCode == http.StatusForbidden || cvResp.StatusCode == http.StatusTooManyRequests) && strings.Contains(err.Error(), godo.ErrVolumeCapacityLimitExceeded) {
 			return nil, status.Errorf(codes.ResourceExhausted, "volume limit has been reached. Please contact support")
 		}
 
@@ -367,7 +363,7 @@ func (d *Driver) ControllerPublishVolume(ctx context.Context, req *csi.Controlle
 	if err != nil {
 		// don't do anything if attached
 		if resp != nil && resp.StatusCode == http.StatusUnprocessableEntity {
-			if strings.Contains(err.Error(), "This volume is already attached") {
+			if strings.Contains(err.Error(), godo.ErrVolumeAlreadyAttached) {
 				log.WithFields(logrus.Fields{
 					"error": err,
 					"resp":  resp,
@@ -379,7 +375,7 @@ func (d *Driver) ControllerPublishVolume(ctx context.Context, req *csi.Controlle
 				}, nil
 			}
 
-			if strings.Contains(err.Error(), "Droplet already has a pending event") {
+			if strings.Contains(err.Error(), godo.ErrDropletPendingEvent) {
 				log.WithFields(logrus.Fields{
 					"error": err,
 					"resp":  resp,
@@ -388,7 +384,7 @@ func (d *Driver) ControllerPublishVolume(ctx context.Context, req *csi.Controlle
 				return nil, status.Errorf(codes.Aborted, "cannot attach because droplet %d has pending action for volume %q", dropletID, req.VolumeId)
 			}
 
-			if strings.Contains(err.Error(), maxVolumesPerDropletErrorMessage) ||
+			if strings.Contains(err.Error(), godo.ErrPerDropletVolumeCountLimit) ||
 				strings.Contains(err.Error(), maxVolumesPerDropletErrorLegacyMessage) {
 				return nil, status.Error(codes.ResourceExhausted, err.Error())
 			}
@@ -463,7 +459,7 @@ func (d *Driver) ControllerUnpublishVolume(ctx context.Context, req *csi.Control
 			}
 
 			if resp.StatusCode == http.StatusUnprocessableEntity {
-				if strings.Contains(err.Error(), "Attachment not found") {
+				if strings.Contains(err.Error(), godo.ErrAttachmentNotFound) {
 					log.WithFields(logrus.Fields{
 						"error": err,
 						"resp":  resp,
@@ -471,7 +467,7 @@ func (d *Driver) ControllerUnpublishVolume(ctx context.Context, req *csi.Control
 					return &csi.ControllerUnpublishVolumeResponse{}, nil
 				}
 
-				if strings.Contains(err.Error(), "Droplet already has a pending event") {
+				if strings.Contains(err.Error(), godo.ErrDropletPendingEvent) {
 					log.WithFields(logrus.Fields{
 						"error": err,
 						"resp":  resp,
