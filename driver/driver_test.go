@@ -290,8 +290,10 @@ func (f *fakeStorageDriver) DeleteSnapshot(ctx context.Context, id string) (*god
 }
 
 type fakeStorageActionsDriver struct {
-	volumes  map[string]*godo.Volume
-	droplets map[int]*godo.Droplet
+	volumes           map[string]*godo.Volume
+	droplets          map[int]*godo.Droplet
+	resizeErr         error
+	resizeErrResponse *godo.Response
 }
 
 func (f *fakeStorageActionsDriver) Attach(ctx context.Context, volumeID string, dropletID int) (*godo.Action, *godo.Response, error) {
@@ -372,6 +374,10 @@ func (f *fakeStorageActionsDriver) List(ctx context.Context, volumeID string, op
 }
 
 func (f *fakeStorageActionsDriver) Resize(ctx context.Context, volumeID string, sizeGigabytes int, regionSlug string) (*godo.Action, *godo.Response, error) {
+	if f.resizeErr != nil || f.resizeErrResponse != nil {
+		return nil, f.resizeErrResponse, f.resizeErr
+	}
+
 	volume := f.volumes[volumeID]
 	volume.SizeGigaBytes = int64(sizeGigabytes)
 	return nil, godoResponse(), nil
