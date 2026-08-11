@@ -49,10 +49,6 @@ const (
 	// to create a volume that is smaller than what we support
 	minimumVolumeSizeInBytes int64 = 1 * giB
 
-	// maximumVolumeSizeInBytes is used to validate that the user is not trying
-	// to create a volume that is larger than what we support
-	maximumVolumeSizeInBytes int64 = 16 * tiB
-
 	// defaultVolumeSizeInBytes is used when the user did not provide a size or
 	// the size they provided did not satisfy our requirements
 	defaultVolumeSizeInBytes int64 = 16 * giB
@@ -194,8 +190,12 @@ func (d *Driver) CreateVolume(ctx context.Context, req *csi.CreateVolumeRequest)
 	log.WithField("volume_req", volumeReq).Info("creating volume")
 	vol, cvResp, err := d.storage.CreateVolume(ctx, volumeReq)
 	if err != nil {
-		if cvResp != nil && cvResp.StatusCode == http.StatusForbidden && strings.Contains(err.Error(), "capacity limit exceeded") {
+		if cvResp != nil && (cvResp.StatusCode == http.StatusForbidden || cvResp.StatusCode == http.StatusTooManyRequests) && strings.Contains(err.Error(), "capacity limit exceeded") {
 			return nil, status.Errorf(codes.ResourceExhausted, "volume limit has been reached. Please contact support")
+		}
+
+		if cvResp != nil && cvResp.StatusCode == http.StatusUnprocessableEntity && strings.Contains(err.Error(), "invalid size specified") {
+			return nil, status.Errorf(codes.OutOfRange, "requested size exceeds maximum supported volume size: %v", err)
 		}
 
 		return nil, status.Error(codes.Internal, err.Error())
@@ -928,8 +928,12 @@ func (d *Driver) ControllerExpandVolume(ctx context.Context, req *csi.Controller
 		return &csi.ControllerExpandVolumeResponse{CapacityBytes: volume.SizeGigaBytes * giB, NodeExpansionRequired: true}, nil
 	}
 
-	action, _, err := d.storageActions.Resize(ctx, req.GetVolumeId(), int(resizeGigaBytes), d.region)
+	action, resizeResp, err := d.storageActions.Resize(ctx, req.GetVolumeId(), int(resizeGigaBytes), d.region)
 	if err != nil {
+		if resizeResp != nil && resizeResp.StatusCode == http.StatusUnprocessableEntity && strings.Contains(err.Error(), "invalid size specified") {
+			return nil, status.Errorf(codes.OutOfRange, "requested size exceeds maximum supported volume size: %v", err)
+		}
+
 		return nil, status.Errorf(codes.Internal, "cannot resize volume %s: %s", req.GetVolumeId(), err.Error())
 	}
 
@@ -971,8 +975,9 @@ func (d *Driver) ControllerModifyVolume(_ context.Context, _ *csi.ControllerModi
 
 // extractStorage extracts the storage size in bytes from the given capacity
 // range. If the capacity range is not satisfied it returns the default volume
-// size. If the capacity range is above supported sizes, it returns an
-// error. If the capacity range is below supported size, it returns the minimum supported size
+// size. If the capacity range is below supported size, it returns the
+// minimum supported size. The maximum supported size is not validated here;
+// the DigitalOcean API enforces and returns its own limit.
 func (d *Driver) extractStorage(capRange *csi.CapacityRange) (int64, error) {
 	if capRange == nil {
 		return defaultVolumeSizeInBytes, nil
@@ -1001,14 +1006,6 @@ func (d *Driver) extractStorage(capRange *csi.CapacityRange) (int64, error) {
 
 	if limitSet && limitBytes < minimumVolumeSizeInBytes {
 		return 0, fmt.Errorf("limit (%v) can not be less than minimum supported volume size (%v)", formatBytes(limitBytes), formatBytes(minimumVolumeSizeInBytes))
-	}
-
-	if requiredSet && requiredBytes > maximumVolumeSizeInBytes {
-		return 0, fmt.Errorf("required (%v) can not exceed maximum supported volume size (%v)", formatBytes(requiredBytes), formatBytes(maximumVolumeSizeInBytes))
-	}
-
-	if !requiredSet && limitSet && limitBytes > maximumVolumeSizeInBytes {
-		return 0, fmt.Errorf("limit (%v) can not exceed maximum supported volume size (%v)", formatBytes(limitBytes), formatBytes(maximumVolumeSizeInBytes))
 	}
 
 	if requiredSet && limitSet && requiredBytes == limitBytes {
