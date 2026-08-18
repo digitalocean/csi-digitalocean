@@ -1,5 +1,7 @@
 ## unreleased
 
+* Remove hardcoded maximum volume size check, relying on the DigitalOcean API's own limit instead.
+
 * Adjusted default max volume limit per node from 7 to 15.
 
 ## v4.17.0 - 2026.05.06

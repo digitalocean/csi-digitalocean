@@ -186,12 +186,24 @@ func TestControllerExpandVolume(t *testing.T) {
 		ID:            "volume-id",
 		SizeGigaBytes: (defaultVolumeSizeInBytes / giB),
 	}
+	oversizeErr := &godo.ErrorResponse{
+		Response: &http.Response{
+			Request: &http.Request{
+				Method: http.MethodPost,
+				URL:    &url.URL{},
+			},
+			StatusCode: http.StatusUnprocessableEntity,
+		},
+		Message: "error resizing volume: invalid size specified",
+	}
 	tcs := []struct {
-		name   string
-		req    *csi.ControllerExpandVolumeRequest
-		resp   *csi.ControllerExpandVolumeResponse
-		err    error
-		volume *godo.Volume
+		name              string
+		req               *csi.ControllerExpandVolumeRequest
+		resp              *csi.ControllerExpandVolumeResponse
+		err               error
+		volume            *godo.Volume
+		resizeErr         error
+		resizeErrResponse *godo.Response
 	}{
 		{
 			name: "request exceeds maximum supported size",
@@ -201,8 +213,14 @@ func TestControllerExpandVolume(t *testing.T) {
 					RequiredBytes: 20 * tiB,
 				},
 			},
-			resp: nil,
-			err:  status.Error(codes.OutOfRange, "ControllerExpandVolume invalid capacity range: required (20Ti) can not exceed maximum supported volume size (16Ti)"),
+			resp:      nil,
+			resizeErr: oversizeErr,
+			resizeErrResponse: &godo.Response{
+				Response: &http.Response{
+					StatusCode: http.StatusUnprocessableEntity,
+				},
+			},
+			err: status.Errorf(codes.OutOfRange, "requested size exceeds maximum supported volume size: %v", oversizeErr),
 		},
 		{
 			name: "requested size less than minimum supported size returns the default minimum volume size",
@@ -269,6 +287,8 @@ func TestControllerExpandVolume(t *testing.T) {
 					volumes: map[string]*godo.Volume{
 						"volume-id": tc.volume,
 					},
+					resizeErr:         tc.resizeErr,
+					resizeErrResponse: tc.resizeErrResponse,
 				},
 				log: logrus.New().WithField("test_enabled", true),
 			}
@@ -327,6 +347,54 @@ func TestCreateVolume(t *testing.T) {
 				},
 			},
 			wantErr: errors.New("volume limit has been reached. Please contact support"),
+		},
+		{
+			name: "volume limit has been reached (429)",
+			snapshots: map[string]*godo.Snapshot{
+				snapshotId: {
+					ID: snapshotId,
+				},
+			},
+			createVolumeErr: &godo.ErrorResponse{
+				Response: &http.Response{
+					Request: &http.Request{
+						Method: http.MethodPost,
+						URL:    &url.URL{},
+					},
+					StatusCode: http.StatusTooManyRequests,
+				},
+				Message: "failed to create volume: volume/snapshot capacity limit exceeded",
+			},
+			createVolumeResponseErr: &godo.Response{
+				Response: &http.Response{
+					StatusCode: http.StatusTooManyRequests,
+				},
+			},
+			wantErr: errors.New("volume limit has been reached. Please contact support"),
+		},
+		{
+			name: "requested size exceeds maximum supported size",
+			snapshots: map[string]*godo.Snapshot{
+				snapshotId: {
+					ID: snapshotId,
+				},
+			},
+			createVolumeErr: &godo.ErrorResponse{
+				Response: &http.Response{
+					Request: &http.Request{
+						Method: http.MethodPost,
+						URL:    &url.URL{},
+					},
+					StatusCode: http.StatusUnprocessableEntity,
+				},
+				Message: "failed to create volume: invalid size specified",
+			},
+			createVolumeResponseErr: &godo.Response{
+				Response: &http.Response{
+					StatusCode: http.StatusUnprocessableEntity,
+				},
+			},
+			wantErr: errors.New("requested size exceeds maximum supported volume size"),
 		},
 		{
 			name: "error occurred when creating a volume",

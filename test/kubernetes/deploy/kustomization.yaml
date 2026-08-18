@@ -45,6 +45,7 @@ patchesStrategicMerge:
           role: csi-do-dev
       spec:
         serviceAccount: csi-do-controller-sa-dev
+        hostNetwork: true
         containers:
         - name: csi-do-plugin
           args:

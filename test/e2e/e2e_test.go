@@ -446,7 +446,7 @@ func createCluster(ctx context.Context, client *godo.Client, nameSuffix, kubeMaj
 	}
 	fmt.Printf("Cluster %s (%s) is running\n", cluster.ID, cluster.Name)
 
-	kubeConfig, _, err := client.Kubernetes.GetKubeConfig(ctx, cluster.ID)
+	kubeConfig, _, err := client.Kubernetes.GetKubeConfig(ctx, cluster.ID, nil)
 	if err != nil {
 		return nil, cleanup, fmt.Errorf("failed to get kubeconfig for cluster %s (%s): %s", cluster.ID, cluster.Name, err)
 	}
