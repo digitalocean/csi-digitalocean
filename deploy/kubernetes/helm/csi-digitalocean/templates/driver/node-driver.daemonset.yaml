@@ -1,0 +1,128 @@
+kind: DaemonSet
+apiVersion: apps/v1
+metadata:
+  name: {{ printf "%s-node" (include "csi-digitalocean.fullname" .) | quote }}
+  namespace: {{ .Release.Namespace | quote }}
+  labels:
+    helm.sh/chart: {{ include "csi-digitalocean.chart" . | quote }}
+    app.kubernetes.io/name: {{ include "csi-digitalocean.name" . | quote }}
+    app.kubernetes.io/instance: {{ .Release.Name | quote }}
+    app.kubernetes.io/managed-by: {{ .Release.Service | quote }}
+    app.kubernetes.io/version: {{ .Chart.AppVersion | quote }}
+    app.kubernetes.io/component: node-driver
+spec:
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: {{ printf "%s-node" (include "csi-digitalocean.fullname" .) | quote }}
+      app.kubernetes.io/instance: {{ .Release.Name | quote }}
+      app.kubernetes.io/component: node-driver
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: {{ printf "%s-node" (include "csi-digitalocean.fullname" .) | quote }}
+        app.kubernetes.io/instance: {{ .Release.Name | quote }}
+        app.kubernetes.io/version: {{ .Chart.AppVersion | quote }}
+        app.kubernetes.io/component: node-driver
+    spec:
+      priorityClassName: system-node-critical
+      serviceAccountName: {{ printf "%s-node-sa" (include "csi-digitalocean.fullname" .) | quote }}
+      hostNetwork: true
+    {{- with .Values.node.affinity }}
+      affinity: {{- toYaml . | nindent 8 }}
+    {{- end }}
+    {{- with .Values.node.tolerations }}
+      tolerations: {{- toYaml . | nindent 8 }}
+    {{- end }}
+      initContainers:
+        # Delete automount udev rule running on all DO droplets. The rule mounts
+        # devices briefly and may conflict with CSI-managed droplets (leading to
+        # "resource busy" errors). We can safely delete it in DOKS.
+        - name: automount-udev-deleter
+          image: alpine:3
+          args:
+            - "rm"
+            - "-f"
+            - "/etc/udev/rules.d/99-digitalocean-automount.rules"
+          volumeMounts:
+            - name: udev-rules-dir
+              mountPath: /etc/udev/rules.d/
+      containers:
+        - name: csi-node-driver-registrar
+          image: {{ printf "%s:%s" .Values.node.registrar.image.repository .Values.node.registrar.image.tag | quote }}
+          imagePullPolicy: {{ .Values.node.registrar.pullPolicy | quote }}
+          args:
+            - "--v=5"
+            - "--csi-address=$(ADDRESS)"
+            - "--kubelet-registration-path=$(DRIVER_REG_SOCK_PATH)"
+          {{- with .Values.node.registrar.extraArgs }}
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          lifecycle:
+            preStop:
+              exec:
+                command:
+                  - "/bin/sh"
+                  - "-c"
+                  - "rm -rf /registration/{{ .Values.driver.name }} /registration/{{ .Values.driver.name }}-reg.sock"
+          env:
+            - name: ADDRESS
+              value: /csi/csi.sock
+            - name: DRIVER_REG_SOCK_PATH
+              value: /var/lib/kubelet/plugins/{{ .Values.driver.name }}/csi.sock
+            - name: KUBE_NODE_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: spec.nodeName
+          volumeMounts:
+            - name: plugin-dir
+              mountPath: /csi/
+            - name: registration-dir
+              mountPath: /registration/
+        - name: csi-do-plugin
+          image: {{ printf "%s:%s" .Values.plugin.image.repository .Values.plugin.image.tag | quote }}
+          imagePullPolicy: {{ .Values.plugin.image.pullPolicy | quote }}
+          args:
+            - "--endpoint=$(CSI_ENDPOINT)"
+            - "--url=$(DIGITALOCEAN_API_URL)"
+          {{- with .Values.plugin.extraArgs }}
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          env:
+            - name: CSI_ENDPOINT
+              value: unix:///csi/csi.sock
+            - name: DIGITALOCEAN_API_URL
+              value: https://api.digitalocean.com/
+          securityContext:
+            privileged: true
+            capabilities:
+              add: ["SYS_ADMIN"]
+            allowPrivilegeEscalation: true
+          volumeMounts:
+            - name: plugin-dir
+              mountPath: /csi/
+            - name: pods-mount-dir
+              mountPath: /var/lib/kubelet/
+              # Needed so that any mounts setup inside this container are
+              # propagated back to the host machine.
+              mountPropagation: Bidirectional
+            - name: device-dir
+              mountPath: /dev/
+      volumes:
+        - name: registration-dir
+          hostPath:
+            path: /var/lib/kubelet/plugins_registry/
+            type: DirectoryOrCreate
+        - name: plugin-dir
+          hostPath:
+            path: /var/lib/kubelet/plugins/{{ .Values.driver.name }}/
+            type: DirectoryOrCreate
+        - name: pods-mount-dir
+          hostPath:
+            path: /var/lib/kubelet/
+            type: Directory
+        - name: device-dir
+          hostPath:
+            path: /dev/
+        - name: udev-rules-dir
+          hostPath:
+            path: /etc/udev/rules.d/

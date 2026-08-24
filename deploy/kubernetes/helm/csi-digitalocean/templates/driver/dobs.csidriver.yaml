@@ -1,0 +1,14 @@
+kind: CSIDriver
+apiVersion: storage.k8s.io/v1beta1
+metadata:
+  name: {{ .Values.driver.name | quote }}
+  namespace: {{ .Release.Namespace | quote }}
+  labels:
+    helm.sh/chart: {{ include "csi-digitalocean.chart" . | quote }}
+    app.kubernetes.io/name: {{ include "csi-digitalocean.name" . | quote }}
+    app.kubernetes.io/instance: {{ .Release.Name | quote }}
+    app.kubernetes.io/managed-by: {{ .Release.Service | quote }}
+    app.kubernetes.io/component: driver
+spec:
+  attachRequired: true
+  podInfoOnMount: true

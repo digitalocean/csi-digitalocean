@@ -1,0 +1,24 @@
+kind: ClusterRole
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  name: {{ printf "%s-resizer-role" (include "csi-digitalocean.fullname" .) | quote }}
+  namespace: {{ .Release.Namespace | quote }}
+  labels:
+    helm.sh/chart: {{ include "csi-digitalocean.chart" . | quote }}
+    app.kubernetes.io/name: {{ include "csi-digitalocean.name" . | quote }}
+    app.kubernetes.io/instance: {{ .Release.Name | quote }}
+    app.kubernetes.io/managed-by: {{ .Release.Service | quote }}
+    app.kubernetes.io/component: resizer
+rules:
+  - apiGroups: [""]
+    resources: ["persistentvolumes"]
+    verbs: ["get", "list", "watch", "update", "patch"]
+  - apiGroups: [""]
+    resources: ["persistentvolumeclaims"]
+    verbs: ["get", "list", "watch"]
+  - apiGroups: [""]
+    resources: ["persistentvolumeclaims/status"]
+    verbs: ["update", "patch"]
+  - apiGroups: [""]
+    resources: ["events"]
+    verbs: ["list", "watch", "create", "update", "patch"]
