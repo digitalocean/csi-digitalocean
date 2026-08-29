@@ -13,7 +13,7 @@
 # limitations under the License.
 
 ### base build containers
-FROM golang:1.26 AS builder
+FROM golang:1.26.3 AS builder
 
 RUN apt-get update && \
     DEBIAN_FRONTEND=noninteractive apt-get install --yes --no-install-recommends rsync
