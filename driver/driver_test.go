@@ -30,7 +30,7 @@ import (
 
 	"github.com/digitalocean/godo"
 	"github.com/google/uuid"
-	"github.com/kubernetes-csi/csi-test/v4/pkg/sanity"
+	"github.com/kubernetes-csi/csi-test/v5/pkg/sanity"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/sync/errgroup"
 	"k8s.io/mount-utils"
