@@ -1,5 +1,7 @@
 ## unreleased
 
+## v4.19.0 - 2026.09.22
+
 ## v4.18.0 - 2026.08.19
 
 * Remove hardcoded maximum volume size check, relying on the DigitalOcean API's own limit instead.
