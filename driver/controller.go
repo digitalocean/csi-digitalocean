@@ -338,24 +338,25 @@ func (d *Driver) ControllerPublishVolume(ctx context.Context, req *csi.Controlle
 		return nil, err
 	}
 
-	attachedID := 0
+	// Do not skip Attach when GetVolume lists this droplet. GetVolume may
+	// read a secondary replica; DropletIDs can still show this node after a
+	// completed detach if replication lags. Skipping would report success
+	// with no device on the node. Attach is idempotent: a true
+	// already-attached case returns 422 ErrVolumeAlreadyAttached below.
+	var attachedToOther int
 	for _, id := range vol.DropletIDs {
-		attachedID = id
 		if id == dropletID {
-			log.Info("volume is already attached")
-			return &csi.ControllerPublishVolumeResponse{
-				PublishContext: map[string]string{
-					d.publishInfoVolumeName: vol.Name,
-				},
-			}, nil
+			log.Info("GetVolume lists volume as attached to this droplet; still issuing attach")
+			continue
 		}
+		attachedToOther = id
 	}
 
-	// droplet is attached to a different node, return an error
-	if attachedID != 0 {
+	// volume is attached to a different node, return an error
+	if attachedToOther != 0 {
 		return nil, status.Errorf(codes.FailedPrecondition,
 			"volume %q is attached to the wrong droplet (%d), detach the volume to fix it",
-			req.VolumeId, attachedID)
+			req.VolumeId, attachedToOther)
 	}
 
 	// attach the volume to the correct node

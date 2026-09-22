@@ -757,3 +757,115 @@ func TestListSnapshot(t *testing.T) {
 		})
 	}
 }
+
+type countingStorageActionsDriver struct {
+	*fakeStorageActionsDriver
+	attachCalls int
+	attachResp  *godo.Response
+	attachErr   error
+}
+
+func (f *countingStorageActionsDriver) Attach(ctx context.Context, volumeID string, dropletID int) (*godo.Action, *godo.Response, error) {
+	f.attachCalls++
+	if f.attachErr != nil || f.attachResp != nil {
+		return nil, f.attachResp, f.attachErr
+	}
+	return f.fakeStorageActionsDriver.Attach(ctx, volumeID, dropletID)
+}
+
+func TestControllerPublishVolume(t *testing.T) {
+	const (
+		volumeID  = "volume-id"
+		thisNode  = 111
+		otherNode = 222
+	)
+
+	alreadyAttachedResp := &godo.Response{Response: &http.Response{StatusCode: http.StatusUnprocessableEntity}}
+
+	tests := []struct {
+		name        string
+		dropletIDs  []int
+		attachErr   error
+		attachResp  *godo.Response
+		wantCode    codes.Code
+		wantAttach  int
+		wantSuccess bool
+	}{
+		{
+			name:        "unattached volume issues attach",
+			dropletIDs:  nil,
+			wantAttach:  1,
+			wantSuccess: true,
+		},
+		{
+			name:        "listed on this droplet still issues attach",
+			dropletIDs:  []int{thisNode},
+			attachErr:   errors.New(godo.ErrVolumeAlreadyAttached),
+			attachResp:  alreadyAttachedResp,
+			wantAttach:  1,
+			wantSuccess: true,
+		},
+		{
+			name:       "attached to a different droplet is FailedPrecondition and skips attach",
+			dropletIDs: []int{otherNode},
+			wantCode:   codes.FailedPrecondition,
+			wantAttach: 0,
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			vol := &godo.Volume{
+				ID:         volumeID,
+				Name:       "pvc-test",
+				DropletIDs: tc.dropletIDs,
+			}
+			actions := &countingStorageActionsDriver{
+				fakeStorageActionsDriver: &fakeStorageActionsDriver{
+					volumes: map[string]*godo.Volume{volumeID: vol},
+					droplets: map[int]*godo.Droplet{
+						thisNode: {ID: thisNode},
+					},
+				},
+				attachErr:  tc.attachErr,
+				attachResp: tc.attachResp,
+			}
+			d := &Driver{
+				publishInfoVolumeName: "dobs.csi.digitalocean.com/volume-name",
+				storage: &fakeStorageDriver{
+					volumes: map[string]*godo.Volume{volumeID: vol},
+				},
+				storageActions: actions,
+				droplets: &fakeDropletsDriver{
+					droplets: map[int]*godo.Droplet{thisNode: {ID: thisNode}},
+				},
+				log: logrus.New().WithField("test_enabled", true),
+			}
+
+			resp, err := d.ControllerPublishVolume(context.Background(), &csi.ControllerPublishVolumeRequest{
+				VolumeId:         volumeID,
+				NodeId:           strconv.Itoa(thisNode),
+				VolumeCapability: &csi.VolumeCapability{},
+			})
+			if tc.wantSuccess {
+				if err != nil {
+					t.Fatalf("unexpected error: %v", err)
+				}
+				if resp.PublishContext[d.publishInfoVolumeName] != vol.Name {
+					t.Errorf("got publish context %v, want volume name %q", resp.PublishContext, vol.Name)
+				}
+			} else {
+				st, ok := status.FromError(err)
+				if !ok {
+					t.Fatalf("got non-status error: %v", err)
+				}
+				if st.Code() != tc.wantCode {
+					t.Errorf("got code %s, want %s", st.Code(), tc.wantCode)
+				}
+			}
+			if actions.attachCalls != tc.wantAttach {
+				t.Errorf("Attach called %d time(s), want %d", actions.attachCalls, tc.wantAttach)
+			}
+		})
+	}
+}

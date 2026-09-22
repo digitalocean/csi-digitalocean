@@ -46,18 +46,21 @@ const (
 	envVarSkipTestsSequential       = "SKIP_SEQUENTIAL_TESTS"
 	testdriverDirectoryRelativePath = "testdrivers"
 	deployScriptName                = "deploy.sh"
+	dumpDiagnosticsScriptName       = "dump-diagnostics.sh"
 	e2eContainerName                = "do-k8s-e2e"
 	tooManyRequestsWaitingTime      = 1 * time.Minute
+	dumpDiagnosticsTimeout          = 2 * time.Minute
 )
 
 var (
 	errTokenMissing = errors.New("token must be specified in DIGITALOCEAN_ACCESS_TOKEN environment variable")
 
 	// De-facto global variables that require initialization at runtime.
-	supportedKubernetesVersions     = []string{"1.36", "1.35", "1.34", "1.33"}
+	supportedKubernetesVersions     = []string{"1.37", "1.36", "1.35", "1.34"}
 	sourceFileDir                   string
 	testdriverDirectoryAbsolutePath string
 	deployScriptPath                string
+	dumpDiagnosticsScriptPath       string
 
 	// Variables initialized in TestMain that are leveraged by the tests.
 	ctx context.Context
@@ -85,6 +88,7 @@ func init() {
 	sourceFileDir = filepath.Dir(filePath)
 	testdriverDirectoryAbsolutePath = filepath.Join(sourceFileDir, testdriverDirectoryRelativePath)
 	deployScriptPath = filepath.Join(sourceFileDir, "..", "kubernetes", "deploy", deployScriptName)
+	dumpDiagnosticsScriptPath = filepath.Join(sourceFileDir, dumpDiagnosticsScriptName)
 
 	flag.Usage = func() {
 		fmt.Println(`usage: e2e.test [flags] [Kubernetes version]
@@ -280,6 +284,7 @@ func TestE2E(t *testing.T) {
 
 			err = runE2ETests(ctx, p.runnerKubeVersion, p.runnerImage, testdriverFilename, p.focus, kubeconfig, token, p.skipParallel, p.skipSequential, p.ginkgoNodes)
 			if err != nil {
+				dumpDiagnostics(kubeconfig)
 				t.Fatalf("end-to-end tests failed: %s", err)
 			}
 		})
@@ -412,7 +417,7 @@ func createCluster(ctx context.Context, client *godo.Client, nameSuffix, kubeMaj
 		return nil
 	}
 
-	pollCtx, cancel := context.WithTimeout(ctx, 25*time.Minute)
+	pollCtx, cancel := context.WithTimeout(ctx, 45*time.Minute)
 	defer cancel()
 	fmt.Printf("Waiting for cluster %s (%s) to become running\n", cluster.ID, cluster.Name)
 	err = wait.PollUntil(30*time.Second, func() (done bool, waitErr error) {
@@ -480,6 +485,24 @@ func deployDriver(ctx context.Context, driverImage string, kubeconfigFile, token
 		},
 		dir: filepath.Dir(deployScriptPath),
 	})
+}
+
+// dumpDiagnostics prints CSI-related cluster state while the cluster is still
+// around. It is best-effort and never fails the test by itself.
+func dumpDiagnostics(kubeconfigFile string) {
+	// The global context may already be canceled (e.g., on interrupt), so use
+	// an independent one to still get a chance at collecting state.
+	dumpCtx, cancel := context.WithTimeout(context.Background(), dumpDiagnosticsTimeout)
+	defer cancel()
+
+	fmt.Println("Dumping cluster diagnostics")
+	err := runCommand(dumpCtx, dumpDiagnosticsScriptPath, cmdParams{
+		envs: []string{fmt.Sprintf("KUBECONFIG=%s", kubeconfigFile)},
+		dir:  sourceFileDir,
+	})
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "failed to dump cluster diagnostics: %s\n", err)
+	}
 }
 
 // runE2ETests invokes our test container.
