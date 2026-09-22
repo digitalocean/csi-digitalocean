@@ -1,5 +1,15 @@
 ## unreleased
 
+## v4.19.0 - 2026.09.22
+
+* Update Go to 1.27
+
+* Update CSI driver for Kubernetes 1.37
+
+  [[GH-656]](https://github.com/digitalocean/csi-digitalocean/pull/656)
+
+* Update CSI sidecars and CSI spec to v1.13
+
 ## v4.18.0 - 2026.08.19
 
 * Remove hardcoded maximum volume size check, relying on the DigitalOcean API's own limit instead.
