@@ -10,8 +10,6 @@
 
 * Update CSI sidecars and CSI spec to v1.13
 
-* Always issue Attach when GetVolume lists the current droplet, to hedge stale DropletIDs from API read lag
-
 ## v4.18.0 - 2026.08.19
 
 * Remove hardcoded maximum volume size check, relying on the DigitalOcean API's own limit instead.
