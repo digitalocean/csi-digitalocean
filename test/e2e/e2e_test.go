@@ -417,7 +417,7 @@ func createCluster(ctx context.Context, client *godo.Client, nameSuffix, kubeMaj
 		return nil
 	}
 
-	pollCtx, cancel := context.WithTimeout(ctx, 25*time.Minute)
+	pollCtx, cancel := context.WithTimeout(ctx, 45*time.Minute)
 	defer cancel()
 	fmt.Printf("Waiting for cluster %s (%s) to become running\n", cluster.ID, cluster.Name)
 	err = wait.PollUntil(30*time.Second, func() (done bool, waitErr error) {
