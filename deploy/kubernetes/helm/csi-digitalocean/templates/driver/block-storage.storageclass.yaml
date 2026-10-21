@@ -1,0 +1,16 @@
+kind: StorageClass
+apiVersion: storage.k8s.io/v1
+metadata:
+  name: {{ .Values.storageClass.name | quote }}
+  namespace: {{ .Release.Namespace | quote }}
+  labels:
+    helm.sh/chart: {{ include "csi-digitalocean.chart" . | quote }}
+    app.kubernetes.io/name: {{ include "csi-digitalocean.name" . | quote }}
+    app.kubernetes.io/instance: {{ .Release.Name | quote }}
+    app.kubernetes.io/managed-by: {{ .Release.Service | quote }}
+    app.kubernetes.io/compnent: driver
+  annotations:
+    storageclass.kubernetes.io/is-default-class: {{ .Values.storageClass.default | quote }}
+provisioner: {{ .Values.driver.name | quote }}
+reclaimPolicy: {{ .Values.storageClass.reclaimPolicy | quote }}
+allowVolumeExpansion: true
