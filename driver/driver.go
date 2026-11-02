@@ -46,6 +46,10 @@ const (
 	// DefaultMaxVolumesPerNode defines the default maximum number of volumes
 	// that can be attached to a single node.
 	DefaultMaxVolumesPerNode = 15
+
+	// DefaultDeviceWaitTimeout defines how long NodeStageVolume waits by
+	// default for an attached volume's device to appear on the node.
+	DefaultDeviceWaitTimeout = 30 * time.Second
 )
 
 var (
@@ -77,6 +81,7 @@ type Driver struct {
 	isController           bool
 	defaultVolumesPageSize uint
 	validateAttachment     bool
+	deviceWaitTimeout      time.Duration
 
 	srv     *grpc.Server
 	httpSrv *http.Server
@@ -112,6 +117,9 @@ type NewDriverParams struct {
 	DOAPIRateLimitQPS      float64
 	ValidateAttachment     bool
 	VolumeLimit            uint
+	// DeviceWaitTimeout bounds how long NodeStageVolume waits for an attached
+	// volume's device to appear. Defaults to DefaultDeviceWaitTimeout.
+	DeviceWaitTimeout time.Duration
 }
 
 // NewDriver returns a CSI plugin that contains the necessary gRPC
@@ -169,6 +177,11 @@ func NewDriver(p NewDriverParams) (*Driver, error) {
 
 	healthChecker := NewHealthChecker(&doHealthChecker{account: doClient.Account})
 
+	deviceWaitTimeout := p.DeviceWaitTimeout
+	if deviceWaitTimeout <= 0 {
+		deviceWaitTimeout = DefaultDeviceWaitTimeout
+	}
+
 	return &Driver{
 		name:                  driverName,
 		publishInfoVolumeName: driverName + "/volume-name",
@@ -178,6 +191,8 @@ func NewDriver(p NewDriverParams) (*Driver, error) {
 		debugAddr:              p.DebugAddr,
 		defaultVolumesPageSize: p.DefaultVolumesPageSize,
 		volumeLimit:            p.VolumeLimit,
+		validateAttachment:     p.ValidateAttachment,
+		deviceWaitTimeout:      deviceWaitTimeout,
 
 		hostID:  func() string { return hostID },
 		region:  region,

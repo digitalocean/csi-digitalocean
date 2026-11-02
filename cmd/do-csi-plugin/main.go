@@ -41,6 +41,7 @@ func main() {
 		doAPIRateLimitQPS      = flag.Float64("do-api-rate-limit", 0, "Impose QPS rate limit on DigitalOcean API usage (default: do not rate limit)")
 		validateAttachment     = flag.Bool("validate-attachment", false, "Validate if the attachment has fully completed before formatting/mounting the device")
 		volumeLimit            = flag.Uint("volume-limit", driver.DefaultMaxVolumesPerNode, "Volumes per node limit to report; needs to match limit imposed by DO storage backend (honored by Node service only)")
+		deviceWaitTimeout      = flag.Duration("device-wait-timeout", driver.DefaultDeviceWaitTimeout, "How long to wait for an attached volume's device to appear before failing NodeStageVolume (honored by Node service only)")
 		version                = flag.Bool("version", false, "Print the version and exit.")
 	)
 	flag.Parse()
@@ -66,6 +67,7 @@ func main() {
 		DOAPIRateLimitQPS:      *doAPIRateLimitQPS,
 		ValidateAttachment:     *validateAttachment,
 		VolumeLimit:            *volumeLimit,
+		DeviceWaitTimeout:      *deviceWaitTimeout,
 	})
 	if err != nil {
 		log.Fatalln(err)

@@ -26,6 +26,7 @@ package driver
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"k8s.io/klog/v2"
 	"os"
@@ -120,6 +121,16 @@ func (d *Driver) NodeStageVolume(ctx context.Context, req *csi.NodeStageVolumeRe
 		"mount_options":   options,
 	})
 
+	// The volume can be reported as attached before udev has created the
+	// by-id symlink, and the symlink can be recreated while udev reprocesses
+	// the device. Resolve it once and use the resolved device for every
+	// format-related check so all of them see the same device.
+	device, err := d.mounter.WaitForDevice(ctx, source, d.deviceWaitTimeout)
+	if err != nil {
+		return nil, status.Errorf(codes.Unavailable, "waiting for device of volume %q: %v", req.VolumeId, err)
+	}
+	log = log.WithField("device", device)
+
 	var noFormat bool
 	for _, ann := range annsNoFormatVolume {
 		_, noFormat = req.VolumeContext[ann]
@@ -131,19 +142,22 @@ func (d *Driver) NodeStageVolume(ctx context.Context, req *csi.NodeStageVolumeRe
 		log.Info("skipping formatting the source device")
 	} else {
 		if d.validateAttachment {
-			if err := d.mounter.IsAttached(source); err != nil {
-				return nil, fmt.Errorf("error retrieving the attachement status %q: %s", source, err)
+			if err := d.mounter.IsAttached(device); err != nil {
+				return nil, status.Errorf(codes.Unavailable, "error retrieving the attachment status %q: %s", device, err)
 			}
 		}
 
-		formatted, err := d.mounter.IsFormatted(source)
+		formatted, err := d.mounter.IsFormatted(device)
 		if err != nil {
-			return nil, err
+			return nil, status.Errorf(codes.Internal, "could not determine whether volume %q is formatted: %v", req.VolumeId, err)
 		}
 
 		if !formatted {
 			log.Info("formatting the volume for staging")
-			if err := d.mounter.Format(source, fsType); err != nil {
+			if err := d.mounter.Format(device, fsType); err != nil {
+				if errors.Is(err, errDeviceNotEmpty) {
+					return nil, status.Errorf(codes.FailedPrecondition, "%v; if the volume holds data in a format the driver does not recognize, set the %q annotation", err, annsNoFormatVolume[0])
+				}
 				return nil, status.Error(codes.Internal, err.Error())
 			}
 		} else {
