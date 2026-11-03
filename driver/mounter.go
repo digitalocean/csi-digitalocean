@@ -214,8 +214,10 @@ func (m *mounter) Format(source, fsType string) error {
 		return err
 	}
 
-	// No -F: it makes mke2fs proceed on targets that are not block devices.
 	mkfsArgs := []string{source}
+	if fsType == "ext4" || fsType == "ext3" {
+		mkfsArgs = []string{"-F", source}
+	}
 
 	m.log.WithFields(logrus.Fields{
 		"cmd":  mkfsCmd,
