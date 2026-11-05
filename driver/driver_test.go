@@ -489,6 +489,10 @@ type fakeMounter struct {
 	mounted map[string]string
 }
 
+func (f *fakeMounter) WaitForDevice(_ context.Context, path string, _ time.Duration) (string, error) {
+	return path, nil
+}
+
 func (f *fakeMounter) Format(source string, fsType string) error {
 	return nil
 }

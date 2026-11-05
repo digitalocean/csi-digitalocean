@@ -17,15 +17,18 @@ limitations under the License.
 package driver
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"strconv"
 	"strings"
 	"syscall"
+	"time"
 
 	"github.com/sirupsen/logrus"
 	"golang.org/x/sys/unix"
@@ -35,7 +38,17 @@ import (
 
 const (
 	runningState = "running"
+
+	deviceWaitPollInterval = 250 * time.Millisecond
+
+	// emptyCheckBytes covers the MBR, primary GPT, and the ext2/3/4, XFS, LVM
+	// and mdraid 1.1/1.2 superblocks.
+	emptyCheckBytes = 1 << 20
 )
+
+// errDeviceNotEmpty is returned by Format when the leading bytes of the
+// device are not all zero.
+var errDeviceNotEmpty = errors.New("device is not empty")
 
 type prodAttachmentValidator struct{}
 
@@ -77,7 +90,12 @@ const (
 // TODO(timoreimann): find a more suitable name since the interface encompasses
 // more than just mounting functionality by now.
 type Mounter interface {
-	// Format formats the source with the given filesystem type
+	// WaitForDevice waits until path resolves to a block device and returns
+	// the resolved device path.
+	WaitForDevice(ctx context.Context, path string, timeout time.Duration) (string, error)
+
+	// Format formats the source with the given filesystem type. It returns
+	// errDeviceNotEmpty if the leading bytes of the source are not all zero.
 	Format(source, fsType string) error
 
 	// Mount mounts source to target with the given fstype and options.
@@ -131,7 +149,61 @@ func newMounter(log *logrus.Entry) *mounter {
 	}
 }
 
+func (m *mounter) WaitForDevice(ctx context.Context, path string, timeout time.Duration) (string, error) {
+	ctx, cancel := context.WithTimeout(ctx, timeout)
+	defer cancel()
+
+	for {
+		device, err := filepath.EvalSymlinks(path)
+		if err == nil {
+			if err = m.requireBlockDevice(device); err == nil {
+				return device, nil
+			}
+		}
+
+		select {
+		case <-ctx.Done():
+			return "", fmt.Errorf("device %q did not become ready within %s: %v", path, timeout, err)
+		case <-time.After(deviceWaitPollInterval):
+		}
+	}
+}
+
+// verifyEmpty returns errDeviceNotEmpty unless the first emptyCheckBytes bytes
+// of source are all zero.
+func verifyEmpty(source string) error {
+	f, err := os.Open(source)
+	if err != nil {
+		return err
+	}
+	defer f.Close()
+
+	head := make([]byte, emptyCheckBytes)
+	n, err := io.ReadFull(f, head)
+	if err != nil && !errors.Is(err, io.ErrUnexpectedEOF) {
+		return fmt.Errorf("reading %q: %v", source, err)
+	}
+	for i, b := range head[:n] {
+		if b != 0 {
+			return fmt.Errorf("%w: %q has non-zero data at offset %d but no recognized filesystem", errDeviceNotEmpty, source, i)
+		}
+	}
+	return nil
+}
+
 func (m *mounter) Format(source, fsType string) error {
+	if fsType == "" {
+		return errors.New("fs type is not specified for formatting the volume")
+	}
+
+	if source == "" {
+		return errors.New("source is not specified for formatting the volume")
+	}
+
+	if err := verifyEmpty(source); err != nil {
+		return err
+	}
+
 	mkfsCmd := fmt.Sprintf("mkfs.%s", fsType)
 
 	_, err := exec.LookPath(mkfsCmd)
@@ -142,17 +214,7 @@ func (m *mounter) Format(source, fsType string) error {
 		return err
 	}
 
-	mkfsArgs := []string{}
-
-	if fsType == "" {
-		return errors.New("fs type is not specified for formatting the volume")
-	}
-
-	if source == "" {
-		return errors.New("source is not specified for formatting the volume")
-	}
-
-	mkfsArgs = append(mkfsArgs, source)
+	mkfsArgs := []string{source}
 	if fsType == "ext4" || fsType == "ext3" {
 		mkfsArgs = []string{"-F", source}
 	}
@@ -255,8 +317,9 @@ func (m *mounter) IsAttached(source string) error {
 		return fmt.Errorf("error reading the device state file %q: %s", deviceStateFilePath, err)
 	}
 
-	if string(deviceStateFileContent) != strings.TrimSpace(runningState) {
-		return fmt.Errorf("error comparing the state file content, expected: %s, got: %s", runningState, string(deviceStateFileContent))
+	state := strings.TrimSpace(string(deviceStateFileContent))
+	if state != runningState {
+		return fmt.Errorf("error comparing the state file content, expected: %s, got: %s", runningState, state)
 	}
 
 	return nil
@@ -265,6 +328,12 @@ func (m *mounter) IsAttached(source string) error {
 func (m *mounter) IsFormatted(source string) (bool, error) {
 	if source == "" {
 		return false, errors.New("source is not specified")
+	}
+
+	// blkid also exits with blkidExitStatusNoIdentifiers when the device does
+	// not exist, which must not be mistaken for "no filesystem".
+	if err := m.requireBlockDevice(source); err != nil {
+		return false, err
 	}
 
 	blkidCmd := "blkid"
@@ -276,7 +345,8 @@ func (m *mounter) IsFormatted(source string) (bool, error) {
 		return false, err
 	}
 
-	blkidArgs := []string{source}
+	// -p probes the device directly instead of consulting the blkid cache.
+	blkidArgs := []string{"-p", source}
 
 	m.log.WithFields(logrus.Fields{
 		"cmd":  blkidCmd,
@@ -300,6 +370,17 @@ func (m *mounter) IsFormatted(source string) (bool, error) {
 	}
 
 	return true, nil
+}
+
+func (m *mounter) requireBlockDevice(path string) error {
+	isBlock, err := m.IsBlockDevice(path)
+	if err != nil {
+		return err
+	}
+	if !isBlock {
+		return fmt.Errorf("%q is not a block device", path)
+	}
+	return nil
 }
 
 func (m *mounter) IsMounted(target string) (bool, error) {

@@ -35,13 +35,13 @@ spec:
     fsType: ext4
     volumeHandle: 1952d58a-c714-11e8-bc0c-0a58ac14421e
     volumeAttributes:
-      com.digitalocean.csi/noformat: "true"
+      dobs.csi.digitalocean.com/noformat: "true"
 ```
 
 Couple of things to note,
 
 * `volumeHandle` is the volume ID you want to reuse. Make sure it matches exactly the volume you're targeting. You can list the ID's of your volumes via doctl: `doctl compute volume list`
-* `volumeAttributes` has a special, csi-digitalocean specific annotation called `com.digitalocean.csi/noformat`. If you add this key, the CSI plugin makes sure to **not format** the volume. If you don't add this, it'll be formatted.
+* `volumeAttributes` has a special, csi-digitalocean specific key called `dobs.csi.digitalocean.com/noformat`. If you add this key, the CSI plugin makes sure to **not format** the volume. If you don't add it, the plugin formats the volume only if it has no filesystem and its first 1 MiB is all zeros; otherwise staging fails with `FailedPrecondition`.
 * `storage` make sure it's set to the same storage size as your existing DigitalOcean Block Storage volume.
 
 Create a file with this content, naming it `pv.yaml` and deploying it:

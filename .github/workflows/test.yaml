@@ -49,6 +49,13 @@ jobs:
       - name: Run unit tests
         run: make test
 
+      # Loop devices need root. The test binary is built as the runner user and
+      # only the binary runs under sudo, so sudo's reset PATH doesn't matter.
+      - name: Run loop device tests
+        run: |
+          go test -c -mod=vendor -tags loopdevice -o "${RUNNER_TEMP}/driver-loopdevice.test" ./driver/
+          sudo "${RUNNER_TEMP}/driver-loopdevice.test" -test.run Loop -test.v
+
   push-images:
     runs-on: ubuntu-latest
     needs: unit-test
