@@ -51,12 +51,12 @@ const (
 )
 
 var (
-	// This annotation is added to a PV to indicate that the volume should be
-	// not formatted. Useful for cases if the user wants to reuse an existing
-	// volume. We support using either the legacy driver name
-	// (com.digitalocean.csi.dobs) or the modern driver name
-	// (dobs.csi.digitalocean.com).
-	annsNoFormatVolume = []string{
+	// noFormatVolumeAttributes are CSI volume context keys that skip formatting.
+	// Kubernetes copies PersistentVolume spec.csi.volumeAttributes into that
+	// context. Either the legacy driver name (com.digitalocean.csi.dobs) or the
+	// modern driver name (dobs.csi.digitalocean.com) is accepted. Useful when
+	// reusing an existing volume.
+	noFormatVolumeAttributes = []string{
 		"dobs.csi.digitalocean.com/noformat",
 		"com.digitalocean.csi.dobs/noformat",
 	}
@@ -132,8 +132,8 @@ func (d *Driver) NodeStageVolume(ctx context.Context, req *csi.NodeStageVolumeRe
 	log = log.WithField("device", device)
 
 	var noFormat bool
-	for _, ann := range annsNoFormatVolume {
-		_, noFormat = req.VolumeContext[ann]
+	for _, key := range noFormatVolumeAttributes {
+		_, noFormat = req.VolumeContext[key]
 		if noFormat {
 			break
 		}
@@ -156,7 +156,7 @@ func (d *Driver) NodeStageVolume(ctx context.Context, req *csi.NodeStageVolumeRe
 			log.Info("formatting the volume for staging")
 			if err := d.mounter.Format(device, fsType); err != nil {
 				if errors.Is(err, errDeviceNotEmpty) {
-					return nil, status.Errorf(codes.FailedPrecondition, "%v; if the volume holds data in a format the driver does not recognize, set the %q annotation", err, annsNoFormatVolume[0])
+					return nil, status.Errorf(codes.FailedPrecondition, "%v; if the volume holds data in a format the driver does not recognize, set %q in the PersistentVolume spec.csi.volumeAttributes", err, noFormatVolumeAttributes[0])
 				}
 				return nil, status.Error(codes.Internal, err.Error())
 			}

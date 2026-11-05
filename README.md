@@ -333,7 +333,8 @@ fully attached which can be misinterpreted by the CSI implementation causing a f
 Independently of these flags, the node plugin only formats a volume when `blkid -p` finds no filesystem or partition table
 signature on an existing block device _and_ the first 1 MiB of the device is all zeros. Otherwise `NodeStageVolume` fails
 with `FailedPrecondition`. Volumes holding data in a format the driver does not recognize can be mounted without formatting
-by setting the `dobs.csi.digitalocean.com/noformat` annotation.
+by setting `dobs.csi.digitalocean.com/noformat` in the PersistentVolume `spec.csi.volumeAttributes`. Kubernetes copies
+those attributes into the CSI volume context, which `NodeStageVolume` reads.
 
 ---
 

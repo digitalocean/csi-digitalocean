@@ -19,7 +19,8 @@ limitations under the License.
 package driver
 
 // These tests exercise the real mounter against a loop device. They require
-// root, losetup, blkid and mkfs.ext4, e.g.:
+// root, losetup, blkid and mkfs.ext4. CI runs them via the "Run loop device
+// tests" step in .github/workflows/test.yaml. Locally, e.g.:
 //
 //	docker run --rm --privileged -v "$PWD":/app -w /app golang:1.27-alpine sh -c \
 //	  'apk add blkid e2fsprogs util-linux && go test -mod=vendor -tags loopdevice -run Loop -v ./driver/'
@@ -40,6 +41,10 @@ import (
 
 func setupLoopDevice(t *testing.T) string {
 	t.Helper()
+
+	if os.Geteuid() != 0 {
+		t.Fatal("loopdevice tests must run as root to attach loop devices")
+	}
 
 	img := filepath.Join(t.TempDir(), "vol.img")
 	assert.NilError(t, exec.Command("truncate", "-s", "64M", img).Run())

@@ -20,4 +20,4 @@ spec:
     fsType: ext4
     volumeHandle: 1952d58a-c714-11e8-bc0c-0a58ac14421e
     volumeAttributes:
-      com.digitalocean.csi/noformat: "true"
+      dobs.csi.digitalocean.com/noformat: "true"
