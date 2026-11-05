@@ -1,5 +1,20 @@
 ## unreleased
 
+## v4.20.0 - 2026.11.05
+
+* Fix a race in `NodeStageVolume` that could reformat a volume holding data
+  when the device's `/dev/disk/by-id` symlink was not yet present:
+  * Wait (bounded by the new `--device-wait-timeout` flag, default 30s) for the
+    by-id symlink to resolve to a block device, and use the resolved device for
+    all format checks.
+  * Treat a missing device as an error instead of "unformatted": the device
+    must be a block device before `blkid` runs, and `blkid -p` is used to
+    bypass the cache.
+  * Refuse to format unless the first 1 MiB of the device is all zeros.
+
+* Honor the `--validate-attachment` flag, which was previously ignored, and
+  tolerate the trailing newline in the device state file.
+
 ## v4.19.0 - 2026.09.22
 
 * Update Go to 1.27
