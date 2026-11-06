@@ -537,6 +537,278 @@ func TestCheckLimit(t *testing.T) {
 	}
 }
 
+func TestControllerPublishVolume(t *testing.T) {
+	const (
+		volumeID   = "vol-1"
+		volumeName = "pvc-name"
+		nodeID     = "42"
+		dropletID  = 42
+		publishKey = "test.csi.digitalocean.com/volume-name"
+		doTag      = "k8s:cluster"
+	)
+
+	notFoundErr := errors.New("volume or droplet was not found")
+	limitErr := errors.New(godo.ErrPerDropletVolumeCountLimit)
+	legacyLimitErr := errors.New(maxVolumesPerDropletErrorLegacyMessage)
+	regionErr := errors.New("volume and droplet are in different regions")
+	suspendedErr := errors.New("volume is suspended")
+	destroyedErr := errors.New("droplet has been destroyed")
+	alreadyAttachedErr := errors.New(godo.ErrVolumeAlreadyAttached)
+	pendingEventErr := errors.New(godo.ErrDropletPendingEvent)
+
+	capability := &csi.VolumeCapability{
+		AccessType: &csi.VolumeCapability_Mount{
+			Mount: &csi.VolumeCapability_MountVolume{},
+		},
+		AccessMode: &csi.VolumeCapability_AccessMode{
+			Mode: csi.VolumeCapability_AccessMode_SINGLE_NODE_WRITER,
+		},
+	}
+
+	tests := []struct {
+		name            string
+		missingVolume   bool
+		dropletIDs      []int
+		doTag           string
+		attachStatus    int
+		attachErr       error
+		actionStatus    string
+		wantCode        codes.Code
+		wantMessage     string
+		wantRaw         error
+		wantAttachCalls int
+		wantGetCalls    int
+		wantTagCalls    int
+	}{
+		{
+			name:            "completed attach returns the volume name",
+			actionStatus:    godo.ActionCompleted,
+			wantAttachCalls: 1,
+			wantGetCalls:    1,
+		},
+		{
+			name:            "stale droplet id for this node still attaches",
+			dropletIDs:      []int{dropletID},
+			actionStatus:    godo.ActionCompleted,
+			wantAttachCalls: 1,
+			wantGetCalls:    1,
+		},
+		{
+			name:            "stale droplet id for another node still attaches",
+			dropletIDs:      []int{99},
+			actionStatus:    godo.ActionCompleted,
+			wantAttachCalls: 1,
+			wantGetCalls:    1,
+		},
+		{
+			name:          "volume does not exist",
+			missingVolume: true,
+			wantCode:      codes.NotFound,
+			wantMessage:   fmt.Sprintf("volume %q does not exist", volumeID),
+		},
+		{
+			name:            "attach not found",
+			attachStatus:    http.StatusNotFound,
+			attachErr:       notFoundErr,
+			wantCode:        codes.NotFound,
+			wantMessage:     fmt.Sprintf("failed to attach volume %q to droplet %d: %s", volumeID, dropletID, notFoundErr),
+			wantAttachCalls: 1,
+		},
+		{
+			name:            "per droplet volume limit",
+			attachStatus:    http.StatusUnprocessableEntity,
+			attachErr:       limitErr,
+			wantCode:        codes.ResourceExhausted,
+			wantMessage:     limitErr.Error(),
+			wantAttachCalls: 1,
+		},
+		{
+			name:            "legacy per droplet volume limit",
+			attachStatus:    http.StatusUnprocessableEntity,
+			attachErr:       legacyLimitErr,
+			wantCode:        codes.ResourceExhausted,
+			wantMessage:     legacyLimitErr.Error(),
+			wantAttachCalls: 1,
+		},
+		{
+			name:            "already attached message is not treated as success",
+			attachStatus:    http.StatusUnprocessableEntity,
+			attachErr:       alreadyAttachedErr,
+			wantRaw:         alreadyAttachedErr,
+			wantAttachCalls: 1,
+		},
+		{
+			name:            "pending event message is not aborted",
+			attachStatus:    http.StatusUnprocessableEntity,
+			attachErr:       pendingEventErr,
+			wantRaw:         pendingEventErr,
+			wantAttachCalls: 1,
+		},
+		{
+			name:            "volume in another region",
+			attachStatus:    http.StatusConflict,
+			attachErr:       regionErr,
+			wantCode:        codes.FailedPrecondition,
+			wantMessage:     fmt.Sprintf("failed to attach volume %q to droplet %d: %s", volumeID, dropletID, regionErr),
+			wantAttachCalls: 1,
+		},
+		{
+			name:            "volume suspended",
+			attachStatus:    http.StatusForbidden,
+			attachErr:       suspendedErr,
+			wantCode:        codes.FailedPrecondition,
+			wantMessage:     fmt.Sprintf("failed to attach volume %q to droplet %d: %s", volumeID, dropletID, suspendedErr),
+			wantAttachCalls: 1,
+		},
+		{
+			name:            "destroyed droplet passes through",
+			attachStatus:    http.StatusBadRequest,
+			attachErr:       destroyedErr,
+			wantRaw:         destroyedErr,
+			wantAttachCalls: 1,
+		},
+		{
+			name:            "errored action is a failed precondition",
+			actionStatus:    actionStatusErrored,
+			wantCode:        codes.FailedPrecondition,
+			wantMessage:     fmt.Sprintf("volume %q may be attached to another droplet", volumeID),
+			wantAttachCalls: 1,
+			wantGetCalls:    1,
+		},
+		{
+			name:            "tags the volume before attaching",
+			doTag:           doTag,
+			actionStatus:    godo.ActionCompleted,
+			wantAttachCalls: 1,
+			wantGetCalls:    1,
+			wantTagCalls:    1,
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+
+			volumes := map[string]*godo.Volume{}
+			if !tc.missingVolume {
+				volumes[volumeID] = &godo.Volume{
+					ID:         volumeID,
+					Name:       volumeName,
+					DropletIDs: tc.dropletIDs,
+				}
+			}
+
+			tags := &fakeTagsDriver{exists: true}
+			actions := &stubPublishStorageActions{
+				attachStatus: tc.attachStatus,
+				attachErr:    tc.attachErr,
+				actionStatus: tc.actionStatus,
+			}
+			if tc.doTag != "" {
+				actions.onAttach = func() {
+					if tags.tagResourcesCount == 0 {
+						t.Errorf("Attach called before the volume was tagged")
+					}
+				}
+			}
+
+			d := &Driver{
+				publishInfoVolumeName: publishKey,
+				doTag:                 tc.doTag,
+				storage:               &fakeStorageDriver{volumes: volumes},
+				storageActions:        actions,
+				tags:                  tags,
+				log:                   logrus.New().WithField("test_enabled", true),
+			}
+
+			ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+			defer cancel()
+
+			resp, err := d.ControllerPublishVolume(ctx, &csi.ControllerPublishVolumeRequest{
+				VolumeId:         volumeID,
+				NodeId:           nodeID,
+				VolumeCapability: capability,
+			})
+
+			if actions.attachCalls != tc.wantAttachCalls {
+				t.Errorf("attach calls: got %d, want %d", actions.attachCalls, tc.wantAttachCalls)
+			}
+			if actions.getCalls != tc.wantGetCalls {
+				t.Errorf("action get calls: got %d, want %d", actions.getCalls, tc.wantGetCalls)
+			}
+			if tags.tagResourcesCount != tc.wantTagCalls {
+				t.Errorf("tag calls: got %d, want %d", tags.tagResourcesCount, tc.wantTagCalls)
+			}
+
+			if tc.wantRaw != nil {
+				if err != tc.wantRaw {
+					t.Fatalf("got error %v, want %v", err, tc.wantRaw)
+				}
+				return
+			}
+			if tc.wantCode != codes.OK {
+				st, ok := status.FromError(err)
+				if !ok {
+					t.Fatalf("got error %v, want status %s", err, tc.wantCode)
+				}
+				if st.Code() != tc.wantCode || st.Message() != tc.wantMessage {
+					t.Errorf("got code %s message %q, want code %s message %q", st.Code(), st.Message(), tc.wantCode, tc.wantMessage)
+				}
+				return
+			}
+			if err != nil {
+				t.Fatalf("got error %v, want success", err)
+			}
+			gotName := resp.GetPublishContext()[publishKey]
+			if gotName != volumeName {
+				t.Errorf("publish context volume name: got %q, want %q", gotName, volumeName)
+			}
+		})
+	}
+}
+
+// stubPublishStorageActions returns scripted attach and action-get results.
+type stubPublishStorageActions struct {
+	attachStatus int
+	attachErr    error
+	actionStatus string
+	onAttach     func()
+	attachCalls  int
+	getCalls     int
+}
+
+func (s *stubPublishStorageActions) Attach(ctx context.Context, volumeID string, dropletID int) (*godo.Action, *godo.Response, error) {
+	s.attachCalls++
+	if s.onAttach != nil {
+		s.onAttach()
+	}
+	if s.attachErr != nil {
+		return nil, &godo.Response{Response: &http.Response{StatusCode: s.attachStatus}}, s.attachErr
+	}
+	return &godo.Action{ID: 7, Status: godo.ActionInProgress}, godoResponse(), nil
+}
+
+func (s *stubPublishStorageActions) Get(ctx context.Context, volumeID string, actionID int) (*godo.Action, *godo.Response, error) {
+	s.getCalls++
+	actionStatus := s.actionStatus
+	if actionStatus == "" {
+		actionStatus = godo.ActionCompleted
+	}
+	return &godo.Action{ID: actionID, Status: actionStatus}, godoResponse(), nil
+}
+
+func (s *stubPublishStorageActions) DetachByDropletID(context.Context, string, int) (*godo.Action, *godo.Response, error) {
+	panic("not implemented")
+}
+
+func (s *stubPublishStorageActions) List(context.Context, string, *godo.ListOptions) ([]godo.Action, *godo.Response, error) {
+	panic("not implemented")
+}
+
+func (s *stubPublishStorageActions) Resize(context.Context, string, int, string) (*godo.Action, *godo.Response, error) {
+	panic("not implemented")
+}
+
 type fakeStorageAction struct {
 	*fakeStorageActionsDriver
 	storageGetValsFunc func(invocation int) (*godo.Action, *godo.Response, error)
@@ -566,6 +838,19 @@ func TestWaitAction(t *testing.T) {
 			},
 			timeout: 2 * time.Second,
 			wantErr: wait.ErrWaitTimeout,
+		},
+		{
+			name: "errored",
+			storageGetValsFunc: func(invocation int) (*godo.Action, *godo.Response, error) {
+				if invocation != 0 {
+					return nil, nil, fmt.Errorf("polled %d times after errored status", invocation+1)
+				}
+				return &godo.Action{
+					Status: actionStatusErrored,
+				}, &godo.Response{}, nil
+			},
+			timeout: 5 * time.Second,
+			wantErr: errActionErrored,
 		},
 		{
 			name: "progressing to completion",
