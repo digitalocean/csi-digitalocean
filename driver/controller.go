@@ -337,10 +337,10 @@ func (d *Driver) ControllerPublishVolume(ctx context.Context, req *csi.Controlle
 		}
 	}
 
-	// Keep the pre-CON-14684 path behind --attach-volume-directly=false as a
-	// mitigation kill switch; remove it once production data confirms Attach-only
-	// is safe. GetVolume.droplet_ids comes from a replica and can still list a
-	// node after detach, or the previous node after a move.
+	// Legacy pre-checks behind --attach-volume-directly=false as a mitigation
+	// kill switch. GetVolume.droplet_ids comes from a replica and can still
+	// list a node after detach, or the previous node after a move; remove this
+	// path once production data confirms Attach-only is safe.
 	if !d.attachVolumeDirectly {
 		// check if droplet exist before trying to attach the volume to the droplet
 		_, resp, err = d.droplets.Get(ctx, dropletID)
@@ -370,73 +370,55 @@ func (d *Driver) ControllerPublishVolume(ctx context.Context, req *csi.Controlle
 				"volume %q is attached to the wrong droplet (%d), detach the volume to fix it",
 				req.VolumeId, attachedID)
 		}
+	}
 
-		// attach the volume to the correct node
-		action, resp, err := d.storageActions.Attach(ctx, req.VolumeId, dropletID)
-		if err != nil {
-			// don't do anything if attached
-			if resp != nil && resp.StatusCode == http.StatusUnprocessableEntity {
-				if strings.Contains(err.Error(), godo.ErrVolumeAlreadyAttached) {
-					log.WithFields(logrus.Fields{
-						"error": err,
-						"resp":  resp,
-					}).Warn("assuming volume is attached because of error response")
-					return &csi.ControllerPublishVolumeResponse{
-						PublishContext: map[string]string{
-							d.publishInfoVolumeName: vol.Name,
-						},
-					}, nil
-				}
-
-				if strings.Contains(err.Error(), godo.ErrDropletPendingEvent) {
-					log.WithFields(logrus.Fields{
-						"error": err,
-						"resp":  resp,
-					}).Warn("cannot attach because droplet has pending volume action")
-					// sending an abort makes sure the csi-attacher retries with the next backoff tick
-					return nil, status.Errorf(codes.Aborted, "cannot attach because droplet %d has pending action for volume %q", dropletID, req.VolumeId)
-				}
-
-				if strings.Contains(err.Error(), godo.ErrPerDropletVolumeCountLimit) ||
-					strings.Contains(err.Error(), maxVolumesPerDropletErrorLegacyMessage) {
-					return nil, status.Error(codes.ResourceExhausted, err.Error())
+	// Attach re-reads the volume from the primary, so the action result is
+	// authoritative over potentially stale GetVolume.droplet_ids.
+	action, resp, err := d.storageActions.Attach(ctx, req.VolumeId, dropletID)
+	if err != nil {
+		if d.attachVolumeDirectly {
+			if resp != nil {
+				switch resp.StatusCode {
+				case http.StatusNotFound:
+					return nil, status.Errorf(codes.NotFound, "failed to attach volume %q to droplet %d: %s", req.VolumeId, dropletID, err)
+				case http.StatusUnprocessableEntity:
+					if strings.Contains(err.Error(), godo.ErrPerDropletVolumeCountLimit) ||
+						strings.Contains(err.Error(), maxVolumesPerDropletErrorLegacyMessage) {
+						return nil, status.Error(codes.ResourceExhausted, err.Error())
+					}
+				case http.StatusConflict, http.StatusForbidden:
+					return nil, status.Errorf(codes.FailedPrecondition, "failed to attach volume %q to droplet %d: %s", req.VolumeId, dropletID, err)
 				}
 			}
 			return nil, err
 		}
 
-		if action != nil {
-			log = logWithAction(log, action)
-			log.Info("waiting until volume is attached")
-			if err := d.waitAction(ctx, log, req.VolumeId, action.ID); err != nil {
-				return nil, status.Errorf(codes.Internal, "failed waiting on action ID %d for volume ID %s to get attached: %s", action.ID, req.VolumeId, err)
+		// don't do anything if attached
+		if resp != nil && resp.StatusCode == http.StatusUnprocessableEntity {
+			if strings.Contains(err.Error(), godo.ErrVolumeAlreadyAttached) {
+				log.WithFields(logrus.Fields{
+					"error": err,
+					"resp":  resp,
+				}).Warn("assuming volume is attached because of error response")
+				return &csi.ControllerPublishVolumeResponse{
+					PublishContext: map[string]string{
+						d.publishInfoVolumeName: vol.Name,
+					},
+				}, nil
 			}
-		}
 
-		log.Info("volume was attached")
-		return &csi.ControllerPublishVolumeResponse{
-			PublishContext: map[string]string{
-				d.publishInfoVolumeName: vol.Name,
-			},
-		}, nil
-	}
+			if strings.Contains(err.Error(), godo.ErrDropletPendingEvent) {
+				log.WithFields(logrus.Fields{
+					"error": err,
+					"resp":  resp,
+				}).Warn("cannot attach because droplet has pending volume action")
+				// sending an abort makes sure the csi-attacher retries with the next backoff tick
+				return nil, status.Errorf(codes.Aborted, "cannot attach because droplet %d has pending action for volume %q", dropletID, req.VolumeId)
+			}
 
-	// droplet_ids from GetVolume is read from a replica and can still list a
-	// node after detach, or the previous node after a move. Attach re-reads
-	// the volume from the primary, so the action result is authoritative.
-	action, resp, err := d.storageActions.Attach(ctx, req.VolumeId, dropletID)
-	if err != nil {
-		if resp != nil {
-			switch resp.StatusCode {
-			case http.StatusNotFound:
-				return nil, status.Errorf(codes.NotFound, "failed to attach volume %q to droplet %d: %s", req.VolumeId, dropletID, err)
-			case http.StatusUnprocessableEntity:
-				if strings.Contains(err.Error(), godo.ErrPerDropletVolumeCountLimit) ||
-					strings.Contains(err.Error(), maxVolumesPerDropletErrorLegacyMessage) {
-					return nil, status.Error(codes.ResourceExhausted, err.Error())
-				}
-			case http.StatusConflict, http.StatusForbidden:
-				return nil, status.Errorf(codes.FailedPrecondition, "failed to attach volume %q to droplet %d: %s", req.VolumeId, dropletID, err)
+			if strings.Contains(err.Error(), godo.ErrPerDropletVolumeCountLimit) ||
+				strings.Contains(err.Error(), maxVolumesPerDropletErrorLegacyMessage) {
+				return nil, status.Error(codes.ResourceExhausted, err.Error())
 			}
 		}
 		return nil, err
