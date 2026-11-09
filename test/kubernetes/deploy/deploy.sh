@@ -19,7 +19,7 @@ set -euo pipefail
 SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 readonly REPO_SCRIPTS_DIR="${SCRIPT_DIR}/../../../scripts"
 readonly DEV_RELEASE_DIR="${SCRIPT_DIR}/../../../deploy/kubernetes/releases/csi-digitalocean-dev"
-readonly DEFAULT_PLUGIN_IMAGE='digitalocean/do-csi-plugin:dev'
+readonly DEFAULT_PLUGIN_IMAGE='ghcr.io/digitalocean-packages/do-csi-plugin:dev'
 
 YES=
 if [[ $# -gt 0 && ( $1 = '-y' || $1 = '--yes' ) ]]; then
@@ -68,10 +68,10 @@ kubectl -n kube-system create secret generic digitalocean --from-literal="access
 : "${DEV_IMAGE:=$DEFAULT_PLUGIN_IMAGE}"
 (
 cd "${SCRIPT_DIR}"
-kustomize edit set image digitalocean/do-csi-plugin="${DEV_IMAGE}"
+kustomize edit set image ghcr.io/digitalocean-packages/do-csi-plugin="${DEV_IMAGE}"
 # Undo any image updates done to kustomization.yaml to prevent git pollution.
 # shellcheck disable=SC2064
-trap "kustomize edit set image digitalocean/do-csi-plugin=$DEFAULT_PLUGIN_IMAGE" EXIT
+trap "kustomize edit set image ghcr.io/digitalocean-packages/do-csi-plugin=$DEFAULT_PLUGIN_IMAGE" EXIT
 
 # Apply the CRDs.
 kubectl apply -f "${DEV_RELEASE_DIR}/crds.yaml"

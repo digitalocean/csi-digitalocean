@@ -42,7 +42,9 @@ jobs:
           fetch-depth: 1
 
       - name: Log into GHCR
-        run: echo "${{ secrets.GHCRTOKEN }}" | docker login ghcr.io --username "${{ secrets.GHCRUSER }}" --password-stdin
+        # Token from vault secrets-versioned/container/k8saas-images-ci
+        # (GHCR_DIGITALOCEAN_PACKAGES_RW_TOKEN), owned by digitalocean-engineering.
+        run: echo "${{ secrets.GHCRTOKEN }}" | docker login ghcr.io --username digitalocean-engineering --password-stdin
 
       # Rebuild plugin instead of just promoting the latest :master image so
       # that the right version is correctly baked into the release via the -X

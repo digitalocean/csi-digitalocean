@@ -4,17 +4,73 @@ on:
     types: [closed]
 jobs:
   delete_tags:
-    name: Delete PR images from Dockerhub
+    name: Delete PR images from GHCR
     runs-on: ubuntu-latest
     steps:
-      - name: dockerhub task
+      - name: Delete PR package versions from GHCR
         env:
           BRANCH: ${{ github.head_ref }}
-          DOCKER_USER: ${{ secrets.DockerHubUser }}
-          DOCKER_PASS: ${{ secrets.DockerHubToken }}
+          GHCR_TOKEN: ${{ secrets.GHCRTOKEN }}
         run: |
-          BRANCH=$(echo -n ${BRANCH} | tr -c '[:alnum:]._-' '-')
-          TOKEN=$(curl -s -H "Content-Type: application/json" -X POST -d '{"username": "'${DOCKER_USER}'", "password": "'${DOCKER_PASS}'"}' https://hub.docker.com/v2/users/login/ | jq -r .token)
-          images=("${BRANCH}-latest" "${BRANCH}-runtime" "${BRANCH}-tools" "${BRANCH}-tests-1.37" "${BRANCH}-tests-1.36" "${BRANCH}-tests-1.35" "${BRANCH}-tests-1.34" "${BRANCH}-builder")
-          for i in ${images[*]}; do curl --fail -sS -X DELETE -H "Authorization: JWT ${TOKEN}" https://hub.docker.com/v2/repositories/digitalocean/k8s-e2e-test-runner/tags/$i/; done
-          curl --fail -sS -X DELETE -H "Authorization: JWT ${TOKEN}" https://hub.docker.com/v2/repositories/digitalocean/do-csi-plugin-dev/tags/${BRANCH}/
+          set -euo pipefail
+          BRANCH=$(echo -n "${BRANCH}" | tr -c '[:alnum:]._-' '-')
+          AUTH_HEADER="Authorization: Bearer ${GHCR_TOKEN}"
+          API="https://api.github.com"
+
+          delete_tagged_versions() {
+            local package="$1"
+            shift
+            local tags=("$@")
+            local page=1
+            while true; do
+              local http_code response
+              response=$(curl -sS -w '\n%{http_code}' -H "${AUTH_HEADER}" -H "Accept: application/vnd.github+json" \
+                "${API}/orgs/DigitalOcean-Packages/packages/container/${package}/versions?per_page=100&page=${page}")
+              http_code=$(echo "${response}" | tail -n1)
+              response=$(echo "${response}" | sed '$d')
+              if [[ "${http_code}" == "404" ]]; then
+                echo "Package ${package} does not exist yet; nothing to delete"
+                return 0
+              fi
+              if [[ "${http_code}" != "200" ]]; then
+                echo "Failed to list versions for ${package}: HTTP ${http_code}" >&2
+                echo "${response}" >&2
+                return 1
+              fi
+              if [[ "${response}" == "[]" ]]; then
+                break
+              fi
+
+              local ids
+              ids=$(echo "${response}" | jq -r --argjson tags "$(printf '%s\n' "${tags[@]}" | jq -R . | jq -s .)" '
+                .[] | select(any(.metadata.container.tags[]?; . as $t | $tags | index($t))) | .id
+              ')
+
+              for id in ${ids}; do
+                echo "Deleting ${package} version ${id}"
+                curl -fsS -X DELETE -H "${AUTH_HEADER}" -H "Accept: application/vnd.github+json" \
+                  "${API}/orgs/DigitalOcean-Packages/packages/container/${package}/versions/${id}" || true
+              done
+
+              # Stop if fewer than a full page was returned.
+              local count
+              count=$(echo "${response}" | jq 'length')
+              if [[ "${count}" -lt 100 ]]; then
+                break
+              fi
+              page=$((page + 1))
+            done
+          }
+
+          runner_tags=(
+            "${BRANCH}-latest"
+            "${BRANCH}-runtime"
+            "${BRANCH}-tools"
+            "${BRANCH}-tests-1.37"
+            "${BRANCH}-tests-1.36"
+            "${BRANCH}-tests-1.35"
+            "${BRANCH}-tests-1.34"
+            "${BRANCH}-builder"
+          )
+          delete_tagged_versions k8s-e2e-test-runner "${runner_tags[@]}"
+          delete_tagged_versions do-csi-plugin-dev "${BRANCH}"

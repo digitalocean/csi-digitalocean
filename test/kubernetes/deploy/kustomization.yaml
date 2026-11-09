@@ -23,8 +23,8 @@ resources:
 - ../../../deploy/kubernetes/releases/csi-digitalocean-dev/snapshot-controller.yaml
 nameSuffix: -dev
 images:
-- name: digitalocean/do-csi-plugin
-  newName: digitalocean/do-csi-plugin
+- name: ghcr.io/digitalocean-packages/do-csi-plugin
+  newName: ghcr.io/digitalocean-packages/do-csi-plugin
   newTag: dev
 patchesStrategicMerge:
 - |-

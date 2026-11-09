@@ -349,7 +349,7 @@ Dependencies are managed via [Go modules](https://github.com/golang/go/wiki/Modu
 
 PRs from the code-hosting repository are automatically unit- and end-to-end-tested in our CI (implemented by Github Actions). See the [.github/workflows directory](.github/workflows) for details.
 
-For every green build of the master branch, the container image `digitalocean/do-csi-plugin:master` is updated and pushed at the end of the CI run. This allows to test the latest commit easily.
+For every green build of the master branch, the container image `ghcr.io/digitalocean-packages/do-csi-plugin:master` is updated and pushed at the end of the CI run. This allows to test the latest commit easily. PR builds are published to `ghcr.io/digitalocean-packages/do-csi-plugin-dev:<branch>`.
 
 Steps to run the tests manually are outlined below.
 
@@ -363,18 +363,18 @@ make test
 
 ### End-to-End Tests
 
-If you do not have write permissions to `digitalocean/do-csi-plugin` on Docker Hub or are worried about conflicting usage of that tag, you can also publish under a different (presumably personal) organization:
+If you do not have write permissions to `ghcr.io/digitalocean-packages/do-csi-plugin` or are worried about conflicting usage of that tag, you can also publish under a different (presumably personal) repository:
 
 ```shell
-DOCKER_REPO=johndoe/do-csi-plugin VERSION=latest-feature make publish
+DOCKER_REPO=ghcr.io/johndoe/do-csi-plugin VERSION=latest-feature make publish
 ```
 
-This would yield the published container image `johndoe/do-csi-plugin:latest-feature`.
+This would yield the published container image `ghcr.io/johndoe/do-csi-plugin:latest-feature`.
 
 Assuming you have your DO API token assigned to the `DIGITALOCEAN_ACCESS_TOKEN` environment variable, you can then spin up a DOKS cluster on-the-fly and execute the upstream end-to-end tests for a given set of Kubernetes versions like this:
 
 ```shell
-make test-e2e E2E_ARGS="-driver-image johndoe/do-csi-plugin:latest-feature 1.30 1.29 1.28"
+make test-e2e E2E_ARGS="-driver-image ghcr.io/johndoe/do-csi-plugin:latest-feature 1.30 1.29 1.28"
 ```
 
 See [our documentation](test/e2e/README.md) for an overview on how the end-to-end tests work as well as usage instructions.

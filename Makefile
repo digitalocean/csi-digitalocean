@@ -31,7 +31,7 @@ else
 endif
 KUBERNETES_VERSION ?= 1.37.0
 DOCKER_REPO ?= ghcr.io/digitalocean-packages/do-csi-plugin
-CANONICAL_RUNNER_IMAGE = digitalocean/k8s-e2e-test-runner
+CANONICAL_RUNNER_IMAGE = ghcr.io/digitalocean-packages/k8s-e2e-test-runner
 RUNNER_IMAGE ?= $(CANONICAL_RUNNER_IMAGE)
 
 # Max Volumes to a Single Droplet is 7
