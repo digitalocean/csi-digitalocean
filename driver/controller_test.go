@@ -566,122 +566,190 @@ func TestControllerPublishVolume(t *testing.T) {
 	}
 
 	tests := []struct {
-		name            string
-		missingVolume   bool
-		dropletIDs      []int
-		doTag           string
-		attachStatus    int
-		attachErr       error
-		actionStatus    string
-		wantCode        codes.Code
-		wantMessage     string
-		wantRaw         error
-		wantAttachCalls int
-		wantGetCalls    int
-		wantTagCalls    int
+		name                 string
+		attachVolumeDirectly bool
+		missingVolume        bool
+		missingDroplet       bool
+		dropletIDs           []int
+		doTag                string
+		attachStatus         int
+		attachErr            error
+		actionStatus         string
+		wantCode             codes.Code
+		wantMessage          string
+		wantRaw              error
+		wantAttachCalls      int
+		wantGetCalls         int
+		wantTagCalls         int
 	}{
 		{
-			name:            "completed attach returns the volume name",
-			actionStatus:    godo.ActionCompleted,
-			wantAttachCalls: 1,
-			wantGetCalls:    1,
+			name:                 "completed attach returns the volume name",
+			attachVolumeDirectly: true,
+			actionStatus:         godo.ActionCompleted,
+			wantAttachCalls:      1,
+			wantGetCalls:         1,
 		},
 		{
-			name:            "stale droplet id for this node still attaches",
-			dropletIDs:      []int{dropletID},
-			actionStatus:    godo.ActionCompleted,
-			wantAttachCalls: 1,
-			wantGetCalls:    1,
+			name:                 "stale droplet id for this node still attaches",
+			attachVolumeDirectly: true,
+			dropletIDs:           []int{dropletID},
+			actionStatus:         godo.ActionCompleted,
+			wantAttachCalls:      1,
+			wantGetCalls:         1,
 		},
 		{
-			name:            "stale droplet id for another node still attaches",
-			dropletIDs:      []int{99},
-			actionStatus:    godo.ActionCompleted,
-			wantAttachCalls: 1,
-			wantGetCalls:    1,
+			name:                 "stale droplet id for another node still attaches",
+			attachVolumeDirectly: true,
+			dropletIDs:           []int{99},
+			actionStatus:         godo.ActionCompleted,
+			wantAttachCalls:      1,
+			wantGetCalls:         1,
 		},
 		{
-			name:          "volume does not exist",
-			missingVolume: true,
-			wantCode:      codes.NotFound,
-			wantMessage:   fmt.Sprintf("volume %q does not exist", volumeID),
+			name:                 "volume does not exist",
+			attachVolumeDirectly: true,
+			missingVolume:        true,
+			wantCode:             codes.NotFound,
+			wantMessage:          fmt.Sprintf("volume %q does not exist", volumeID),
 		},
 		{
-			name:            "attach not found",
-			attachStatus:    http.StatusNotFound,
-			attachErr:       notFoundErr,
-			wantCode:        codes.NotFound,
-			wantMessage:     fmt.Sprintf("failed to attach volume %q to droplet %d: %s", volumeID, dropletID, notFoundErr),
-			wantAttachCalls: 1,
+			name:                 "attach not found",
+			attachVolumeDirectly: true,
+			attachStatus:         http.StatusNotFound,
+			attachErr:            notFoundErr,
+			wantCode:             codes.NotFound,
+			wantMessage:          fmt.Sprintf("failed to attach volume %q to droplet %d: %s", volumeID, dropletID, notFoundErr),
+			wantAttachCalls:      1,
 		},
 		{
-			name:            "per droplet volume limit",
-			attachStatus:    http.StatusUnprocessableEntity,
-			attachErr:       limitErr,
-			wantCode:        codes.ResourceExhausted,
-			wantMessage:     limitErr.Error(),
-			wantAttachCalls: 1,
+			name:                 "per droplet volume limit",
+			attachVolumeDirectly: true,
+			attachStatus:         http.StatusUnprocessableEntity,
+			attachErr:            limitErr,
+			wantCode:             codes.ResourceExhausted,
+			wantMessage:          limitErr.Error(),
+			wantAttachCalls:      1,
 		},
 		{
-			name:            "legacy per droplet volume limit",
-			attachStatus:    http.StatusUnprocessableEntity,
-			attachErr:       legacyLimitErr,
-			wantCode:        codes.ResourceExhausted,
-			wantMessage:     legacyLimitErr.Error(),
-			wantAttachCalls: 1,
+			name:                 "legacy per droplet volume limit",
+			attachVolumeDirectly: true,
+			attachStatus:         http.StatusUnprocessableEntity,
+			attachErr:            legacyLimitErr,
+			wantCode:             codes.ResourceExhausted,
+			wantMessage:          legacyLimitErr.Error(),
+			wantAttachCalls:      1,
 		},
 		{
-			name:            "already attached message is not treated as success",
-			attachStatus:    http.StatusUnprocessableEntity,
-			attachErr:       alreadyAttachedErr,
-			wantRaw:         alreadyAttachedErr,
-			wantAttachCalls: 1,
+			name:                 "already attached message is not treated as success",
+			attachVolumeDirectly: true,
+			attachStatus:         http.StatusUnprocessableEntity,
+			attachErr:            alreadyAttachedErr,
+			wantRaw:              alreadyAttachedErr,
+			wantAttachCalls:      1,
 		},
 		{
-			name:            "pending event message is not aborted",
-			attachStatus:    http.StatusUnprocessableEntity,
-			attachErr:       pendingEventErr,
-			wantRaw:         pendingEventErr,
-			wantAttachCalls: 1,
+			name:                 "pending event message is not aborted",
+			attachVolumeDirectly: true,
+			attachStatus:         http.StatusUnprocessableEntity,
+			attachErr:            pendingEventErr,
+			wantRaw:              pendingEventErr,
+			wantAttachCalls:      1,
 		},
 		{
-			name:            "volume in another region",
-			attachStatus:    http.StatusConflict,
-			attachErr:       regionErr,
-			wantCode:        codes.FailedPrecondition,
-			wantMessage:     fmt.Sprintf("failed to attach volume %q to droplet %d: %s", volumeID, dropletID, regionErr),
-			wantAttachCalls: 1,
+			name:                 "volume in another region",
+			attachVolumeDirectly: true,
+			attachStatus:         http.StatusConflict,
+			attachErr:            regionErr,
+			wantCode:             codes.FailedPrecondition,
+			wantMessage:          fmt.Sprintf("failed to attach volume %q to droplet %d: %s", volumeID, dropletID, regionErr),
+			wantAttachCalls:      1,
 		},
 		{
-			name:            "volume suspended",
-			attachStatus:    http.StatusForbidden,
-			attachErr:       suspendedErr,
-			wantCode:        codes.FailedPrecondition,
-			wantMessage:     fmt.Sprintf("failed to attach volume %q to droplet %d: %s", volumeID, dropletID, suspendedErr),
-			wantAttachCalls: 1,
+			name:                 "volume suspended",
+			attachVolumeDirectly: true,
+			attachStatus:         http.StatusForbidden,
+			attachErr:            suspendedErr,
+			wantCode:             codes.FailedPrecondition,
+			wantMessage:          fmt.Sprintf("failed to attach volume %q to droplet %d: %s", volumeID, dropletID, suspendedErr),
+			wantAttachCalls:      1,
 		},
 		{
-			name:            "destroyed droplet passes through",
-			attachStatus:    http.StatusBadRequest,
-			attachErr:       destroyedErr,
-			wantRaw:         destroyedErr,
-			wantAttachCalls: 1,
+			name:                 "destroyed droplet passes through",
+			attachVolumeDirectly: true,
+			attachStatus:         http.StatusBadRequest,
+			attachErr:            destroyedErr,
+			wantRaw:              destroyedErr,
+			wantAttachCalls:      1,
 		},
 		{
-			name:            "errored action is a failed precondition",
-			actionStatus:    actionStatusErrored,
-			wantCode:        codes.FailedPrecondition,
-			wantMessage:     fmt.Sprintf("volume %q may be attached to another droplet", volumeID),
-			wantAttachCalls: 1,
-			wantGetCalls:    1,
+			name:                 "errored action is a failed precondition",
+			attachVolumeDirectly: true,
+			actionStatus:         actionStatusErrored,
+			wantCode:             codes.FailedPrecondition,
+			wantMessage:          fmt.Sprintf("volume %q may be attached to another droplet", volumeID),
+			wantAttachCalls:      1,
+			wantGetCalls:         1,
 		},
 		{
-			name:            "tags the volume before attaching",
-			doTag:           doTag,
-			actionStatus:    godo.ActionCompleted,
-			wantAttachCalls: 1,
-			wantGetCalls:    1,
-			wantTagCalls:    1,
+			name:                 "tags the volume before attaching",
+			attachVolumeDirectly: true,
+			doTag:                doTag,
+			actionStatus:         godo.ActionCompleted,
+			wantAttachCalls:      1,
+			wantGetCalls:         1,
+			wantTagCalls:         1,
+		},
+		{
+			name:                 "legacy: completed attach returns the volume name",
+			attachVolumeDirectly: false,
+			actionStatus:         godo.ActionCompleted,
+			wantAttachCalls:      1,
+			wantGetCalls:         1,
+		},
+		{
+			name:                 "legacy: already attached short-circuits without attach",
+			attachVolumeDirectly: false,
+			dropletIDs:           []int{dropletID},
+			wantAttachCalls:      0,
+		},
+		{
+			name:                 "legacy: attached to another droplet is a failed precondition",
+			attachVolumeDirectly: false,
+			dropletIDs:           []int{99},
+			wantCode:             codes.FailedPrecondition,
+			wantMessage:          fmt.Sprintf("volume %q is attached to the wrong droplet (%d), detach the volume to fix it", volumeID, 99),
+		},
+		{
+			name:                 "legacy: missing droplet is not found",
+			attachVolumeDirectly: false,
+			missingDroplet:       true,
+			wantCode:             codes.NotFound,
+			wantMessage:          fmt.Sprintf("droplet %d does not exist", dropletID),
+		},
+		{
+			name:                 "legacy: already attached message is treated as success",
+			attachVolumeDirectly: false,
+			attachStatus:         http.StatusUnprocessableEntity,
+			attachErr:            alreadyAttachedErr,
+			wantAttachCalls:      1,
+		},
+		{
+			name:                 "legacy: pending event is aborted",
+			attachVolumeDirectly: false,
+			attachStatus:         http.StatusUnprocessableEntity,
+			attachErr:            pendingEventErr,
+			wantCode:             codes.Aborted,
+			wantMessage:          fmt.Sprintf("cannot attach because droplet %d has pending action for volume %q", dropletID, volumeID),
+			wantAttachCalls:      1,
+		},
+		{
+			name:                 "legacy: per droplet volume limit",
+			attachVolumeDirectly: false,
+			attachStatus:         http.StatusUnprocessableEntity,
+			attachErr:            limitErr,
+			wantCode:             codes.ResourceExhausted,
+			wantMessage:          limitErr.Error(),
+			wantAttachCalls:      1,
 		},
 	}
 
@@ -696,6 +764,11 @@ func TestControllerPublishVolume(t *testing.T) {
 					Name:       volumeName,
 					DropletIDs: tc.dropletIDs,
 				}
+			}
+
+			droplets := map[int]*godo.Droplet{}
+			if !tc.missingDroplet {
+				droplets[dropletID] = &godo.Droplet{ID: dropletID}
 			}
 
 			tags := &fakeTagsDriver{exists: true}
@@ -715,8 +788,10 @@ func TestControllerPublishVolume(t *testing.T) {
 			d := &Driver{
 				publishInfoVolumeName: publishKey,
 				doTag:                 tc.doTag,
+				attachVolumeDirectly:  tc.attachVolumeDirectly,
 				storage:               &fakeStorageDriver{volumes: volumes},
 				storageActions:        actions,
+				droplets:              &fakeDropletsDriver{droplets: droplets},
 				tags:                  tags,
 				log:                   logrus.New().WithField("test_enabled", true),
 			}

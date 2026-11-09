@@ -321,14 +321,19 @@ DO API usage is subject to [certain rate limits](https://docs.digitalocean.com/r
 
 ### Flags
 
-| Name                  | Description                                                                          | Default |
-|-----------------------|--------------------------------------------------------------------------------------|---------|
-| --validate-attachment | Validate if the attachment has fully completed before formatting/mounting the device | false   |
-| --device-wait-timeout | How long `NodeStageVolume` waits for an attached volume's device to appear           | 30s     |
+| Name                     | Description                                                                                                                                                          | Default |
+|--------------------------|----------------------------------------------------------------------------------------------------------------------------------------------------------------------|---------|
+| --validate-attachment    | Validate if the attachment has fully completed before formatting/mounting the device                                                                                 | false   |
+| --device-wait-timeout    | How long `NodeStageVolume` waits for an attached volume's device to appear                                                                                           | 30s     |
+| --attach-volume-directly | Attach in `ControllerPublishVolume` without checking `GetVolume` attachment state; set `false` to restore the legacy pre-check as a mitigation                       | true    |
 
 The `--validate-attachment` options adds an additional validation which checks for the `/sys/class/block/<device name>/device/state`
 file content for the `running` status. When enabling this flag, it prevents a racing condition where the DOBS volumes aren't 
-fully attached which can be misinterpreted by the CSI implementation causing a force format of the volume which results in data loss. 
+fully attached which can be misinterpreted by the CSI implementation causing a force format of the volume which results in data loss.
+
+`--attach-volume-directly` (default `true`) makes `ControllerPublishVolume` call Attach without branching on `GetVolume`'s
+`droplet_ids`, which can be stale under replica lag and cause false already-attached or wrong-droplet results. Set it to
+`false` on the controller plugin to restore the legacy pre-check path if Attach-only behavior needs to be mitigated. 
 
 Independently of these flags, the node plugin only formats a volume when `blkid -p` finds no filesystem or partition table
 signature on an existing block device _and_ the first 1 MiB of the device is all zeros. Otherwise `NodeStageVolume` fails
