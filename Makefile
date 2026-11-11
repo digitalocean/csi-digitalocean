@@ -97,8 +97,8 @@ build:
 
 .PHONY: push
 push:
-# Permit releasing to the canonical container repository only if VERSION adheres to semver.
-ifeq ($(DOCKER_REPO),ghcr.io/digitalocean-packages/do-csi-plugin)
+# Permit releasing to a canonical container repository only if VERSION adheres to semver.
+ifneq ($(filter $(DOCKER_REPO),ghcr.io/digitalocean-packages/do-csi-plugin digitalocean/do-csi-plugin),)
 	@echo "${VERSION}" | grep -Eq "^v[0-9]+\.[0-9]+\.[0-9]+(-[[:alnum:]]+)?$$" || ( echo "VERSION \"${VERSION}\" does not adhere to semver"; exit 1 )
 endif
 	@echo "==> Publishing $(DOCKER_REPO):$(VERSION)"

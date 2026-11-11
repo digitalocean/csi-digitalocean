@@ -162,8 +162,17 @@ jobs:
       - name: Log into GHCR
         run: echo "${{ secrets.GHCRTOKEN }}" | docker login ghcr.io --username digitalocean-engineering --password-stdin
 
+      - name: Log into Docker Hub
+        env:
+          DOCKERHUB_USER: ${{ secrets.DockerHubUser }}
+        run: echo "${{ secrets.DockerHubToken }}" | docker login --username ${DOCKERHUB_USER} --password-stdin
+
       - name: tag new CSI plugin master image
+        env:
+          DOCKERHUB_REPO: digitalocean/do-csi-plugin
         run: |
           docker pull ${PLUGIN_DEV_REPO}:latest
           docker tag ${PLUGIN_DEV_REPO}:latest ${PLUGIN_REPO}:master
           docker push ${PLUGIN_REPO}:master
+          docker tag ${PLUGIN_DEV_REPO}:latest ${DOCKERHUB_REPO}:master
+          docker push ${DOCKERHUB_REPO}:master

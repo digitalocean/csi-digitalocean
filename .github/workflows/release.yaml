@@ -17,7 +17,9 @@
 name: release
 
 env:
-  DOCKER_REPO: ghcr.io/digitalocean-packages/do-csi-plugin
+  GHCR_REPO: ghcr.io/digitalocean-packages/do-csi-plugin
+  DOCKERHUB_REPO: digitalocean/do-csi-plugin
+  DOCKERHUB_USER: ${{ secrets.DockerHubUser }}
 
 on:
   workflow_dispatch:
@@ -46,13 +48,19 @@ jobs:
         # (GHCR_DIGITALOCEAN_PACKAGES_RW_TOKEN), owned by digitalocean-engineering.
         run: echo "${{ secrets.GHCRTOKEN }}" | docker login ghcr.io --username digitalocean-engineering --password-stdin
 
+      - name: Log into Docker Hub
+        run: echo "${{ secrets.DockerHubToken }}" | docker login --username ${DOCKERHUB_USER} --password-stdin
+
       # Rebuild plugin instead of just promoting the latest :master image so
       # that the right version is correctly baked into the release via the -X
-      # flag.
+      # flag. Publish to both GHCR and Docker Hub.
       - name: Build and push released plugin image
         env:
           VERSION: ${{ github.event.inputs.tag }}
-        run: make publish
+        run: |
+          DOCKER_REPO=${GHCR_REPO} make publish
+          docker tag ${GHCR_REPO}:${VERSION} ${DOCKERHUB_REPO}:${VERSION}
+          docker push ${DOCKERHUB_REPO}:${VERSION}
 
       - name: Bump version and generate release manifests
         env:

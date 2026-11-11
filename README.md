@@ -349,7 +349,7 @@ Dependencies are managed via [Go modules](https://github.com/golang/go/wiki/Modu
 
 PRs from the code-hosting repository are automatically unit- and end-to-end-tested in our CI (implemented by Github Actions). See the [.github/workflows directory](.github/workflows) for details.
 
-For every green build of the master branch, the container image `ghcr.io/digitalocean-packages/do-csi-plugin:master` is updated and pushed at the end of the CI run. This allows to test the latest commit easily. PR builds are published to `ghcr.io/digitalocean-packages/do-csi-plugin-dev:<branch>`.
+For every green build of the master branch, the container image is updated and pushed to both `ghcr.io/digitalocean-packages/do-csi-plugin:master` and `digitalocean/do-csi-plugin:master` at the end of the CI run. This allows to test the latest commit easily. PR / e2e builds are published to GHCR only (`ghcr.io/digitalocean-packages/do-csi-plugin-dev:<branch>`).
 
 Steps to run the tests manually are outlined below.
 
@@ -425,9 +425,9 @@ Running the workflow also requires that you temporarily turn off the "Require a 
 
 The workflow does the following:
 
-* Builds and pushes the container image `ghcr.io/digitalocean-packages/do-csi-plugin:<tag>` to GHCR
+* Builds and pushes the container image to both `ghcr.io/digitalocean-packages/do-csi-plugin:<tag>` (GHCR) and `digitalocean/do-csi-plugin:<tag>` (Docker Hub)
 * Runs `make bump-version` with `<tag>`
-* Commits the release manifests under `deploy/kubernetes/releases/`, plus `VERSION` and `CHANGELOG.md`
+* Commits the release manifests under `deploy/kubernetes/releases/`, plus `VERSION` and `CHANGELOG.md` (manifests reference the GHCR image)
 * Creates a Github Release and tags the new commit with the `<tag>` specified when the workflow is triggered
 
 Before releasing, make sure the change log's `## unreleased` section is up-to-date and is not missing any important, user-facing changes.
@@ -463,13 +463,15 @@ git tag vX.Y.Z
 git push origin vX.Y.Z
 ```
 
-Then publish the image:
+Then publish the image to both registries:
 
 ```shell
 VERSION=vX.Y.Z make publish
+docker tag ghcr.io/digitalocean-packages/do-csi-plugin:vX.Y.Z digitalocean/do-csi-plugin:vX.Y.Z
+docker push digitalocean/do-csi-plugin:vX.Y.Z
 ```
 
-This will push `ghcr.io/digitalocean-packages/do-csi-plugin:vX.Y.Z` to GHCR.
+This pushes `ghcr.io/digitalocean-packages/do-csi-plugin:vX.Y.Z` to GHCR and `digitalocean/do-csi-plugin:vX.Y.Z` to Docker Hub.
 
 ## Contributing
 
