@@ -1,5 +1,7 @@
 ## unreleased
 
+## v4.21.0 - 2026.11.12
+
 * Publish driver images to GHCR (`ghcr.io/digitalocean-packages/do-csi-plugin`)
   in addition to Docker Hub. Release manifests reference the GHCR image.
 
