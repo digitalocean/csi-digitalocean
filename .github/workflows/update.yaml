@@ -1,0 +1,66 @@
+name: update
+on:
+  workflow_dispatch:
+  pull_request: # TODO: this is temporary for testing
+    branches:
+      - master
+
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  update-dependencies:
+    runs-on: ubuntu-latest
+    steps:
+          
+      - name: Checkout
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          fetch-depth: 0
+
+      - name: Install Cursor CLI
+        run: |
+          curl https://cursor.com/install -fsS | bash
+      - name: Verify Cursor CLI
+        run: |
+          export PATH="$HOME/.local/bin:$PATH"
+          echo "$HOME/.local/bin" >> "$GITHUB_PATH"
+          agent --version
+
+      - name: Configure git and gh CLI
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          git config user.name "Cursor Agent"
+          git config user.email "cursoragent@cursor.com"
+          gh auth status
+          gh api repos/${{ github.repository }} --jq '.full_name'
+
+      - name: Install go
+        uses: actions/setup-go@41dfa10bad2bb2ae585af6ee5bb4d7d973ad74ed # v5.1.0
+        with:
+          go-version: ^1.26
+
+      - name: Update the repo
+        env:
+          CURSOR_API_KEY: ${{ secrets.CURSOR_API_KEY }}
+          MODEL: claude-4.5-sonnet
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          agent --force --model "$MODEL" --output-format=text --print '
+          You are operating in a GitHub Actions runner performing automated upgrade of the current repo ${{ github.repository }}.
+          The gh CLI is available and authenticated via GH_TOKEN.
+          Checkout the repo from commit 0711283de556eac2cd6e41da844d51993f1e247f.
+          Follow the instructions in the "Prepare CSI driver for a new Kubernetes minor version" section of README.md.
+          Instead of running e2e tests locally, do the following:
+          1) raise a PR with the changes made so far
+          2) wait for the `test` workflow to complete
+          3) if the tests pass, the e2e testing is complete
+          4) if the tests fail, inspect the logs from the workflow run, implement fixes, and repeat the process.
+          Skip the release steps.
+          Upon completion, create a PR against the main branch titled "chore: automated update of go and dependencies" with the changes.
+          Tag @digitalocean/doks for review.
+          Do not merge the PR.
+          '
