@@ -1,5 +1,16 @@
 ## unreleased
 
+* Publish driver images to GHCR (`ghcr.io/digitalocean-packages/do-csi-plugin`)
+  in addition to Docker Hub. Release manifests reference the GHCR image.
+
+  [[GH-663]](https://github.com/digitalocean/csi-digitalocean/pull/663)
+
+* Update Go to 1.27.4
+
+* Update Kubernetes dependencies to v0.37.2 / e2e tests to Kubernetes 1.37.2
+
+  [[GH-664]](https://github.com/digitalocean/csi-digitalocean/pull/664)
+
 ## v4.20.0 - 2026.11.05
 
 * Fix a race in `NodeStageVolume` that could reformat a volume holding data
