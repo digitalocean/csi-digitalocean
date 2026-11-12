@@ -349,7 +349,7 @@ Dependencies are managed via [Go modules](https://github.com/golang/go/wiki/Modu
 
 PRs from the code-hosting repository are automatically unit- and end-to-end-tested in our CI (implemented by Github Actions). See the [.github/workflows directory](.github/workflows) for details.
 
-For every green build of the master branch, the container image `digitalocean/do-csi-plugin:master` is updated and pushed at the end of the CI run. This allows to test the latest commit easily.
+For every green build of the master branch, the container image is updated and pushed to both `ghcr.io/digitalocean-packages/do-csi-plugin:master` and `digitalocean/do-csi-plugin:master` at the end of the CI run. This allows to test the latest commit easily. PR / e2e builds are published to GHCR only (`ghcr.io/digitalocean-packages/do-csi-plugin-dev:<branch>`).
 
 Steps to run the tests manually are outlined below.
 
@@ -363,18 +363,18 @@ make test
 
 ### End-to-End Tests
 
-If you do not have write permissions to `digitalocean/do-csi-plugin` on Docker Hub or are worried about conflicting usage of that tag, you can also publish under a different (presumably personal) organization:
+If you do not have write permissions to `ghcr.io/digitalocean-packages/do-csi-plugin` or are worried about conflicting usage of that tag, you can also publish under a different (presumably personal) repository:
 
 ```shell
-DOCKER_REPO=johndoe/do-csi-plugin VERSION=latest-feature make publish
+DOCKER_REPO=ghcr.io/johndoe/do-csi-plugin VERSION=latest-feature make publish
 ```
 
-This would yield the published container image `johndoe/do-csi-plugin:latest-feature`.
+This would yield the published container image `ghcr.io/johndoe/do-csi-plugin:latest-feature`.
 
 Assuming you have your DO API token assigned to the `DIGITALOCEAN_ACCESS_TOKEN` environment variable, you can then spin up a DOKS cluster on-the-fly and execute the upstream end-to-end tests for a given set of Kubernetes versions like this:
 
 ```shell
-make test-e2e E2E_ARGS="-driver-image johndoe/do-csi-plugin:latest-feature 1.30 1.29 1.28"
+make test-e2e E2E_ARGS="-driver-image ghcr.io/johndoe/do-csi-plugin:latest-feature 1.30 1.29 1.28"
 ```
 
 See [our documentation](test/e2e/README.md) for an overview on how the end-to-end tests work as well as usage instructions.
@@ -415,9 +415,28 @@ to update the Kubernetes dependencies to version X.Y.Z.
 
 ### Releasing
 
-Releases may happen either for the latest minor version of the CSI driver maintained in the `master` branch, or an older minor version still maintained in one of the `release-*` branches. In this section, we will call that branch the _release branch_.
+Releases may happen either for the latest minor version of the CSI driver maintained in the `master` branch, or an older minor version still maintained in one of the `release-*` branches.
 
-To release a new version `vX.Y.Z`, first check out the release branch and bump the version:
+#### Github Action (preferred)
+
+To create the container image and generate the manifests, go to the [Actions](https://github.com/digitalocean/csi-digitalocean/actions/workflows/release.yaml) page on GitHub and click "Run workflow". Select the release branch (`master` or a `release-*` branch) and specify the GitHub `<tag>` that you want to create, making sure it is prefixed with a `v`.
+
+Running the workflow also requires that you temporarily turn off the "Require a pull request before merging" setting in the branch protection rules for the selected branch. **Don't forget to turn it back on once the release is done!**
+
+The workflow does the following:
+
+* Builds and pushes the container image to both `ghcr.io/digitalocean-packages/do-csi-plugin:<tag>` (GHCR) and `digitalocean/do-csi-plugin:<tag>` (Docker Hub)
+* Runs `make bump-version` with `<tag>`
+* Commits the release manifests under `deploy/kubernetes/releases/`, plus `VERSION` and `CHANGELOG.md` (manifests reference the GHCR image)
+* Creates a Github Release and tags the new commit with the `<tag>` specified when the workflow is triggered
+
+Before releasing, make sure the change log's `## unreleased` section is up-to-date and is not missing any important, user-facing changes.
+
+#### Manual (deprecated)
+
+NOTE: this workflow is deprecated, please prefer the Github Action workflow described above.
+
+To manually release a new version `vX.Y.Z`, first check out the release branch and bump the version:
 
 ```shell
 make NEW_VERSION=vX.Y.Z bump-version
@@ -444,9 +463,15 @@ git tag vX.Y.Z
 git push origin vX.Y.Z
 ```
 
-(This works for non-master release branches as well since the `checkout` Github Action we use defaults to checking out the ref/SHA that triggered the workflow.)
+Then publish the image to both registries:
 
-The CI will publish the container image `digitalocean/do-csi-plugin:vX.Y.Z` and create a Github Release under the name `vX.Y.Z` automatically. Nothing else needs to be done.
+```shell
+VERSION=vX.Y.Z make publish
+docker tag ghcr.io/digitalocean-packages/do-csi-plugin:vX.Y.Z digitalocean/do-csi-plugin:vX.Y.Z
+docker push digitalocean/do-csi-plugin:vX.Y.Z
+```
+
+This pushes `ghcr.io/digitalocean-packages/do-csi-plugin:vX.Y.Z` to GHCR and `digitalocean/do-csi-plugin:vX.Y.Z` to Docker Hub.
 
 ## Contributing
 

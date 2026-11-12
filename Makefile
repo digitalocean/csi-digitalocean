@@ -30,8 +30,8 @@ else
   VERSION ?= $(shell cat VERSION)
 endif
 KUBERNETES_VERSION ?= 1.37.0
-DOCKER_REPO ?= digitalocean/do-csi-plugin
-CANONICAL_RUNNER_IMAGE = digitalocean/k8s-e2e-test-runner
+DOCKER_REPO ?= ghcr.io/digitalocean-packages/do-csi-plugin
+CANONICAL_RUNNER_IMAGE = ghcr.io/digitalocean-packages/k8s-e2e-test-runner
 RUNNER_IMAGE ?= $(CANONICAL_RUNNER_IMAGE)
 
 # Max Volumes to a Single Droplet is 7
@@ -59,7 +59,7 @@ bump-version:
 	@echo "Bumping VERSION from $(VERSION) to $(NEW_VERSION)"
 	@echo $(NEW_VERSION) > VERSION
 	@cp -r deploy/kubernetes/releases/csi-digitalocean-dev deploy/kubernetes/releases/csi-digitalocean-${NEW_VERSION}
-	@sed -i.sedbak 's#digitalocean/do-csi-plugin:dev#digitalocean/do-csi-plugin:${NEW_VERSION}#g' deploy/kubernetes/releases/csi-digitalocean-${NEW_VERSION}/*
+	@sed -i.sedbak 's#ghcr.io/digitalocean-packages/do-csi-plugin:dev#ghcr.io/digitalocean-packages/do-csi-plugin:${NEW_VERSION}#g' deploy/kubernetes/releases/csi-digitalocean-${NEW_VERSION}/*
 	@git add --intent-to-add deploy/kubernetes/releases/csi-digitalocean-${NEW_VERSION}
 	@sed -i.sedbak '/^# This file is only for development use/d' deploy/kubernetes/releases/csi-digitalocean-${NEW_VERSION}/*
 	$(eval NEW_DATE = $(shell date +%Y.%m.%d))
@@ -97,8 +97,8 @@ build:
 
 .PHONY: push
 push:
-# Permit releasing to the canonical container repository only if VERSION adheres to semver.
-ifeq ($(DOCKER_REPO),digitalocean/do-csi-plugin)
+# Permit releasing to a canonical container repository only if VERSION adheres to semver.
+ifneq ($(filter $(DOCKER_REPO),ghcr.io/digitalocean-packages/do-csi-plugin digitalocean/do-csi-plugin),)
 	@echo "${VERSION}" | grep -Eq "^v[0-9]+\.[0-9]+\.[0-9]+(-[[:alnum:]]+)?$$" || ( echo "VERSION \"${VERSION}\" does not adhere to semver"; exit 1 )
 endif
 	@echo "==> Publishing $(DOCKER_REPO):$(VERSION)"

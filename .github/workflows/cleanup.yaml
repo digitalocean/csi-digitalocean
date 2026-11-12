@@ -1,7 +1,7 @@
 name: cleanup-clusters
 
 env:
-  DOCKER_ORG: digitalocean
+  RUNNER_REPO: ghcr.io/digitalocean-packages/k8s-e2e-test-runner
 
 on:
   pull_request:
@@ -12,6 +12,9 @@ jobs:
     name: Clean up clusters from the PR
     runs-on: ubuntu-latest
     steps:
+      - name: Log into GHCR
+        run: echo "${{ secrets.GHCRTOKEN }}" | docker login ghcr.io --username digitalocean-engineering --password-stdin
+
       - name: cleanup
         env:
           DIGITALOCEAN_ACCESS_TOKEN: ${{ secrets.CSIDigitalOceanAccessToken }}
@@ -22,4 +25,4 @@ jobs:
 
           BRANCH="$(echo -n ${BRANCH} | tr -c '[:alnum:]._-' '-')"
           TAG_IDENTIFIER="$(echo -n ${BRANCH} | sha256sum | cut -c1-7)"
-          docker run --rm -e DIGITALOCEAN_ACCESS_TOKEN --entrypoint /cleanup-clusters.sh ${DOCKER_ORG}/k8s-e2e-test-runner:${BRANCH}-latest "branch-identifier:${TAG_IDENTIFIER}"
+          docker run --rm -e DIGITALOCEAN_ACCESS_TOKEN --entrypoint /cleanup-clusters.sh ${RUNNER_REPO}:${BRANCH}-latest "branch-identifier:${TAG_IDENTIFIER}"

@@ -18,8 +18,9 @@
 name: test
 
 env:
-  DOCKER_ORG: digitalocean
-  DOCKER_USER: ${{ secrets.DockerHubUser }}
+  PLUGIN_DEV_REPO: ghcr.io/digitalocean-packages/do-csi-plugin-dev
+  PLUGIN_REPO: ghcr.io/digitalocean-packages/do-csi-plugin
+  RUNNER_REPO: ghcr.io/digitalocean-packages/k8s-e2e-test-runner
 
 on:
   push:
@@ -66,8 +67,10 @@ jobs:
         with:
           fetch-depth: 1
 
-      - name: Log into container registry
-        run: echo "${{ secrets.DockerHubToken }}" | docker login --username ${DOCKER_USER} --password-stdin
+      - name: Log into GHCR
+        # Token from vault secrets-versioned/container/k8saas-images-ci
+        # (GHCR_DIGITALOCEAN_PACKAGES_RW_TOKEN), owned by digitalocean-engineering.
+        run: echo "${{ secrets.GHCRTOKEN }}" | docker login ghcr.io --username digitalocean-engineering --password-stdin
 
       # Github Actions provides a limited amount of disk space only that we
       # exceed during the Docker build (https://help.github.com/en/actions/reference/virtual-environments-for-github-hosted-runners#supported-runners-and-hardware-resources).
@@ -85,14 +88,14 @@ jobs:
           # ${{ github.head_ref }} is empty for non-pull requests, which is
           # exactly what we want on master.
           RUNNER_IMAGE_TAG_PREFIX: ${{ github.head_ref }}
-        run: RUNNER_IMAGE=${DOCKER_ORG}/k8s-e2e-test-runner make runner-push
+        run: RUNNER_IMAGE=${RUNNER_REPO} make runner-push
 
       - name: Build and push development plugin image
         env:
           VERSION: ${{ github.head_ref }}
         run: |
           VERSION="${VERSION:-latest}"
-          DOCKER_REPO=${DOCKER_ORG}/do-csi-plugin-dev make publish
+          DOCKER_REPO=${PLUGIN_DEV_REPO} make publish
 
   e2e-test:
     runs-on: ubuntu-latest
@@ -143,7 +146,7 @@ jobs:
             TAG=latest
           fi
 
-          TIMEOUT=90m make test-e2e E2E_ARGS="-ginkgo-nodes ${NUM_GINKGO_NODES} -driver-image ${DOCKER_ORG}/do-csi-plugin-dev:${TAG} -runner-image ${DOCKER_ORG}/k8s-e2e-test-runner:${RUNNER_IMAGE_TAG_PREFIX}latest -name-suffix ${NAME_SUFFIX} -retain ${{ matrix.kube-release }}"
+          TIMEOUT=90m make test-e2e E2E_ARGS="-ginkgo-nodes ${NUM_GINKGO_NODES} -driver-image ${PLUGIN_DEV_REPO}:${TAG} -runner-image ${RUNNER_REPO}:${RUNNER_IMAGE_TAG_PREFIX}latest -name-suffix ${NAME_SUFFIX} -retain ${{ matrix.kube-release }}"
 
   tag-new-master-image:
     runs-on: ubuntu-latest
@@ -156,11 +159,20 @@ jobs:
         with:
           fetch-depth: 1
 
-      - name: Log into container registry
-        run: echo "${{ secrets.DockerHubToken }}" | docker login --username ${DOCKER_USER} --password-stdin
+      - name: Log into GHCR
+        run: echo "${{ secrets.GHCRTOKEN }}" | docker login ghcr.io --username digitalocean-engineering --password-stdin
+
+      - name: Log into Docker Hub
+        env:
+          DOCKERHUB_USER: ${{ secrets.DockerHubUser }}
+        run: echo "${{ secrets.DockerHubToken }}" | docker login --username ${DOCKERHUB_USER} --password-stdin
 
       - name: tag new CSI plugin master image
+        env:
+          DOCKERHUB_REPO: digitalocean/do-csi-plugin
         run: |
-          docker pull ${DOCKER_ORG}/do-csi-plugin-dev:latest
-          docker tag ${DOCKER_ORG}/do-csi-plugin-dev:latest ${DOCKER_ORG}/do-csi-plugin:master
-          docker push ${DOCKER_ORG}/do-csi-plugin:master
+          docker pull ${PLUGIN_DEV_REPO}:latest
+          docker tag ${PLUGIN_DEV_REPO}:latest ${PLUGIN_REPO}:master
+          docker push ${PLUGIN_REPO}:master
+          docker tag ${PLUGIN_DEV_REPO}:latest ${DOCKERHUB_REPO}:master
+          docker push ${DOCKERHUB_REPO}:master

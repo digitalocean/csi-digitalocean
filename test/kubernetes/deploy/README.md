@@ -37,9 +37,9 @@ To test a development version on a DOKS cluster, do the following:
 
 ## Alternative Image Locations
 
-The instructions above assume you have push access to the
-`digitalocean/do-csi-plugin` repository on Docker Hub. However, this is not
-necessary to build and test a dev version of the CSI driver.
+The instructions above assume you have push access to
+`ghcr.io/digitalocean-packages/do-csi-plugin`. However, this is not necessary to
+build and test a dev version of the CSI driver.
 
 To build and publish a test version in your own image repository, do the
 following from the root of the repository:
