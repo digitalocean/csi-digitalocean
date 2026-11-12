@@ -61,7 +61,7 @@ else
   echo 'Running parallel tests'
   # Set node count explicitly since node detection does not work properly inside a
   # container.
-  "ginkgo-${KUBE_VER}" -v -p -nodes "${GINKGO_NODES:-$DEFAULT_GINKGO_NODES}" -focus="External.Storage${focus}.*" -skip='\[Feature:|\[Disruptive\]|\[Serial\]' "${E2E_TEST_FILE}" -- "-storage.testdriver=${TD_FILE}"
+  "ginkgo-${KUBE_VER}" -v -p -nodes "${GINKGO_NODES:-$DEFAULT_GINKGO_NODES}" -focus="External.Storage${focus}.*"  "${E2E_TEST_FILE}" -- "-storage.testdriver=${TD_FILE}"
 fi
 
 if [[ "${SKIP_SEQUENTIAL_TESTS:-}" ]]; then
