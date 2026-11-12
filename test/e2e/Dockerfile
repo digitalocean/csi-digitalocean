@@ -22,8 +22,8 @@ WORKDIR /go/src/k8s.io
 
 ### Kubernetes 1.37
 FROM builder AS tests-1.37
-ARG KUBE_VERSION_1_37=1.37.0
-ARG KUBE_VERSION_1_37_E2E_BIN_SHA256_CHECKSUM=b5cbdd35bcfe43d5b39c950c9d659d63ccd2a6431238bcca27eee19c59b47465
+ARG KUBE_VERSION_1_37=1.37.2
+ARG KUBE_VERSION_1_37_E2E_BIN_SHA256_CHECKSUM=dc87e22ca81700ca6ecd7dcd59637a95343763f219f7e18311998eca4d1f0e49
 
 RUN curl --fail --location https://dl.k8s.io/v${KUBE_VERSION_1_37}/kubernetes-test-linux-amd64.tar.gz | tar xvzf - --strip-components 3 kubernetes/test/bin/e2e.test kubernetes/test/bin/ginkgo
 RUN echo "${KUBE_VERSION_1_37_E2E_BIN_SHA256_CHECKSUM}" e2e.test | sha256sum --check
