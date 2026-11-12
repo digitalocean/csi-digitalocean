@@ -1,0 +1,44 @@
+kind: StatefulSet
+apiVersion: apps/v1
+metadata:
+  name: {{ printf "%s-snapshot-controller" (include "csi-digitalocean.fullname" .) | quote }}
+  namespace: {{ .Release.Namespace | quote }}
+  labels:
+    helm.sh/chart: {{ include "csi-digitalocean.chart" . | quote }}
+    app.kubernetes.io/name: {{ include "csi-digitalocean.name" . | quote }}
+    app.kubernetes.io/instance: {{ .Release.Name | quote }}
+    app.kubernetes.io/managed-by: {{ .Release.Service | quote }}
+    app.kubernetes.io/version: {{ .Chart.AppVersion | quote }}
+    app.kubernetes.io/component: snapshot-controller
+spec:
+  serviceName: {{ printf "%s-snapshot-controller" (include "csi-digitalocean.fullname" .) | quote }}
+  replicas: {{ .Values.snapshotController.replicas | int }}
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: {{ printf "%s-snapshot-controller" (include "csi-digitalocean.fullname" .) | quote }}
+      app.kubernetes.io/instance: {{ .Release.Name | quote }}
+      app.kubernetes.io/component: snapshot-controller
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: {{ printf "%s-snapshot-controller" (include "csi-digitalocean.fullname" .) | quote }}
+        app.kubernetes.io/instance: {{ .Release.Name | quote }}
+        app.kubernetes.io/version: {{ .Chart.AppVersion | quote }}
+        app.kubernetes.io/component: snapshot-controller
+    spec:
+      serviceAccountName: {{ printf "%s-snapshot-controller" (include "csi-digitalocean.fullname" .) | quote }}
+    {{- with .Values.snapshotController.affinity }}
+      affinity: {{- toYaml . | nindent 8 }}
+    {{- end }}
+    {{- with .Values.snapshotController.tolerations }}
+      tolerations: {{- toYaml . | nindent 8 }}
+    {{- end }}
+      containers:
+        - name: snapshot-controller
+          image: {{ printf "%s:%s" .Values.snapshotController.image.repository .Values.snapshotController.image.tag | quote }}
+          imagePullPolicy: {{ .Values.snapshotController.image.pullPolicy | quote }}
+          args:
+            - "--v=5"
+          {{- with .Values.snapshotController.extraArgs }}
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
