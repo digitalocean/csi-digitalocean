@@ -82,6 +82,11 @@ type Driver struct {
 	defaultVolumesPageSize uint
 	validateAttachment     bool
 	deviceWaitTimeout      time.Duration
+	// attachVolumeDirectly controls ControllerPublishVolume behavior.
+	// When true (default), Attach is called without branching on GetVolume
+	// droplet_ids, which can be stale under replica lag. When false, the
+	// legacy attachment-state checks are restored as a mitigation kill switch.
+	attachVolumeDirectly bool
 
 	srv     *grpc.Server
 	httpSrv *http.Server
@@ -116,6 +121,7 @@ type NewDriverParams struct {
 	DefaultVolumesPageSize uint
 	DOAPIRateLimitQPS      float64
 	ValidateAttachment     bool
+	AttachVolumeDirectly   bool
 	VolumeLimit            uint
 	// DeviceWaitTimeout bounds how long NodeStageVolume waits for an attached
 	// volume's device to appear. Defaults to DefaultDeviceWaitTimeout.
@@ -193,6 +199,7 @@ func NewDriver(p NewDriverParams) (*Driver, error) {
 		volumeLimit:            p.VolumeLimit,
 		validateAttachment:     p.ValidateAttachment,
 		deviceWaitTimeout:      deviceWaitTimeout,
+		attachVolumeDirectly:   p.AttachVolumeDirectly,
 
 		hostID:  func() string { return hostID },
 		region:  region,

@@ -63,6 +63,10 @@ const (
 	// maxVolumesPerDropletErrorLegacyMessage is the old error message returned by
 	// the DO API when the per-droplet volume limit would be exceeded.
 	maxVolumesPerDropletErrorLegacyMessage = "cannot attach more than 7 volumes to a single Droplet"
+
+	// actionStatusErrored is the DigitalOcean action status for a failed
+	// action. godo exports completed and in-progress, but not errored.
+	actionStatusErrored = "errored"
 )
 
 var (
@@ -72,6 +76,10 @@ var (
 	supportedAccessMode = &csi.VolumeCapability_AccessMode{
 		Mode: csi.VolumeCapability_AccessMode_SINGLE_NODE_WRITER,
 	}
+
+	// errActionErrored is returned by waitAction when an action's status is
+	// errored, so callers can stop polling instead of waiting out the timeout.
+	errActionErrored = errors.New("action errored")
 )
 
 // CreateVolume creates a new volume from the given request. The function is
@@ -329,38 +337,62 @@ func (d *Driver) ControllerPublishVolume(ctx context.Context, req *csi.Controlle
 		}
 	}
 
-	// check if droplet exist before trying to attach the volume to the droplet
-	_, resp, err = d.droplets.Get(ctx, dropletID)
-	if err != nil {
-		if resp != nil && resp.StatusCode == http.StatusNotFound {
-			return nil, status.Errorf(codes.NotFound, "droplet %d does not exist", dropletID)
+	// Legacy pre-checks behind --attach-volume-directly=false as a mitigation
+	// kill switch. GetVolume.droplet_ids comes from a replica and can still
+	// list a node after detach, or the previous node after a move; remove this
+	// path once production data confirms Attach-only is safe.
+	if !d.attachVolumeDirectly {
+		// check if droplet exist before trying to attach the volume to the droplet
+		_, resp, err = d.droplets.Get(ctx, dropletID)
+		if err != nil {
+			if resp != nil && resp.StatusCode == http.StatusNotFound {
+				return nil, status.Errorf(codes.NotFound, "droplet %d does not exist", dropletID)
+			}
+			return nil, err
 		}
-		return nil, err
-	}
 
-	attachedID := 0
-	for _, id := range vol.DropletIDs {
-		attachedID = id
-		if id == dropletID {
-			log.Info("volume is already attached")
-			return &csi.ControllerPublishVolumeResponse{
-				PublishContext: map[string]string{
-					d.publishInfoVolumeName: vol.Name,
-				},
-			}, nil
+		attachedID := 0
+		for _, id := range vol.DropletIDs {
+			attachedID = id
+			if id == dropletID {
+				log.Info("volume is already attached")
+				return &csi.ControllerPublishVolumeResponse{
+					PublishContext: map[string]string{
+						d.publishInfoVolumeName: vol.Name,
+					},
+				}, nil
+			}
+		}
+
+		// droplet is attached to a different node, return an error
+		if attachedID != 0 {
+			return nil, status.Errorf(codes.FailedPrecondition,
+				"volume %q is attached to the wrong droplet (%d), detach the volume to fix it",
+				req.VolumeId, attachedID)
 		}
 	}
 
-	// droplet is attached to a different node, return an error
-	if attachedID != 0 {
-		return nil, status.Errorf(codes.FailedPrecondition,
-			"volume %q is attached to the wrong droplet (%d), detach the volume to fix it",
-			req.VolumeId, attachedID)
-	}
-
-	// attach the volume to the correct node
+	// Attach re-reads the volume from the primary, so the action result is
+	// authoritative over potentially stale GetVolume.droplet_ids.
 	action, resp, err := d.storageActions.Attach(ctx, req.VolumeId, dropletID)
 	if err != nil {
+		if d.attachVolumeDirectly {
+			if resp != nil {
+				switch resp.StatusCode {
+				case http.StatusNotFound:
+					return nil, status.Errorf(codes.NotFound, "failed to attach volume %q to droplet %d: %s", req.VolumeId, dropletID, err)
+				case http.StatusUnprocessableEntity:
+					if strings.Contains(err.Error(), godo.ErrPerDropletVolumeCountLimit) ||
+						strings.Contains(err.Error(), maxVolumesPerDropletErrorLegacyMessage) {
+						return nil, status.Error(codes.ResourceExhausted, err.Error())
+					}
+				case http.StatusConflict, http.StatusForbidden:
+					return nil, status.Errorf(codes.FailedPrecondition, "failed to attach volume %q to droplet %d: %s", req.VolumeId, dropletID, err)
+				}
+			}
+			return nil, err
+		}
+
 		// don't do anything if attached
 		if resp != nil && resp.StatusCode == http.StatusUnprocessableEntity {
 			if strings.Contains(err.Error(), godo.ErrVolumeAlreadyAttached) {
@@ -396,6 +428,9 @@ func (d *Driver) ControllerPublishVolume(ctx context.Context, req *csi.Controlle
 		log = logWithAction(log, action)
 		log.Info("waiting until volume is attached")
 		if err := d.waitAction(ctx, log, req.VolumeId, action.ID); err != nil {
+			if errors.Is(err, errActionErrored) {
+				return nil, status.Errorf(codes.FailedPrecondition, "failed waiting on action ID %d for volume ID %s to get attached: %s", action.ID, req.VolumeId, err)
+			}
 			return nil, status.Errorf(codes.Internal, "failed waiting on action ID %d for volume ID %s to get attached: %s", action.ID, req.VolumeId, err)
 		}
 	}
@@ -1046,6 +1081,8 @@ func formatBytes(inputBytes int64) string {
 }
 
 // waitAction waits until the given action for the volume has completed.
+// It returns errActionErrored as soon as the action status is errored,
+// instead of polling until the context times out.
 func (d *Driver) waitAction(ctx context.Context, log *logrus.Entry, volumeID string, actionID int) error {
 	err := wait.PollUntil(1*time.Second, func() (done bool, err error) {
 		action, _, err := d.storageActions.Get(ctx, volumeID, actionID)
@@ -1063,6 +1100,12 @@ func (d *Driver) waitAction(ctx context.Context, log *logrus.Entry, volumeID str
 		if action.Status == godo.ActionCompleted {
 			log.Info("action completed")
 			return true, nil
+		}
+
+		// TODO: move actionStatusErrored to godo.ActionErrored
+		if action.Status == actionStatusErrored {
+			log.Info("action errored")
+			return false, errActionErrored
 		}
 
 		log.Info("action is still pending")
