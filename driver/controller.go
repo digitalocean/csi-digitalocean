@@ -429,7 +429,7 @@ func (d *Driver) ControllerPublishVolume(ctx context.Context, req *csi.Controlle
 		log.Info("waiting until volume is attached")
 		if err := d.waitAction(ctx, log, req.VolumeId, action.ID); err != nil {
 			if errors.Is(err, errActionErrored) {
-				return nil, status.Errorf(codes.FailedPrecondition, "volume %q may be attached to another droplet", req.VolumeId)
+				return nil, status.Errorf(codes.FailedPrecondition, "failed waiting on action ID %d for volume ID %s to get attached: %s", action.ID, req.VolumeId, err)
 			}
 			return nil, status.Errorf(codes.Internal, "failed waiting on action ID %d for volume ID %s to get attached: %s", action.ID, req.VolumeId, err)
 		}

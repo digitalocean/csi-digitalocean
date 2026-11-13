@@ -686,7 +686,7 @@ func TestControllerPublishVolume(t *testing.T) {
 			attachVolumeDirectly: true,
 			actionStatus:         actionStatusErrored,
 			wantCode:             codes.FailedPrecondition,
-			wantMessage:          fmt.Sprintf("volume %q may be attached to another droplet", volumeID),
+			wantMessage:          fmt.Sprintf("failed waiting on action ID %d for volume ID %s to get attached: %s", 7, volumeID, errActionErrored),
 			wantAttachCalls:      1,
 			wantGetCalls:         1,
 		},
