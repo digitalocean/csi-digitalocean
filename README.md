@@ -23,6 +23,19 @@ Below is a list of functionality implemented by the plugin. In general, [CSI fea
 
 See also the [project examples](/examples/kubernetes) for use cases.
 
+### Migrating Volumes Between Clusters
+
+Existing DigitalOcean Block Storage volumes can be re-used in a different
+cluster by statically provisioning a `PersistentVolume` that references the
+volume. The volume is identified by its ID, which can be retrieved with
+`doctl compute volume list`. See the
+[pod-single-existing-volume](/examples/kubernetes/pod-single-existing-volume)
+example for a complete manifest.
+
+Because the volume ID is stable across clusters, no data needs to be copied:
+detach the volume from the old cluster and attach it to the new one by
+creating the `PersistentVolume` and a matching `PersistentVolumeClaim`.
+
 ### Volume Expansion
 
 Volumes can be expanded by updating the storage request value of the corresponding PVC:
