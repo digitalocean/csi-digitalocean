@@ -332,8 +332,8 @@ file content for the `running` status. When enabling this flag, it prevents a ra
 fully attached which can be misinterpreted by the CSI implementation causing a force format of the volume which results in data loss.
 
 `--attach-volume-directly` (default `true`) makes `ControllerPublishVolume` call Attach without branching on `GetVolume`'s
-`droplet_ids`, which can be stale under replica lag and cause false already-attached or wrong-droplet results. Set it to
-`false` on the controller plugin to restore the legacy pre-check path if Attach-only behavior needs to be mitigated. 
+`droplet_ids`, which can be stale and cause false already-attached or wrong-droplet results. Set it to
+`false` on the controller plugin to restore the legacy pre-check. 
 
 Independently of these flags, the node plugin only formats a volume when `blkid -p` finds no filesystem or partition table
 signature on an existing block device _and_ the first 1 MiB of the device is all zeros. Otherwise `NodeStageVolume` fails

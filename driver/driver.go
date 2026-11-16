@@ -84,8 +84,8 @@ type Driver struct {
 	deviceWaitTimeout      time.Duration
 	// attachVolumeDirectly controls ControllerPublishVolume behavior.
 	// When true (default), Attach is called without branching on GetVolume
-	// droplet_ids, which can be stale under replica lag. When false, the
-	// legacy attachment-state checks are restored as a mitigation kill switch.
+	// droplet_ids, which can be stale. When false, the legacy
+	// attachment-state checks are restored.
 	attachVolumeDirectly bool
 
 	srv     *grpc.Server

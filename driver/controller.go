@@ -337,10 +337,9 @@ func (d *Driver) ControllerPublishVolume(ctx context.Context, req *csi.Controlle
 		}
 	}
 
-	// Legacy pre-checks behind --attach-volume-directly=false as a mitigation
-	// kill switch. GetVolume.droplet_ids comes from a replica and can still
-	// list a node after detach, or the previous node after a move; remove this
-	// path once production data confirms Attach-only is safe.
+	// Legacy pre-checks, used when --attach-volume-directly is false.
+	// GetVolume's droplet_ids can be stale and still list a node after
+	// detach, or the previous node after a move.
 	if !d.attachVolumeDirectly {
 		// check if droplet exist before trying to attach the volume to the droplet
 		_, resp, err = d.droplets.Get(ctx, dropletID)
@@ -372,8 +371,7 @@ func (d *Driver) ControllerPublishVolume(ctx context.Context, req *csi.Controlle
 		}
 	}
 
-	// Attach re-reads the volume from the primary, so the action result is
-	// authoritative over potentially stale GetVolume.droplet_ids.
+	// Trust the Attach result over GetVolume's droplet_ids, which can be stale.
 	action, resp, err := d.storageActions.Attach(ctx, req.VolumeId, dropletID)
 	if err != nil {
 		if d.attachVolumeDirectly {
