@@ -1,5 +1,17 @@
 ## unreleased
 
+* Attach volumes directly in `ControllerPublishVolume` instead of branching on
+  `GetVolume`'s `droplet_ids`, which can be stale and report a volume as
+  already attached or attached to the wrong droplet:
+  * Call Attach on every publish and use the action result. `GetVolume` remains
+    for the volume name and tagging.
+  * `--attach-volume-directly` defaults to `true`. Set it to `false` to restore
+    the previous droplet pre-check.
+  * Return `FailedPrecondition`, including the action ID, when the attach
+    action ends in error.
+
+  [[GH-661]](https://github.com/digitalocean/csi-digitalocean/pull/661)
+
 ## v4.21.0 - 2026.11.12
 
 * Publish driver images to GHCR (`ghcr.io/digitalocean-packages/do-csi-plugin`)
