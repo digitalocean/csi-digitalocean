@@ -1,5 +1,7 @@
 ## unreleased
 
+## v4.22.0 - 2026.11.16
+
 * Attach volumes directly in `ControllerPublishVolume` instead of branching on
   `GetVolume`'s `droplet_ids`, which can be stale and report a volume as
   already attached or attached to the wrong droplet:
