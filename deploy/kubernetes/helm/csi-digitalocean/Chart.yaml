@@ -1,0 +1,5 @@
+apiVersion: v2
+name: csi-digitalocean
+version: 2.1.1
+appVersion: 2.1.1
+type: application

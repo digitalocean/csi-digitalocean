@@ -1,0 +1,95 @@
+# Access token to DigitalOcean API.
+accessToken: ""
+
+driver:
+  name: dobs.csi.digitalocean.com
+
+storageClass:
+  name: do-block-storage
+  default: yes
+  # `Delete` removes PersistentVolume when PersistentVolumeClaim is deleted.
+  # `Retain` preserves PersistentVolume when PersistentVolumeClaim is deleted.
+  reclaimPolicy: Retain
+  snapshot:
+    deletionPolicy: Delete
+
+plugin:
+  # https://hub.docker.com/r/digitalocean/do-csi-plugin/tags
+  image:
+    repository: digitalocean/do-csi-plugin
+    tag: v2.1.1
+    pullPolicy: IfNotPresent
+
+  extraArgs: []
+
+node:
+  registrar:
+    # https://quay.io/repository/k8scsi/csi-node-driver-registrar?tab=tags
+    image:
+      repository: quay.io/k8scsi/csi-node-driver-registrar
+      tag: v2.0.1
+      pullPolicy: IfNotPresent
+
+    extraArgs: []
+
+  affinity: {}
+
+  tolerations: []
+
+controller:
+  replicas: 1
+
+  attacher:
+    # https://quay.io/repository/k8scsi/csi-attacher?tab=tags
+    image:
+      repository: quay.io/k8scsi/csi-attacher
+      tag: v3.0.0
+      pullPolicy: IfNotPresent
+
+    extraArgs: []
+
+  provisioner:
+    # https://quay.io/repository/k8scsi/csi-provisioner?tab=tags
+    image:
+      repository: quay.io/k8scsi/csi-provisioner
+      tag: v2.0.2
+      pullPolicy: IfNotPresent
+
+    extraArgs: []
+
+  resizer:
+    # https://quay.io/repository/k8scsi/csi-resizer?tab=tags
+    image:
+      repository: quay.io/k8scsi/csi-resizer
+      tag: v1.0.0
+      pullPolicy: IfNotPresent
+
+    extraArgs: []
+
+  snapshotter:
+    # https://quay.io/repository/k8scsi/csi-snapshotter?tab=tags
+    image:
+      repository: quay.io/k8scsi/csi-snapshotter
+      tag: v3.0.0
+      pullPolicy: IfNotPresent
+
+    extraArgs: []
+
+  affinity: {}
+
+  tolerations: []
+
+snapshotController:
+  replicas: 1
+
+  # https://quay.io/repository/k8scsi/snapshot-controller?tab=tags
+  image:
+    repository: quay.io/k8scsi/snapshot-controller
+    tag: v3.0.0
+    pullPolicy: IfNotPresent
+
+  extraArgs: []
+
+  affinity: {}
+
+  tolerations: []
